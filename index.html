@@ -458,6 +458,13 @@
       letter-spacing: .14em; color: #ff8a9a; border: 1px solid rgba(255, 98, 121, .55); border-radius: 6px;
       transform: rotate(4deg);
     }
+    .story-art {
+      width: 100%; height: clamp(140px, 30vw, 190px); margin-bottom: 16px; border-radius: 14px;
+      overflow: hidden; position: relative; border: 1px solid rgba(255, 222, 89, .16);
+      background: linear-gradient(180deg, #0a1424, #060c16);
+      box-shadow: inset 0 0 30px rgba(0,0,0,.5);
+    }
+    .story-art svg { width: 100%; height: 100%; display: block; }
     .story-emblem {
       width: 52px; height: 52px; margin-bottom: 14px; display: grid; place-items: center; border-radius: 14px;
       background: linear-gradient(135deg, #ff8a9a, #ff4d67); color: #1a0509; font-weight: 900; letter-spacing: -.03em;
@@ -585,6 +592,7 @@
   <section class="story-screen" id="storyScreen" aria-labelledby="storyTitle">
     <div class="story-card">
       <div class="story-stamp" aria-hidden="true">機密 · CLASSIFIED</div>
+      <div class="story-art" id="storyArt" aria-hidden="true"></div>
       <div class="story-emblem" aria-hidden="true">2ab</div>
       <h2 class="story-title" id="storyTitle"></h2>
       <div class="story-body" id="storyBody"></div>
@@ -750,6 +758,7 @@
     const el = {
       storyScreen: document.getElementById('storyScreen'),
       storyTitle: document.getElementById('storyTitle'),
+      storyArt: document.getElementById('storyArt'),
       storyBody: document.getElementById('storyBody'),
       storyProgress: document.getElementById('storyProgress'),
       storyNext: document.getElementById('storyNext'),
@@ -1226,15 +1235,125 @@ function getDynamicTimeLimit() {
     const STORY_SLIDES = [
       {
         title: '任務簡報 · 深夜警報',
-        body: '深夜，2ab 教室的警報器突然響起。\n神秘駭客組織「因式軍團」入侵校園，在桌椅間佈下大量偽裝成<strong>代數展開式</strong>的訓練用炸彈——\n每一顆炸彈的引線後面，都藏著一條看似正確、實則陷阱重重的算式。'
+        body: '深夜，2ab 教室的警報器突然響起。\n神秘駭客組織「因式軍團」入侵校園，在桌椅間佈下大量偽裝成<strong>代數展開式</strong>的訓練用炸彈——\n每一顆炸彈的引線後面，都藏著一條看似正確、實則陷阱重重的算式。',
+        art: `<svg viewBox="0 0 480 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="深夜校園警報">
+          <defs>
+            <linearGradient id="s1sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0a1424"/><stop offset="70%" stop-color="#0d0810"/><stop offset="100%" stop-color="#210a12"/>
+            </linearGradient>
+            <radialGradient id="s1alarm" cx="50%" cy="18%" r="55%">
+              <stop offset="0%" stop-color="#ff6279" stop-opacity=".55"/><stop offset="100%" stop-color="#ff6279" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="s1bombGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#ffb0ba"/><stop offset="55%" stop-color="#ff4d67"/><stop offset="100%" stop-color="#7a0f22"/>
+            </radialGradient>
+          </defs>
+          <rect width="480" height="220" fill="url(#s1sky)"/>
+          <rect width="480" height="220" fill="url(#s1alarm)"/>
+          <circle cx="418" cy="34" r="16" fill="#dfe9ff" opacity=".85"/>
+          <circle cx="410" cy="30" r="16" fill="#0a1424"/>
+          <g opacity=".55" fill="#9fd4e6">
+            <circle cx="60" cy="26" r="1.6"/><circle cx="100" cy="50" r="1.2"/><circle cx="150" cy="20" r="1.4"/>
+            <circle cx="250" cy="34" r="1.3"/><circle cx="330" cy="18" r="1.6"/>
+          </g>
+          <g opacity=".9">
+            <rect x="0" y="150" width="480" height="70" fill="#060910"/>
+            <rect x="20" y="160" width="34" height="26" rx="3" fill="#111d2b" stroke="#2d4356" stroke-width="1.5"/>
+            <rect x="70" y="160" width="34" height="26" rx="3" fill="#111d2b" stroke="#2d4356" stroke-width="1.5"/>
+            <rect x="376" y="160" width="34" height="26" rx="3" fill="#111d2b" stroke="#2d4356" stroke-width="1.5"/>
+            <rect x="426" y="160" width="34" height="26" rx="3" fill="#111d2b" stroke="#2d4356" stroke-width="1.5"/>
+          </g>
+          <g transform="translate(240,118)">
+            <circle r="46" fill="url(#s1bombGlow)"/>
+            <circle r="46" fill="none" stroke="#ffdfe3" stroke-width="1.5" opacity=".5"/>
+            <path d="M0 -46 L10 -60 L-10 -60 Z" fill="#ffce6b"/>
+            <text x="0" y="9" text-anchor="middle" font-family="Courier New, monospace" font-weight="900" font-size="26" fill="#fff5f6">x²</text>
+          </g>
+          <g font-family="Courier New, monospace" font-weight="900" fill="#6cf3a6" opacity=".8">
+            <text x="70" y="100" font-size="20">±</text>
+            <text x="140" y="70" font-size="16">2ab</text>
+            <text x="330" y="90" font-size="20">=</text>
+            <text x="380" y="66" font-size="16" fill="#5fe3ff">a²</text>
+          </g>
+        </svg>`
       },
       {
         title: '任務簡報 · 緊急徵召',
-        body: '指揮部緊急徵召你，加入<strong>2ab 拆彈小隊</strong>。\n你的裝備很簡單：三條引線、一顆不斷倒數的炸彈，還有你腦中的<strong>完全平方</strong>與<strong>平方差公式</strong>。\n選錯引線，或讓時間歸零——炸彈就會引爆。'
+        body: '指揮部緊急徵召你，加入<strong>2ab 拆彈小隊</strong>。\n你的裝備很簡單：三條引線、一顆不斷倒數的炸彈，還有你腦中的<strong>完全平方</strong>與<strong>平方差公式</strong>。\n選錯引線，或讓時間歸零——炸彈就會引爆。',
+        art: `<svg viewBox="0 0 480 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="緊急徵召指揮中心">
+          <defs>
+            <radialGradient id="s2bg" cx="50%" cy="45%" r="65%">
+              <stop offset="0%" stop-color="#0f2338"/><stop offset="100%" stop-color="#060c16"/>
+            </radialGradient>
+            <linearGradient id="s2beam" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#5fe3ff" stop-opacity=".5"/><stop offset="100%" stop-color="#5fe3ff" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <rect width="480" height="220" fill="url(#s2bg)"/>
+          <polygon points="240,0 190,220 290,220" fill="url(#s2beam)"/>
+          <g stroke="#5fe3ff" fill="none" opacity=".55">
+            <circle cx="240" cy="112" r="80" stroke-width="1.4"/>
+            <circle cx="240" cy="112" r="58" stroke-width="1.2"/>
+            <circle cx="240" cy="112" r="36" stroke-width="1.4"/>
+          </g>
+          <path d="M240 112 L240 32 A80 80 0 0 1 296 56 Z" fill="#5fe3ff" opacity=".16"/>
+          <g transform="translate(240,112)">
+            <circle r="30" fill="#0c1b2e" stroke="#ffde59" stroke-width="2.5"/>
+            <text x="0" y="8" text-anchor="middle" font-family="Noto Serif TC, serif" font-weight="900" font-size="20" fill="#ffde59">2ab</text>
+          </g>
+          <g transform="translate(96,118)">
+            <circle cx="-14" cy="0" r="19" fill="#123047" stroke="#f59e0b" stroke-width="4"/>
+            <circle cx="16" cy="0" r="19" fill="#123047" stroke="#f59e0b" stroke-width="4"/>
+            <rect x="-4" y="-4" width="14" height="8" rx="2" fill="#f59e0b"/>
+            <rect x="-34" y="-3" width="18" height="6" rx="3" fill="#1c2b3a"/>
+            <rect x="26" y="-3" width="16" height="6" rx="3" fill="#1c2b3a"/>
+          </g>
+          <g transform="translate(384,120)">
+            <rect x="-22" y="-26" width="44" height="52" rx="10" fill="#a8631a"/>
+            <rect x="-22" y="-26" width="44" height="52" rx="10" fill="none" stroke="#ffce6b" stroke-width="2"/>
+            <rect x="-9" y="-8" width="18" height="12" rx="3" fill="#3a2410"/>
+            <circle cx="0" cy="-2" r="2.4" fill="#ffde59"/>
+          </g>
+          <g font-family="Courier New, monospace" fill="#8fe3c9" opacity=".85" font-size="12" letter-spacing="2">
+            <text x="60" y="40">RECRUIT</text>
+            <text x="370" y="200">STANDBY</text>
+          </g>
+        </svg>`
       },
       {
         title: '任務簡報 · 出發前提醒',
-        body: '隊長留下最後叮嚀：\n<strong>完全平方</strong>別漏掉中間項 2ab；<strong>平方差</strong>則是「前平方減後平方」。\n每過 10 關，反應時間會再縮短，保持冷靜與專注。\n\n特工，祝你好運。2ab 拆彈小隊，出發！'
+        body: '隊長留下最後叮嚀：\n<strong>完全平方</strong>別漏掉中間項 2ab；<strong>平方差</strong>則是「前平方減後平方」。\n每過 10 關，反應時間會再縮短，保持冷靜與專注。\n\n特工，祝你好運。2ab 拆彈小隊，出發！',
+        art: `<svg viewBox="0 0 480 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="拆彈前最後提醒">
+          <defs>
+            <linearGradient id="s3bg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0a1424"/><stop offset="100%" stop-color="#050a12"/>
+            </linearGradient>
+            <linearGradient id="s3screen" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0c2a22"/><stop offset="100%" stop-color="#06140f"/>
+            </linearGradient>
+          </defs>
+          <rect width="480" height="220" fill="url(#s3bg)"/>
+          <g transform="translate(120,34)">
+            <rect width="200" height="94" rx="12" fill="#1c2733" stroke="#455765" stroke-width="4"/>
+            <rect x="10" y="10" width="180" height="74" rx="8" fill="url(#s3screen)" stroke="#0e171f" stroke-width="2"/>
+            <text x="100" y="42" text-anchor="middle" font-family="Courier New, monospace" font-weight="700" font-size="20" fill="#bfffe1">(x + 3)²</text>
+            <text x="100" y="68" text-anchor="middle" font-family="Courier New, monospace" font-weight="900" font-size="16" fill="#ffdb82">05s</text>
+          </g>
+          <g stroke-width="7" fill="none" stroke-linecap="round">
+            <path d="M120 128 C150 150, 190 168, 210 190" stroke="#ff4d67"/>
+            <path d="M170 138 C195 158, 215 172, 235 192" stroke="#4cc9ff"/>
+            <path d="M220 148 C240 165, 255 175, 262 195" stroke="#62f5aa"/>
+          </g>
+          <g transform="translate(300,178) rotate(18)">
+            <path d="M-14 -14 L20 20 M-14 14 L20 -20" stroke="#dfe9ff" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="-14" cy="-14" r="6" fill="none" stroke="#dfe9ff" stroke-width="4"/>
+            <circle cx="-14" cy="14" r="6" fill="none" stroke="#dfe9ff" stroke-width="4"/>
+          </g>
+          <g font-family="Courier New, monospace" font-weight="900" fill="#ffce6b" opacity=".9">
+            <text x="30" y="60" font-size="18">2ab</text>
+            <text x="380" y="50" font-size="18" fill="#ff8a9a">±</text>
+          </g>
+        </svg>`
       }
     ];
     let storyIndex = 0;
@@ -1242,6 +1361,7 @@ function getDynamicTimeLimit() {
     function renderStory() {
       const slide = STORY_SLIDES[storyIndex];
       if (el.storyTitle) el.storyTitle.textContent = slide.title;
+      if (el.storyArt) el.storyArt.innerHTML = slide.art || '';
       if (el.storyBody) el.storyBody.innerHTML = slide.body.replace(/\n/g, '<br>');
       if (el.storyProgress) {
         el.storyProgress.querySelectorAll('span').forEach((dot, index) => {
