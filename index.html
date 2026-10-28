@@ -20,7 +20,11 @@ window.CONFIG = {
   studentNoMax: 40,
   nameMaxLength: 20,
 
-  winScore: 15,                       // 先夠呢個分數就勝出
+  // 玩法：'simple' 簡易（冇功能卡、冇反應窗口）或 'full' 進階（完整規則）
+  defaultRules: 'simple',
+  allowRuleChoice: true,              // 學生可以喺設定畫面揀玩法；false = 一律用 defaultRules
+  winScore: 15,                       // 進階玩法：先夠呢個分數就勝出
+  winScoreSimple: 10,                 // 簡易玩法：先夠呢個分數就勝出
   starsIncluded: [1, 2, 3],           // 老師設定：包含邊幾個星級，例如 [1, 2]
   points: { 1: 1, 2: 2, 3: 3 },
   tableSize: 4,                       // 桌面目標卡數量
@@ -345,6 +349,9 @@ table.review th { color: #5b1d10; }
     <p class="who-line" id="setupWho"></p>
     <div class="setup-grid">
       <div>
+        <div id="rulesBox"><h2 data-t="rulesMode"></h2>
+        <div class="seg" id="segRules"><button data-v="simple"></button><button data-v="full"></button></div>
+        <p class="notice" id="rulesDesc" style="margin:4px 0 0;text-align:left"></p></div>
         <h2 data-t="players"></h2>
         <div class="seg" id="segPlayers"><button data-v="2"></button><button data-v="4"></button></div>
         <h2 data-t="difficulty"></h2>
@@ -921,11 +928,20 @@ const store = {
   set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch (e) { return false; } },
   del(key) { try { localStorage.removeItem(key); } catch (e) { /* ignore */ } },
 };
-const KEYS = { student: 'fa_student_v1', queue: 'fa_queue_v1', mute: 'fa_mute_v1', lowfx: 'fa_lowfx_v1', setup: 'fa_setup_v1' };
+const KEYS = { student: 'fa_student_v1', queue: 'fa_queue_v1', mute: 'fa_mute_v1', lowfx: 'fa_lowfx_v1', setup: 'fa_setup_v1', tutorial: 'fa_tutorial_v1' };
 
 /* ---------- 語言 ---------- */
 let LANG = 'zh';
 const STR = {
+  rulesMode: ['玩法', 'Rules'], simple: ['簡易（推薦）', 'Simple (recommended)'], full: ['進階', 'Advanced'],
+  simpleD: ['冇功能卡、冇反應窗口，專心練因式分解。', 'No function cards or reaction windows: just factorize.'],
+  fullD: ['加入逆鍊成、賢者之石、分解之手同截胡，節奏更緊張。', 'Adds Reverse, Stone, Hand and sniping for a tenser game.'],
+  yourTurnSimple: ['① 撳一張目標卡　② 撳手牌湊出佢嘅因式　③ 按「鍊成！」', '① Tap a target  ② Tap hand cards that multiply to it  ③ Press Transmute!'],
+  swapEnd: ['換走呢張 · 結束回合', 'Swap it & end turn'],
+  handFull: ['手牌已滿 {n} 張，今回合唔抽牌', 'Hand is full ({n}): no draw this turn'],
+  wrongSimple: ['等價交換失敗！卡退返手上，回合結束。', 'Exchange failed! Cards return to your hand; turn over.'],
+  incompleteSimple: ['分解不徹底：{f} 仲可以抽出公因數 {g}，呢張卡被棄掉。應該用 {g} 同 {p}。', 'Incomplete: {f} still has a common factor {g}, so it is discarded. Use {g} and {p} instead.'],
+  tutStart: ['明白，開始！', "Got it, let's go!"],
   players: ['人數', 'Players'], p2: ['2 人', '2 players'], p4: ['4 人', '4 players'],
   difficulty: ['電腦難度', 'AI difficulty'], character: ['你嘅角色', 'Your character'],
   apprentice: ['見習鍊金術師', 'Apprentice'], national: ['國家鍊金術師', 'State Alchemist'], flame: ['焰之鍊金術師', 'Flame Alchemist'],
@@ -1882,6 +1898,9 @@ const view = new View();
 let game = null, session = null;
 const ui = { selected: new Set(), selectedTarget: null, staged: null, interactive: false, pick: null, mode: 'idle', reverseFunc: null };
 let actionResolver = null;
+const isSimple = () => !!(session && session.rules === 'simple');
+const winFor = (rules) => (rules === 'simple' ? CFG.winScoreSimple : CFG.winScore);
+function rulesChoice() { return CFG.allowRuleChoice ? (setupSel.rules || CFG.defaultRules) : CFG.defaultRules; }
 class AbortGame extends Error {}
 
 /* ---------- 小工具 ---------- */
@@ -1959,7 +1978,7 @@ function notMe() {
 }
 
 /* ---------- 對局設定 ---------- */
-let setupSel = { players: 2, difficulty: 'national', char: 'ed' };
+let setupSel = { players: 2, difficulty: 'national', char: 'ed', rules: null };
 function applyLang() {
   const s = store.get(KEYS.student);
   LANG = (s && s.lang) || 'zh';
@@ -1970,6 +1989,7 @@ function applyLang() {
   $('btnStart').innerHTML = t('start'); $('btnRules2').innerHTML = t('rules'); $('btnNotMe2').innerHTML = t('notMe');
   $('btnVerifyOk').innerHTML = t('continue'); $('btnRulesOk').innerHTML = t('ok'); $('btnYes').innerHTML = t('yes'); $('btnNo').innerHTML = t('no');
   $('segPlayers').children[0].innerHTML = t('p2'); $('segPlayers').children[1].innerHTML = t('p4');
+  $('segRules').children[0].innerHTML = t('simple'); $('segRules').children[1].innerHTML = t('full');
 }
 function showSetup() {
   applyLang();
@@ -1986,12 +2006,16 @@ function showSetup() {
     $('chDiff').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.difficulty));
     $('chChar').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.char));
     setSeg('segPlayers', setupSel.players);
+    const r = rulesChoice();
+    setSeg('segRules', r); $('rulesDesc').innerHTML = t(r + 'D');
+    $('rulesBox').hidden = !CFG.allowRuleChoice;
+    const stars = (CFG.starsIncluded || [1, 2, 3]).map(n => '★'.repeat(n)).join(' ');
+    $('setupInfo').innerHTML = t('setupInfo', { win: winFor(r), stars, hints: CFG.hintsPerGame });
   };
+  $('segRules').onclick = (e) => { const b = e.target.closest('button'); if (b) { setupSel.rules = b.dataset.v; Sound.play('select'); mark(); } };
   $('chDiff').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.difficulty = c.dataset.v; Sound.play('select'); mark(); } };
   $('chChar').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.char = c.dataset.v; Sound.play('select'); mark(); } };
   mark();
-  const stars = (CFG.starsIncluded || [1, 2, 3]).map(n => '★'.repeat(n)).join(' ');
-  $('setupInfo').innerHTML = t('setupInfo', { win: CFG.winScore, stars, hints: CFG.hintsPerGame });
 }
 function escapeHTML(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function hideAllScreens() { ['screenLogin', 'screenSetup', 'screenReview', 'modalVerify', 'modalRules', 'modalConfirm'].forEach(id => $(id).hidden = true); $('reaction').hidden = true; }
@@ -2005,12 +2029,14 @@ async function startGame() {
   if (session) endSession();
   const opps = shuffle(AI_CHARS.slice()).slice(0, setupSel.players - 1);
   const defs = [{ char: setupSel.char, isHuman: true }].concat(opps.map(c => ({ char: c, isHuman: false, difficulty: setupSel.difficulty })));
-  game = new Game(CFG, defs);
+  const rules = rulesChoice();
+  // 簡易玩法：唔放功能卡入牌組，勝利分數用 winScoreSimple
+  game = new Game(rules === 'simple' ? { ...CFG, winScore: CFG.winScoreSimple, functionCards: {} } : CFG, defs);
   let abort; const abortP = new Promise((_, rej) => { abort = () => rej(new AbortGame()); });
   abortP.catch(() => {});
   session = {
     gameId: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-    student, settings: { ...setupSel }, start: new Date(), active: true, finished: false, abort, abortP,
+    student, settings: { ...setupSel }, rules, start: new Date(), active: true, finished: false, abort, abortP,
     hintsLeft: CFG.hintsPerGame, lowfxChecked: false,
     stats: { succ: { 1: 0, 2: 0, 3: 0 }, wrong: 0, incomplete: 0, snipe: 0, snipeMissed: 0, destroyed: 0, hints: 0 },
     attempts: [], mistakes: [], claimed: new Map(), endReason: '',
@@ -2027,6 +2053,7 @@ async function startGame() {
   banner('');
   try {
     await relayout(520);
+    if (rules === 'simple' && !store.get(KEYS.tutorial, false)) { await abortable(showRules(true)); store.set(KEYS.tutorial, true); }
     await intros();
     setTimeout(() => checkPerf(), 4000);
     await runLoop();
@@ -2074,6 +2101,10 @@ async function runLoop() {
   if (session && session.active) await finishGame();
 }
 async function drawCards(pi, n) {
+  if (isSimple()) {
+    n = Math.min(n, CFG.handLimit - game.player(pi).hand.length);
+    if (n <= 0) { if (game.player(pi).isHuman) toast(t('handFull', { n: CFG.handLimit })); return []; }
+  }
   const r = game.draw(pi, n);
   if (r.reshuffled) toast(t('reshuffle'));
   await relayout(460);
@@ -2083,8 +2114,9 @@ async function drawCards(pi, n) {
 /* ---------- 真人回合 ---------- */
 function waitAction() { return abortable(new Promise(res => { actionResolver = res; })); }
 function act(a) { if (actionResolver) { const r = actionResolver; actionResolver = null; r(a); } }
+const turnBanner = () => banner(t(isSimple() ? 'yourTurnSimple' : 'yourTurn'));
 async function humanTurn() {
-  banner(t('yourTurn'));
+  turnBanner();
   await drawCards(0, 1);
   ui.interactive = true; ui.mode = 'main';
   updateButtons(); renderPreview();
@@ -2100,7 +2132,7 @@ async function humanTurn() {
       await abortable(view.flip(a.cardId));
       toast(t('reverseDone', { a: tex(par(before)), b: tex(par(c.poly)) }), 'good');
       ui.interactive = true;
-      banner(t('yourTurn')); updateButtons(); renderPreview();
+      turnBanner(); updateButtons(); renderPreview();
       continue;
     }
     ui.interactive = false; updateButtons();
@@ -2181,11 +2213,15 @@ function updateButtons() {
   $('btnSynth').disabled = !(main && ui.selectedTarget && ui.selected.size > 0);
   $('btnSwap').disabled = !(main && ui.selected.size === 1);
   $('btnEnd').disabled = !main;
+  const swapOnEnd = isSimple() && main && ui.selected.size === 1 && !ui.selectedTarget;
+  $('btnEnd').innerHTML = t(swapOnEnd ? 'swapEnd' : 'end');
+  $('btnEnd').classList.toggle('gold', swapOnEnd);
   $('btnHint').disabled = !(main && session && session.hintsLeft > 0);
   $('btnHint').innerHTML = t('hint', { n: session ? session.hintsLeft : CFG.hintsPerGame });
   const disc = ui.mode === 'discard';
   $('btnConfirm').hidden = !disc; $('btnConfirm').disabled = !ui.pick;
   ['btnSynth', 'btnSwap', 'btnEnd', 'btnHint'].forEach(b => $(b).hidden = disc);
+  if (isSimple()) $('btnSwap').hidden = true;
 }
 function renderPreview() {
   const el = $('selPreview');
@@ -2249,6 +2285,9 @@ async function resolveSynthesis(pi, targetId, cardIds) {
       session.stats.wrong++; attempt.result = 'wrong';
       session.mistakes.push({ kind: 'wrong', target, cards: cardIds.map(id => game.card(id)), product: ev.product });
       session.attempts.push(attempt);
+    }
+    if (isSimple()) { banner(t('wrongSimple')); await wait(1600); return; }   // 簡易玩法：唔使棄牌做代價
+    if (human) {
       const id = await chooseDiscard(t('payCost'));
       game.discard(0, [id]);
     } else {
@@ -2262,7 +2301,7 @@ async function resolveSynthesis(pi, targetId, cardIds) {
   if (ev.result === 'correct') {
     view.setGlow(0.55);
     banner(human ? t('waitReact') : t('handTitle', { name: nameOf(pi) }));
-    const react = await reactionWindow('hand', pi, targetId, ev);
+    const react = isSimple() ? null : await reactionWindow('hand', pi, targetId, ev);
     if (react) {
       banner(t('destroyedBy', { name: nameOf(react.pi) }));
       game.discard(react.pi, [react.cardId]);
@@ -2295,6 +2334,20 @@ async function resolveSynthesis(pi, targetId, cardIds) {
   Sound.play('warn');
   const bad = ev.bad[0].poly;
   banner(`${t('snipeTitle')}`);
+  if (isSimple()) {
+    // 簡易玩法：冇截胡；只係棄走唔夠簡嗰張卡，其他卡退返手上
+    game.discard(pi, ev.bad.map(c => c.id));
+    ui.staged = null; undim(); view.setGlow(0);
+    if (human) {
+      session.stats.incomplete++; attempt.result = 'incomplete'; session.attempts.push(attempt);
+      session.mistakes.push({ kind: 'incomplete', target, cards: cardIds.map(id => game.card(id)), bad });
+    }
+    const g = bad.content();
+    banner(t('incompleteSimple', { f: tex(par(bad)), g, p: tex(par(new Poly(bad.terms().map(x => [x.i + ',' + x.j, x.c / g])))) }));
+    await relayout(520);
+    await wait(2600);
+    return;
+  }
   const react = await reactionWindow('snipe', pi, targetId, ev);
   game.discard(pi, cardIds);
   ui.staged = null; undim(); view.setGlow(0);
@@ -2469,7 +2522,7 @@ function showVerify(pi, target, factors, stoneValue, isModel = false) {
 function renderScoreboard() {
   if (!game) return;
   $('scoreboard').innerHTML = game.players.map((p, i) => `<div class="row ${game.current === i && !game.over ? 'cur' : ''}">${ART.emblem(p.char)}<span>${charName(p.char)}${p.isHuman ? ' ★' : ''}</span><span class="s">${p.score}</span></div>`).join('') +
-    `<div class="goal">${tp('goal', { n: CFG.winScore })}</div>`;
+    `<div class="goal">${tp('goal', { n: game.cfg.winScore })}</div>`;
 }
 
 /* ---------- 完局 ---------- */
@@ -2488,7 +2541,7 @@ function buildRecord(status) {
     success1: s.stats.succ[1], success2: s.stats.succ[2], success3: s.stats.succ[3],
     wrongCount: s.stats.wrong, incompleteCount: s.stats.incomplete,
     snipeSuccess: s.stats.snipe, snipeMissed: s.stats.snipeMissed,
-    destroyedCount: s.stats.destroyed, hintsUsed: s.stats.hints,
+    destroyedCount: s.stats.destroyed, hintsUsed: s.stats.hints, rules: s.rules,
     turns: game.turnNo,
     attempts: s.attempts.slice(),
   };
@@ -2496,8 +2549,8 @@ function buildRecord(status) {
 async function finishGame() {
   session.finished = true; ui.interactive = false; updateButtons();
   const me = game.player(0);
-  const winner = game.players.find(p => p.score >= CFG.winScore);
-  banner(winner ? t('gameOverScore', { name: nameOf(winner.idx), n: CFG.winScore }) : t('gameOverDeck'));
+  const winner = game.players.find(p => p.score >= game.cfg.winScore);
+  banner(winner ? t('gameOverScore', { name: nameOf(winner.idx), n: game.cfg.winScore }) : t('gameOverDeck'));
   await wait(1600);
   const rec = buildRecord('completed');
   Sound.play(rec.result === 'win' ? 'win' : rec.result === 'draw' ? 'success' : 'lose');
@@ -2527,7 +2580,7 @@ function showReview(rec, syncState) {
     <p class="sync" id="syncLine">${t(syncState)}</p>
     <h2>${t('stats')}</h2>
     <table class="review"><tr><td>${t('stSucc')}</td><td>${st.succ[1]} / ${st.succ[2]} / ${st.succ[3]}</td><td>${t('stWrong')}</td><td>${st.wrong}</td><td>${t('stInc')}</td><td>${st.incomplete}</td></tr>
-    <tr><td>${t('stSnipe')}</td><td>${st.snipe}</td><td>${t('stMiss')}</td><td>${st.snipeMissed}</td><td>${t('stDestroyed')}</td><td>${st.destroyed}</td></tr>
+    ${session.rules === 'simple' ? '' : `<tr><td>${t('stSnipe')}</td><td>${st.snipe}</td><td>${t('stMiss')}</td><td>${st.snipeMissed}</td><td>${t('stDestroyed')}</td><td>${st.destroyed}</td></tr>`}
     <tr><td>${t('stHints')}</td><td>${st.hints}</td><td colspan="4"></td></tr></table>
     <h2>${t('mistakes')}</h2>
     ${mis ? `<table class="review"><tr><th></th><th>${t('target')}</th><th>${t('played')}</th><th>${t('why')}</th><th>${t('answer')}</th></tr>${mis}</table>` : `<p>${t('noMistakes')}</p>`}
@@ -2562,6 +2615,27 @@ function confirmBox(html) {
 /* ---------- 靜態按鈕 ---------- */
 function updateMuteBtn() { $('btnMute').classList.toggle('off', Sound.muted); $('btnMute').querySelector('.x').style.display = Sound.muted ? '' : 'none'; $('btnMute').querySelectorAll('.w1,.w2').forEach(p => p.style.display = Sound.muted ? 'none' : ''); }
 function updateFxBtn() { $('btnFx').classList.toggle('on', view.lowfx); $('btnFx').title = view.lowfx ? 'Simplified FX: ON' : 'Simplified FX: OFF'; }
+function showRules(tutorial) {
+  const simple = session && session.active ? session.rules === 'simple' : rulesChoice() === 'simple';
+  $('rulesBody').innerHTML = simple ? simpleRulesHTML() : rulesHTML();
+  $('btnRulesOk').innerHTML = t(tutorial ? 'tutStart' : 'ok');
+  $('modalRules').hidden = false;
+  return new Promise(res => { $('btnRulesOk').onclick = () => { $('modalRules').hidden = true; Sound.play('select'); res(); }; });
+}
+function simpleRulesHTML() {
+  const W = CFG.winScoreSimple, ex = tex('xy + 2x + 3y + 6'), ab = tex('(x + 3)') + ' ' + tex('(y + 2)');
+  const zh = `<h1 style="font-size:1.6em">點樣玩（簡易玩法）</h1>
+  <h2>目標</h2><p>桌面有 4 張<b>目標卡</b>（多項式）。用手上嘅<b>因式卡</b>砌出佢嘅因式分解，先夠 <b>${W}</b> 分就贏。</p>
+  <h2>你嘅回合</h2><ol><li>自動抽 1 張卡。</li><li>撳一張<b>目標卡</b>，再撳幾張<b>手牌</b>：佢哋相乘要等於目標。</li><li>按「<b>鍊成！</b>」。</li><li>湊唔到？撳 1 張唔要嘅手牌，按「<b>換走呢張</b>」；或者直接「結束回合」。</li></ol>
+  <h2>結果</h2><ul><li>✓ <b>正確</b>：攞走目標卡（★ 1 分、★★ 2 分、★★★ 3 分），再睇一次驗算。</li><li>✗ <b>乘積錯</b>：卡退返手上，回合結束。</li><li>⚠ <b>唔夠簡</b>：例如用咗 ${tex('(2x + 4)')}，佢仲可以抽出 2，嗰張卡會被棄掉。應該出 ${tex('2')} 同 ${tex('(x + 2)')}。</li></ul>
+  <h2>例子同小貼士</h2><ul><li>${ex} → 撳 ${ab}。</li><li>${tex('(x + 3)^2')} 要出兩張 ${tex('(x + 3)')}；常數可以拆，${tex('6 = 2 \\times 3')}。</li><li>唔知用咩方法？揀目標卡再按「提示」（每局 ${CFG.hintsPerGame} 次）。</li></ul>`;
+  const en = `<h1 style="font-size:1.6em">How to play (Simple)</h1>
+  <h2>Goal</h2><p>There are 4 <b>target cards</b> (polynomials) on the table. Build their factorizations with your <b>factor cards</b>. First to <b>${W}</b> points wins.</p>
+  <h2>Your turn</h2><ol><li>You draw 1 card automatically.</li><li>Tap a <b>target</b>, then tap <b>hand cards</b> that multiply to it.</li><li>Press <b>Transmute!</b></li><li>Can't make one? Tap 1 unwanted card and press <b>Swap it</b>, or just end your turn.</li></ol>
+  <h2>Results</h2><ul><li>✓ <b>Correct</b>: you win the target (★ 1, ★★ 2, ★★★ 3 points) and see the check.</li><li>✗ <b>Wrong product</b>: cards return to your hand; turn over.</li><li>⚠ <b>Not fully factorized</b>: e.g. ${tex('(2x + 4)')} still has a factor 2, so that card is discarded. Use ${tex('2')} and ${tex('(x + 2)')}.</li></ul>
+  <h2>Example and tips</h2><ul><li>${ex} → tap ${ab}.</li><li>${tex('(x + 3)^2')} needs two ${tex('(x + 3)')} cards; constants can be split, ${tex('6 = 2 \\times 3')}.</li><li>Not sure which method? Select a target and press Hint (${CFG.hintsPerGame} per game).</li></ul>`;
+  return LANG === 'zh' ? zh : LANG === 'en' ? en : zh + '<hr>' + en;
+}
 function rulesHTML() {
   const zh = `<h1 style="font-size:1.6em">規則</h1>
   <h2>目標</h2><p>用手上嘅因式組件卡，鍊成桌面上嘅目標多項式。先夠 <b>${CFG.winScore}</b> 分勝出；目標卡用完就最高分者勝。</p>
@@ -2589,9 +2663,7 @@ function bindStatic() {
   $('btnNotMe').onclick = notMe;
   $('btnNotMe2').onclick = notMe;
   $('btnStart').onclick = () => { Sound.play('clap'); startGame(); };
-  const openRules = () => { $('rulesBody').innerHTML = rulesHTML(); $('modalRules').hidden = false; };
-  $('btnRules').onclick = openRules; $('btnRules2').onclick = openRules;
-  $('btnRulesOk').onclick = () => { $('modalRules').hidden = true; };
+  $('btnRules').onclick = () => showRules(false); $('btnRules2').onclick = () => showRules(false);
   $('btnMute').onclick = () => { Sound.ensure(); Sound.setMuted(!Sound.muted); updateMuteBtn(); };
   $('btnFx').onclick = () => { view.setLowFx(!view.lowfx); updateFxBtn(); toast(t(view.lowfx ? 'lowfxOn' : 'lowfxOff')); };
   $('btnQuit').onclick = async () => {
@@ -2602,7 +2674,11 @@ function bindStatic() {
   };
   $('btnSynth').onclick = () => { if (!$('btnSynth').disabled) act({ type: 'synth', targetId: ui.selectedTarget, cardIds: [...ui.selected] }); };
   $('btnSwap').onclick = () => { if (!$('btnSwap').disabled) act({ type: 'swap', cardId: [...ui.selected][0] }); };
-  $('btnEnd').onclick = () => { if (!$('btnEnd').disabled) act({ type: 'end' }); };
+  $('btnEnd').onclick = () => {
+    if ($('btnEnd').disabled) return;
+    if (isSimple() && ui.selected.size === 1 && !ui.selectedTarget) act({ type: 'swap', cardId: [...ui.selected][0] });
+    else act({ type: 'end' });
+  };
   $('btnConfirm').onclick = () => { if (ui.pick) { Sound.play('deal'); act({ type: 'discard', cardId: ui.pick }); } };
   $('btnHint').onclick = () => {
     if (!session || session.hintsLeft <= 0) { toast(t('hintNone'), 'bad'); return; }

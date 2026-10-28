@@ -19,7 +19,7 @@ var GAME_HEADERS = [
   'score', 'rank', 'result', 'status',
   'success1', 'success2', 'success3', 'successTotal',
   'wrongCount', 'incompleteCount', 'snipeSuccess', 'snipeMissed',
-  'destroyedCount', 'hintsUsed', 'turns', 'attemptCount', 'version'
+  'destroyedCount', 'hintsUsed', 'turns', 'attemptCount', 'version', 'rules'
 ];
 var ATTEMPT_HEADERS = [
   'gameId', 'class', 'studentNo', 'name', 'attemptNo', 'time',
@@ -73,6 +73,11 @@ function getSheet_(ss, name, headers) {
     sh.appendRow(headers);
     sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#f3e6c4');
     sh.setFrozenRows(1);
+  } else if (sh.getLastColumn() < headers.length) {
+    // 舊版工作表少咗新欄位（例如 rules）：補返標題
+    var have = sh.getLastColumn();
+    sh.getRange(1, have + 1, 1, headers.length - have).setValues([headers.slice(have)])
+      .setFontWeight('bold').setBackground('#f3e6c4');
   }
   return sh;
 }
@@ -101,7 +106,8 @@ function gameRow_(r) {
     wrongCount: num_(r.wrongCount), incompleteCount: num_(r.incompleteCount),
     snipeSuccess: num_(r.snipeSuccess), snipeMissed: num_(r.snipeMissed),
     destroyedCount: num_(r.destroyedCount), hintsUsed: num_(r.hintsUsed),
-    turns: num_(r.turns), attemptCount: (r.attempts || []).length, version: r.version
+    turns: num_(r.turns), attemptCount: (r.attempts || []).length, version: r.version,
+    rules: r.rules || 'full'
   };
   return GAME_HEADERS.map(function (h) { return safe_(values[h]); });
 }

@@ -50,7 +50,10 @@
 | `classes` | `['2A'…'2E']` | 登入畫面嘅班別下拉選單。 |
 | `studentNoMin` / `studentNoMax` | `1` / `40` | 學號範圍。 |
 | `nameMaxLength` | `20` | 姓名最多幾多字。 |
-| `winScore` | `15` | 先夠呢個分數就勝出。想一堂玩完可以改細，例如 `10`。 |
+| `defaultRules` | `'simple'` | 預設玩法：`'simple'` 簡易或 `'full'` 進階（見下面「兩種玩法」）。 |
+| `allowRuleChoice` | `true` | 學生可唔可以喺設定畫面自己揀玩法；`false` 就一律用 `defaultRules`。 |
+| `winScore` | `15` | 進階玩法嘅勝利分數。 |
+| `winScoreSimple` | `10` | 簡易玩法嘅勝利分數。 |
 | `starsIncluded` | `[1, 2, 3]` | 包含邊幾個星級，例如只溫公因式同分組：`[1, 2]`。 |
 | `points` | `{1:1, 2:2, 3:3}` | 各星級得分。 |
 | `tableSize` / `handStart` / `handLimit` | `4` / `6` / `8` | 桌面目標數、起手張數、手牌上限。 |
@@ -81,7 +84,21 @@
 3. 牌組夠湊齊每一張目標卡（包括常數，例如 6 可以用 6 或者 2 × 3）。
 4. 陷阱卡真係非 primitive。
 
-## 遊戲規則摘要
+## 兩種玩法
+
+| | 簡易（預設） | 進階 |
+| --- | --- | --- |
+| 功能卡（逆鍊成、賢者之石、分解之手） | 冇 | 有 |
+| 乘積錯 | 卡退返手，回合結束 | 卡退返手，仲要棄 1 張做代價 |
+| 唔最簡（用咗陷阱卡） | 只棄走嗰張陷阱卡，並話你知應該點拆 | 5 秒截胡窗口，合成者出嘅卡全部棄掉 |
+| 正確 | 即刻得分 | 先有 3 秒「分解之手」反應窗口 |
+| 換牌 | 揀 1 張卡再按「換走呢張 · 結束回合」 | 「棄一抽一」掣 |
+| 手牌上限 | 手牌滿 8 張就唔抽牌 | 超過 8 張要揀卡棄 |
+| 勝利分數 | `winScoreSimple`（10） | `winScore`（15） |
+
+第一次玩簡易玩法會自動彈出「點樣玩」說明，右上角 ? 掣隨時再睇。記錄入面 `rules` 欄會寫低用咗邊種玩法。
+
+## 遊戲規則摘要（進階玩法）
 
 - **開局**：揀 2 人或 4 人（1 個真人，其餘係電腦）、電腦難度、角色。桌面翻 4 張目標卡，每人起手 6 張因式組件卡；之後功能卡先洗入抽牌堆。
 - **每個回合**：抽 1 張 →（可以）用逆鍊成 →（可以）揀 1 張目標 + 幾張手牌按「鍊成！」→ 冇鍊成可以「棄一抽一」→ 手牌上限 8 張。
@@ -107,7 +124,7 @@
 - 中途離開（關分頁、按離開掣）用 `navigator.sendBeacon`，標記 `status: "abandoned"`。
 - 傳送失敗會排隊存喺 localStorage，下次開遊戲自動重傳，成功先清除。後端用 `gameId` 去重，唔會重複寫入。
 
-**Games 工作表（每局一行）**：gameId、receivedAt、class、studentNo、name、startTime、endTime、durationSec、players、difficulty、stars、language、character、score、rank、result（win / lose / draw / abandoned）、status（completed / abandoned）、success1–3、successTotal、wrongCount、incompleteCount、snipeSuccess、snipeMissed、destroyedCount、hintsUsed、turns、attemptCount、version。
+**Games 工作表（每局一行）**：gameId、receivedAt、class、studentNo、name、startTime、endTime、durationSec、players、difficulty、stars、language、character、score、rank、result（win / lose / draw / abandoned）、status（completed / abandoned）、success1–3、successTotal、wrongCount、incompleteCount、snipeSuccess、snipeMissed、destroyedCount、hintsUsed、turns、attemptCount、version、rules（simple / full）。
 
 **Attempts 工作表（每次合成嘗試一行）**：gameId、class、studentNo、name、attemptNo、time、target、stars、cards、result（correct / wrong / incomplete / sniped / destroyed）、gameStatus。可以直接用篩選或者樞紐分析。
 

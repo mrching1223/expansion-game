@@ -15,7 +15,7 @@
    ```js
    scriptUrl: 'https://script.google.com/macros/s/XXXXXXXX/exec',
    ```
-4. 順手檢查 `classes`（班別）、`winScore`（勝利分數）、`starsIncluded`（星級）。
+4. 順手檢查 `classes`（班別）、`defaultRules`（預設玩法）、`winScoreSimple` / `winScore`（勝利分數）、`starsIncluded`（星級）。
 
 未填 `scriptUrl` 都玩得，不過記錄只會儲存喺學生部機，唔會交到 Google Sheet。
 
@@ -53,7 +53,7 @@
 
 - [ ] 用 Chromebook / iPad 開網址，見到羊皮紙登入畫面同燭光桌面。
 - [ ] 填班別、學號、姓名、語言 → 開始一局。
-- [ ] 玩完（測試可以先將 `winScore` 改細，例如 `3`）→ 檢討頁顯示「記錄已交俾老師 ✓」。
+- [ ] 玩完（測試可以先將 `winScoreSimple` 改細，例如 `3`）→ 檢討頁顯示「記錄已交俾老師 ✓」。
 - [ ] Google Sheet 出現「Games」同「Attempts」兩個工作表同一行記錄。
 - [ ] 舊遊戲：`https://<名>.netlify.app/2ab-bomb-squad/` 都開到。
 
