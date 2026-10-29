@@ -28,8 +28,10 @@ window.CONFIG = {
   starsIncluded: [1, 2, 3],           // 老師設定：包含邊幾個星級，例如 [1, 2]
   points: { 1: 1, 2: 2, 3: 3 },
   tableSize: 4,                       // 桌面目標卡數量
-  handStart: 6,                       // 起手因式組件卡
-  handLimit: 8,                       // 手牌上限
+  handStart: 6,                       // 進階玩法：起手因式組件卡
+  handLimit: 8,                       // 進階玩法：手牌上限
+  handStartSimple: 8,                 // 簡易玩法：起手多啲牌，容易湊到答案
+  handLimitSimple: 10,                // 簡易玩法：手牌上限（最多 10，再多畫面會太擠）
   hintsPerGame: 3,
   reactionMs: { hand: 3000, snipe: 5000 },
   aiThinkMs: [1000, 2000],
@@ -63,7 +65,7 @@ window.CONFIG = {
     { stars: 2, expr: 'x^2 - 3x - xy + 3y',   answer: '(x - 3)(x - y)' },
     { stars: 2, expr: '2x^2 + 2xy + 3x + 3y', answer: '(2x + 3)(x + y)' },
     { stars: 2, expr: '2xy + 4x + 6y + 12',   answer: '2(x + 3)(y + 2)' },
-    // ★★★ 三星：恆等式（可以先抽公因式）
+    // ★★★ 三星：平方差恆等式 a² − b²、完全平方恆等式 (a ± b)²（可以先抽公因式）
     { stars: 3, expr: 'x^2 - 9',          answer: '(x + 3)(x - 3)' },
     { stars: 3, expr: '2x^2 - 8',         answer: '2(x + 2)(x - 2)' },
     { stars: 3, expr: 'x^2 + 6x + 9',     answer: '(x + 3)^2' },
@@ -213,6 +215,31 @@ body.lowfx .card3d.pick .front { box-shadow: 0 0 0 4px #8fe0ff; }
 #reactBtn .count { display: block; font-size: 1.8em; }
 #reaction.watch #reactBtn { display: none; }
 
+/* ---------- 成功鍊成：原創剪影 cut-in ---------- */
+#cutin { position: fixed; inset: 0; z-index: 32; pointer-events: none; overflow: hidden; }
+#cutin .flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, #fff, rgba(190,235,255,.85) 35%, rgba(255,255,255,0) 70%); animation: ciFlash .6s ease-out forwards; }
+#cutin .band { position: absolute; left: -15%; right: -15%; top: 27%; height: 46%; transform: skewY(-7deg) translateX(-130%);
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 2px, transparent 2px 38px), linear-gradient(90deg, rgba(25,10,3,0), rgba(45,16,6,.94) 14%, var(--cc) 50%, rgba(45,16,6,.94) 86%, rgba(25,10,3,0));
+  border-top: 4px solid var(--gold-hi); border-bottom: 4px solid var(--gold-hi); box-shadow: 0 0 40px rgba(255,200,90,.6); animation: ciBand 2.3s cubic-bezier(.2,.8,.2,1) forwards; }
+#cutin .circ { position: absolute; left: 4%; top: 50%; width: min(52vh, 40vw); height: min(52vh, 40vw); transform: translateY(-50%); opacity: 0; animation: ciCirc 2.3s ease-out forwards; }
+#cutin .circ svg { width: 100%; height: 100%; animation: spin 6s linear infinite; filter: drop-shadow(0 0 10px #9fe0ff); }
+#cutin .fig { position: absolute; left: 9%; bottom: 14%; height: 72vh; transform: translateX(-60vw); animation: ciFig 2.3s cubic-bezier(.2,.9,.25,1) forwards; filter: drop-shadow(0 0 14px var(--c)); }
+#cutin .fig svg { height: 100%; width: auto; }
+#cutin .txt { position: absolute; right: 7%; top: 50%; transform: translate(60vw, -50%); text-align: right; color: #fff4dc; animation: ciTxt 2.3s cubic-bezier(.2,.9,.25,1) forwards; max-width: 52vw; }
+#cutin .big { font-size: clamp(30px, 8.5vh, 72px); font-weight: 700; letter-spacing: .12em; color: var(--gold-hi); text-shadow: 0 0 18px rgba(255,190,80,.9), 0 3px 0 #5a1d0a; line-height: 1.1; }
+#cutin .big .bi-en { font-size: .42em; letter-spacing: .2em; }
+#cutin .who { font-size: clamp(16px, 3.6vh, 28px); margin-top: .3em; display: flex; gap: .4em; align-items: center; justify-content: flex-end; }
+#cutin .who svg { width: 1.6em; height: 1.6em; }
+#cutin .ln { font-style: italic; font-size: clamp(13px, 2.8vh, 22px); opacity: .95; margin-top: .3em; }
+#cutin .pts { font-size: clamp(22px, 6vh, 48px); color: #ffe7a0; margin-top: .15em; text-shadow: 0 0 14px rgba(255,200,90,.9); }
+@keyframes ciFlash { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ciBand { 0% { transform: skewY(-7deg) translateX(-130%); } 14% { transform: skewY(-7deg) translateX(0); } 84% { transform: skewY(-7deg) translateX(0); opacity: 1; } 100% { transform: skewY(-7deg) translateX(130%); opacity: 0; } }
+@keyframes ciFig { 0% { transform: translateX(-60vw) scale(1.1); } 18% { transform: translateX(0) scale(1); } 84% { transform: translateX(2vw) scale(1); opacity: 1; } 100% { transform: translateX(-20vw); opacity: 0; } }
+@keyframes ciTxt { 0% { transform: translate(60vw, -50%); } 22% { transform: translate(0, -50%); } 84% { transform: translate(-1vw, -50%); opacity: 1; } 100% { transform: translate(20vw, -50%); opacity: 0; } }
+@keyframes ciCirc { 0% { opacity: 0; transform: translateY(-50%) scale(.3); } 20% { opacity: .9; transform: translateY(-50%) scale(1); } 84% { opacity: .9; } 100% { opacity: 0; transform: translateY(-50%) scale(1.4); } }
+body.lowfx #cutin .circ svg { animation: none; filter: none; }
+body.lowfx #cutin .fig { filter: none; }
+
 /* ---------- 對白 ---------- */
 #speech { position: fixed; z-index: 25; left: 50%; top: 18%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 12px 18px; max-width: min(80vw, 720px); opacity: 0; transition: opacity .3s; pointer-events: none; }
 #speech.show { opacity: 1; }
@@ -312,6 +339,7 @@ table.review th { color: #5b1d10; }
 </div>
 <div id="toast" class="panel"></div>
 <div id="speech" class="panel"></div>
+<div id="cutin" hidden></div>
 
 <!-- ===== 登入 ===== -->
 <div id="screenLogin" class="screen" hidden>
@@ -582,10 +610,12 @@ function cardTeX(card) {
   return p.isMonomial() ? p.toTeX() : `(${p.toTeX()})`;
 }
 function methodOf(target) {
-  // 方法類別：1 公因式、2 分組、3 恆等式（可能先抽公因式）
+  // 四種方法：提取公因式、分組分解、平方差恆等式、完全平方恆等式（恆等式可能要先抽公因式）
   if (target.stars === 1) return 'common';
   if (target.stars === 2) return 'group';
-  return target.answer.some(f => f.isConstant()) ? 'identityCommon' : 'identity';
+  const lins = target.answer.filter(f => !f.isMonomial());
+  const kind = lins.length === 2 && lins[0].equals(lins[1]) ? 'perfSq' : 'diffSq';
+  return target.answer.some(f => f.isMonomial()) ? kind + 'Common' : kind;
 }
 function buildDeck(cfg) {
   const stars = cfg.starsIncluded && cfg.starsIncluded.length ? cfg.starsIncluded : [1, 2, 3];
@@ -941,6 +971,7 @@ const STR = {
   handFull: ['手牌已滿 {n} 張，今回合唔抽牌', 'Hand is full ({n}): no draw this turn'],
   wrongSimple: ['等價交換失敗！卡退返手上，回合結束。', 'Exchange failed! Cards return to your hand; turn over.'],
   incompleteSimple: ['分解不徹底：{f} 仲可以抽出公因數 {g}，呢張卡被棄掉。應該用 {g} 同 {p}。', 'Incomplete: {f} still has a common factor {g}, so it is discarded. Use {g} and {p} instead.'],
+  cutinTitle: ['鍊成成功！', 'Transmuted!'],
   tutStart: ['明白，開始！', "Got it, let's go!"],
   players: ['人數', 'Players'], p2: ['2 人', '2 players'], p4: ['4 人', '4 players'],
   difficulty: ['電腦難度', 'AI difficulty'], character: ['你嘅角色', 'Your character'],
@@ -987,9 +1018,10 @@ const STR = {
   hintPick: ['先揀一張目標卡再按提示', 'Select a target first, then press Hint'],
   hintNone: ['今局提示已經用完', 'No hints left this game'],
   hintText: ['提示：呢張目標用「{m}」', 'Hint: use {m} for this target'],
-  common: ['公因式', 'common factor'], group: ['分組分解', 'factorization by grouping'],
-  identity: ['恆等式', 'identity'], identityCommon: ['先抽公因式，再用恆等式', 'common factor, then an identity'],
-  diffSq: ['平方差', 'difference of two squares'], perfSq: ['完全平方', 'perfect square'],
+  common: ['提取公因式', 'taking out the common factor'], group: ['分組分解', 'factorization by grouping'],
+  diffSq: ['平方差恆等式', 'difference of two squares'], perfSq: ['完全平方恆等式', 'perfect square identity'],
+  diffSqCommon: ['先提取公因式，再用平方差恆等式', 'common factor first, then difference of two squares'],
+  perfSqCommon: ['先提取公因式，再用完全平方恆等式', 'common factor first, then the perfect square identity'],
   verifyTitle: ['驗算', 'Check'], observe: ['觀察', 'Observe'], factorize: ['分解', 'Factorize'], check: ['驗算', 'Check'],
   continue: ['繼續', 'Continue'],
   obsCommon: ['每一項都有公因式 {g}', 'Every term has the common factor {g}'],
@@ -1052,17 +1084,17 @@ const tex = (s) => (window.katex ? window.katex.renderToString(s, { throwOnError
 
 /* ---------- 角色（只用名字同原創對白，唔畫原作樣貌） ---------- */
 const CHARACTERS = {
-  ed:        { zh: '愛德華', en: 'Edward',    color: '#c0392b', sides: 3, line: ['身高唔重要，合掌一拍，你嘅式即刻拆到七零八落！', 'Height means nothing. One clap and your equations fall apart!'] },
-  al:        { zh: '阿爾馮斯', en: 'Alphonse', color: '#7f8c8d', sides: 4, line: ['每條式都係由細小嘅因式組成，我會溫柔咁拆開佢。', 'Every expression is built from small factors. I will take it apart gently.'] },
-  roy:       { zh: '羅伊',   en: 'Roy',       color: '#2c3e8f', sides: 5, line: ['冗餘嘅公因數？一彈指就燒得乾乾淨淨。', 'Redundant common factors? One snap and they burn away.'] },
-  riza:      { zh: '莉莎',   en: 'Riza',      color: '#1f6f5c', sides: 6, line: ['瞄準公因式，一發命中，唔會浪費任何一張牌。', 'Aim at the common factor. One shot, not a single card wasted.'] },
-  armstrong: { zh: '阿姆斯特朗', en: 'Armstrong', color: '#b07d1a', sides: 8, line: ['呢套分組分解嘅肌肉，係我哋家族代代相傳！', 'These grouping muscles have been passed down my family for generations!'] },
-  winry:     { zh: '溫莉',   en: 'Winry',     color: '#c76d2a', sides: 7, line: ['因式就好似機械鎧零件，錯一粒螺絲都唔得！', 'Factors are like automail parts. One wrong screw and it fails!'] },
-  izumi:     { zh: '伊兹密', en: 'Izumi',     color: '#6b3d7a', sides: 6, line: ['基本功唔紮實？我會由公因式開始重新教你。', 'Weak fundamentals? I will retrain you from common factors up.'] },
-  hughes:    { zh: '修斯',   en: 'Hughes',    color: '#3d6b8a', sides: 4, line: ['計完呢題，記得睇吓我個女畫嘅鍊成陣！', 'After this one, you have to see the circle my daughter drew!'] },
-  olivier:   { zh: '奧利維亞', en: 'Olivier',  color: '#2f5f8f', sides: 5, line: ['北方嘅規矩：分解唔徹底，一律唔收貨。', 'Northern rule: incomplete factorization is never accepted.'] },
-  scar:      { zh: '史卡',   en: 'Scar',      color: '#8f2f2f', sides: 3, line: ['分解……正正係我最擅長嘅事。', 'Decomposition... is what I do best.'] },
-  hohenheim: { zh: '霍恩海姆', en: 'Hohenheim', color: '#5b4a2f', sides: 9, line: ['我見過無數條式，答案永遠藏喺結構入面。', 'I have seen countless expressions; the answer always hides in the structure.'] },
+  ed:        { zh: '愛德華', en: 'Edward',    color: '#c0392b', sides: 3, line: ['身高唔重要，合掌一拍，你嘅式即刻拆到七零八落！', 'Height means nothing. One clap and your equations fall apart!'], win: ['等價交換成立！呢個因式分解，完美！', 'Equivalent Exchange complete! A perfect factorization!'] },
+  al:        { zh: '阿爾馮斯', en: 'Alphonse', color: '#7f8c8d', sides: 4, line: ['每條式都係由細小嘅因式組成，我會溫柔咁拆開佢。', 'Every expression is built from small factors. I will take it apart gently.'], win: ['成功咗！每個因式都喺佢應該喺嘅位置。', 'We did it! Every factor is right where it belongs.'] },
+  roy:       { zh: '羅伊',   en: 'Roy',       color: '#2c3e8f', sides: 5, line: ['冗餘嘅公因數？一彈指就燒得乾乾淨淨。', 'Redundant common factors? One snap and they burn away.'], win: ['一彈指，鍊成完畢。', 'One snap, and the transmutation is done.'] },
+  riza:      { zh: '莉莎',   en: 'Riza',      color: '#1f6f5c', sides: 6, line: ['瞄準公因式，一發命中，唔會浪費任何一張牌。', 'Aim at the common factor. One shot, not a single card wasted.'], win: ['目標確認命中，分解完成。', 'Target hit. Factorization complete.'] },
+  armstrong: { zh: '阿姆斯特朗', en: 'Armstrong', color: '#b07d1a', sides: 8, line: ['呢套分組分解嘅肌肉，係我哋家族代代相傳！', 'These grouping muscles have been passed down my family for generations!'], win: ['看吧！代代相傳嘅完美分解術！', 'Behold! The perfect factorization passed down for generations!'] },
+  winry:     { zh: '溫莉',   en: 'Winry',     color: '#c76d2a', sides: 7, line: ['因式就好似機械鎧零件，錯一粒螺絲都唔得！', 'Factors are like automail parts. One wrong screw and it fails!'], win: ['零件全部啱晒，組裝完成！', 'Every part fits. Assembly complete!'] },
+  izumi:     { zh: '伊兹密', en: 'Izumi',     color: '#6b3d7a', sides: 6, line: ['基本功唔紮實？我會由公因式開始重新教你。', 'Weak fundamentals? I will retrain you from common factors up.'], win: ['基本功紮實，先有呢個結果。', 'Solid fundamentals bring results like this.'] },
+  hughes:    { zh: '修斯',   en: 'Hughes',    color: '#3d6b8a', sides: 4, line: ['計完呢題，記得睇吓我個女畫嘅鍊成陣！', 'After this one, you have to see the circle my daughter drew!'], win: ['好嘢！呢題我要影低俾我個女睇！', 'Yes! I have to show this one to my daughter!'] },
+  olivier:   { zh: '奧利維亞', en: 'Olivier',  color: '#2f5f8f', sides: 5, line: ['北方嘅規矩：分解唔徹底，一律唔收貨。', 'Northern rule: incomplete factorization is never accepted.'], win: ['徹底分解，合格。', 'Fully factorized. Accepted.'] },
+  scar:      { zh: '史卡',   en: 'Scar',      color: '#8f2f2f', sides: 3, line: ['分解……正正係我最擅長嘅事。', 'Decomposition... is what I do best.'], win: ['構造已經分解完畢。', 'The structure has been broken down.'] },
+  hohenheim: { zh: '霍恩海姆', en: 'Hohenheim', color: '#5b4a2f', sides: 9, line: ['我見過無數條式，答案永遠藏喺結構入面。', 'I have seen countless expressions; the answer always hides in the structure.'], win: ['結構早已寫喺式入面，只係等你睇穿。', 'The structure was always in the expression, waiting to be seen.'] },
 };
 const PLAYER_CHARS = ['ed', 'al', 'roy', 'riza', 'armstrong', 'winry'];
 const AI_CHARS = ['izumi', 'hughes', 'olivier', 'scar', 'hohenheim'];
@@ -1142,6 +1174,24 @@ const ART = {
       `<polygon points="${ART.polygon(32, 32, 24, c.sides)}" fill="none" stroke="#e8c97a" stroke-width="2"/>` +
       `<circle cx="32" cy="32" r="9" fill="${c.color}" stroke="#e8c97a" stroke-width="1.5"/><circle cx="32" cy="32" r="3" fill="#e8c97a"/></svg>`;
   },
+  /* 原創剪影：披風鍊金術師合掌（唔係任何原作角色樣貌） */
+  alchemist(color) {
+    return `<svg viewBox="0 0 220 300" xmlns="http://www.w3.org/2000/svg"><defs>
+<radialGradient id="hg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#bfeaff"/><stop offset="1" stop-color="#4fb8ff" stop-opacity="0"/></radialGradient>
+<linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e120a"/><stop offset="1" stop-color="#0b0603"/></linearGradient></defs>
+<g stroke="${color}" stroke-width="3" stroke-linejoin="round">
+<path d="M62 118 Q110 98 158 118 L196 292 Q150 280 110 296 Q70 280 24 292 Z" fill="url(#cg)"/>
+<path d="M110 120 L110 292" stroke-width="1.5" opacity=".6"/>
+<path d="M66 70 Q110 8 154 70 Q154 104 110 114 Q66 104 66 70 Z" fill="#120a05"/>
+<path d="M80 80 Q110 60 140 80 Q138 100 110 106 Q82 100 80 80 Z" fill="#050302" stroke-width="1.5"/>
+<path d="M64 124 Q50 160 92 168 L110 156" fill="none" stroke-width="16" stroke="#120a05"/>
+<path d="M156 124 Q170 160 128 168 L110 156" fill="none" stroke-width="16" stroke="#120a05"/>
+<path d="M64 124 Q50 160 92 168 L110 156 M156 124 Q170 160 128 168 L110 156" fill="none" stroke-width="2.5"/>
+</g>
+<circle cx="110" cy="156" r="40" fill="url(#hg)"/>
+<g fill="none" stroke="#dff6ff" stroke-width="1.5" opacity=".9"><circle cx="110" cy="156" r="22"/><polygon points="${ART.polygon(110, 156, 22, 3)}"/><polygon points="${ART.polygon(110, 156, 22, 3, Math.PI / 2)}"/></g>
+</svg>`;
+  },
   funcIcon(func) {
     if (func === 'reverse') return `<svg viewBox="0 0 100 100"><g fill="none" stroke="#2c3e50" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
 <circle cx="50" cy="50" r="40" stroke-width="2" opacity=".5"/><path d="M24 40 A28 28 0 0 1 74 34"/><path d="M66 26 L75 34 L64 40"/><path d="M76 60 A28 28 0 0 1 26 66"/><path d="M34 74 L25 66 L36 60"/>
@@ -1201,6 +1251,11 @@ const Sound = {
         for (let i = 0; i < 6; i++) this.noise(0.05, { vol: 0.18, at: 0.25 + i * 0.17, freq: 4000 + Math.random() * 3000, q: 3 });
         break;
       case 'zap': this.noise(0.09, { vol: 0.22, freq: 5000, q: 4, to: 1500 }); break;
+      case 'cutin':
+        this.noise(0.5, { vol: 0.3, freq: 800, q: 0.6, to: 4000 });
+        [392, 523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.9, { at: 0.12 + i * 0.07, vol: 0.12, type: 'triangle' }));
+        this.tone(1568, 1.2, { at: 0.5, vol: 0.07 }); this.tone(98, 1.0, { at: 0.1, vol: 0.18, type: 'sine' });
+        break;
       case 'success': [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.5, { at: i * 0.09, vol: 0.16, type: 'triangle' })); this.tone(1568, 0.8, { at: 0.36, vol: 0.06 }); break;
       case 'fail': this.tone(220, 0.5, { type: 'sawtooth', vol: 0.12, to: 90 }); this.tone(233, 0.5, { type: 'square', vol: 0.05, to: 95 }); break;
       case 'warn': [0, 0.18].forEach(a => this.tone(880, 0.14, { at: a, type: 'square', vol: 0.09 })); break;
@@ -1597,7 +1652,7 @@ class View {
       drawPile: { x: 640, y: 215, z: 6, ry: Math.PI, rx: 0.1 },
       discard: { x: 640, y: -110, z: 6, rx: 0.1 },
       targetDeck: { x: -640, y: 215, z: 6, ry: Math.PI, rx: 0.1 },
-      handCenter: { x: -60, y: -400, z: 110 },
+      handCenter: { x: -110, y: -400, z: 110 },
       stageTarget: { x: CIRCLE.x, y: CIRCLE.y + 150, z: 190, rx: 0.35, s: 1.15 },
       seats: [],
     };
@@ -1656,7 +1711,7 @@ class View {
     const stagedSet = new Set(staged ? staged.cardIds.concat([staged.targetId]) : []);
     // 真人手牌
     const hand = game.player(human).hand.filter(id => !stagedSet.has(id));
-    const n = hand.length, spacing = Math.min(132, 980 / Math.max(n, 1)), hs = 0.84;
+    const n = hand.length, spacing = Math.min(132, 1200 / Math.max(n, 1)), hs = n >= 10 ? 0.8 : 0.84;
     hand.forEach((id, i) => {
       const off = i - (n - 1) / 2;
       const sel = ui.selected.has(id) || ui.pick === id;
@@ -1870,6 +1925,35 @@ class View {
       } });
     });
   }
+  /* 成功鍊成：鍊成陣光柱 + 衝擊波 + 金色火花 */
+  successFx(color = 0x9fe0ff) {
+    this.glowTarget = 1;
+    setTimeout(() => { this.glowTarget = 0; }, 1400);
+    this.sparks(new THREE.Vector3(CIRCLE.x, CIRCLE.y, 60), 0xffd27a, 110);
+    if (this.lowfx) return;
+    if (!this.beamTex) this.beamTex = this.canvasTex(32, 256, (g, w, h) => {
+      const grd = g.createLinearGradient(0, h, 0, 0);
+      grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(0.3, 'rgba(170,230,255,.7)'); grd.addColorStop(1, 'rgba(120,200,255,0)');
+      g.fillStyle = grd; g.fillRect(0, 0, w, h);
+    });
+    const beamMat = new THREE.MeshBasicMaterial({ map: this.beamTex, color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(CIRCLE.r * 0.55, CIRCLE.r * 0.75, 1, 32, 1, true), beamMat);
+    beam.rotation.x = Math.PI / 2; beam.position.set(CIRCLE.x, CIRCLE.y, 0);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffe2a0, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 64), ringMat);
+    ring.position.set(CIRCLE.x, CIRCLE.y, 4);
+    this.fxScene.add(beam, ring);
+    let life = 0;
+    this.fxItems.push({ update: (dt) => {
+      life += dt;
+      const k = Math.min(1, life / 0.35);
+      beam.scale.set(1, 900 * k, 1); beam.position.z = 450 * k; beam.rotation.y += dt * 2;
+      beamMat.opacity = life < 0.35 ? k * 0.9 : Math.max(0, 0.9 - (life - 0.9) * 1.2);
+      const r = CIRCLE.r * (0.3 + life * 2.6); ring.scale.set(r, r, 1); ringMat.opacity = Math.max(0, 1 - life / 1.1);
+      if (life > 1.8) { this.fxScene.remove(beam, ring); beam.geometry.dispose(); ring.geometry.dispose(); beamMat.dispose(); ringMat.dispose(); return false; }
+      return true;
+    } });
+  }
   /* 真理之門：2D 遮罩，兩扇門打開再閂埋 */
   async gate() {
     Sound.play('gate');
@@ -2031,7 +2115,7 @@ async function startGame() {
   const defs = [{ char: setupSel.char, isHuman: true }].concat(opps.map(c => ({ char: c, isHuman: false, difficulty: setupSel.difficulty })));
   const rules = rulesChoice();
   // 簡易玩法：唔放功能卡入牌組，勝利分數用 winScoreSimple
-  game = new Game(rules === 'simple' ? { ...CFG, winScore: CFG.winScoreSimple, functionCards: {} } : CFG, defs);
+  game = new Game(rules === 'simple' ? { ...CFG, winScore: CFG.winScoreSimple, handStart: CFG.handStartSimple, handLimit: CFG.handLimitSimple, functionCards: {} } : CFG, defs);
   let abort; const abortP = new Promise((_, rej) => { abort = () => rej(new AbortGame()); });
   abortP.catch(() => {});
   session = {
@@ -2073,8 +2157,8 @@ async function intros() {
   const order = [0].concat(game.players.map((p, i) => i).filter(i => i > 0));
   for (const i of order) {
     const c = CHARACTERS[game.player(i).char];
-    const line = LANG === 'en' ? c.line[1] : LANG === 'bi' ? `${c.line[0]}<span class="bi-en">${c.line[1]}</span>` : c.line[0];
-    sp.innerHTML = `${ART.emblem(game.player(i).char)}<div><div class="who">${charNameHTML(game.player(i).char)}</div><div class="line">「${line}」</div></div>`;
+    const line = LANG === 'en' ? `“${c.line[1]}”` : LANG === 'bi' ? `「${c.line[0]}」<span class="bi-en">${c.line[1]}</span>` : `「${c.line[0]}」`;
+    sp.innerHTML = `${ART.emblem(game.player(i).char)}<div><div class="who">${charNameHTML(game.player(i).char)}</div><div class="line">${line}</div></div>`;
     sp.classList.add('show'); Sound.play('flip');
     await wait(i === 0 ? 1700 : 2300);
     sp.classList.remove('show'); await wait(260);
@@ -2102,8 +2186,8 @@ async function runLoop() {
 }
 async function drawCards(pi, n) {
   if (isSimple()) {
-    n = Math.min(n, CFG.handLimit - game.player(pi).hand.length);
-    if (n <= 0) { if (game.player(pi).isHuman) toast(t('handFull', { n: CFG.handLimit })); return []; }
+    n = Math.min(n, game.cfg.handLimit - game.player(pi).hand.length);
+    if (n <= 0) { if (game.player(pi).isHuman) toast(t('handFull', { n: game.cfg.handLimit })); return []; }
   }
   const r = game.draw(pi, n);
   if (r.reshuffled) toast(t('reshuffle'));
@@ -2151,9 +2235,9 @@ async function humanTurn() {
   updateButtons(); renderPreview();
 }
 async function enforceHandLimit(pi) {
-  while (game.player(pi).hand.length > CFG.handLimit) {
+  while (game.player(pi).hand.length > game.cfg.handLimit) {
     if (game.player(pi).isHuman) {
-      const id = await chooseDiscard(t('handLimit', { n: CFG.handLimit }));
+      const id = await chooseDiscard(t('handLimit', { n: game.cfg.handLimit }));
       game.discard(0, [id]);
     } else game.discard(pi, AI.pickDiscard(game, pi, CFG.ai[game.player(pi).difficulty]));
     await relayout(360);
@@ -2321,10 +2405,12 @@ async function resolveSynthesis(pi, targetId, cardIds) {
     game.award(pi, targetId);
     session.claimed.set(targetId, pi);
     ui.staged = null; undim(); view.setGlow(0);
-    Sound.play('success'); view.sparks(view.worldOf(targetId));
+    Sound.play('success'); view.successFx();
     banner(t('scored', { name: nameOf(pi), p: CFG.points[target.stars] }));
-    await relayout(620);
+    const lay = relayout(620);
     renderScoreboard();
+    await cutIn(pi, target);
+    await lay;
     if (human) { session.stats.succ[target.stars]++; attempt.result = 'correct'; session.attempts.push(attempt); }
     await showVerify(pi, target, proof, ev.stoneValue && ev.stoneValue > 1 ? ev.stoneValue : null);
     return;
@@ -2360,10 +2446,12 @@ async function resolveSynthesis(pi, targetId, cardIds) {
     game.award(react.pi, targetId);
     session.claimed.set(targetId, react.pi);
     if (react.pi === 0) session.stats.snipe++;
-    Sound.play('snipe'); view.sparks(view.worldOf(targetId), 0x9fdcff);
+    Sound.play('snipe'); view.successFx(0xffc46b);
     banner(t('snipedBy', { name: nameOf(react.pi) }));
-    await relayout(620);
+    const lay = relayout(620);
     renderScoreboard();
+    await cutIn(react.pi, target);
+    await lay;
     if (human) { attempt.result = 'sniped'; session.attempts.push(attempt); }
     await showVerify(react.pi, target, target.answer, null, true);
   } else {
@@ -2436,6 +2524,33 @@ function reactionWindow(kind, synthPi, targetId, ev) {
   }));
 }
 
+/* ---------- 成功鍊成 cut-in（原創剪影 + 角色徽章 + 原創對白） ---------- */
+function cutIn(pi, target) {
+  const p = game.player(pi), c = CHARACTERS[p.char], el = $('cutin');
+  const pts = CFG.points[target.stars];
+  const line = LANG === 'en' ? `“${c.win[1]}”` : LANG === 'bi' ? `「${c.win[0]}」<span class="bi-en">${c.win[1]}</span>` : `「${c.win[0]}」`;
+  el.style.setProperty('--c', c.color);
+  el.style.setProperty('--cc', c.color + 'ee');
+  el.innerHTML = `<div class="band"></div>
+    <div class="circ"><svg viewBox="0 0 200 200">${ART.circle(100, 100, 92, '#bfeaff', c.sides < 4 ? 6 : c.sides, 2)}</svg></div>
+    <div class="fig">${ART.alchemist(c.color)}</div>
+    <div class="txt"><div class="big">${t('cutinTitle')}</div>
+      <div class="who">${ART.emblem(p.char)}<b>${charNameHTML(p.char)}</b></div>
+      <div class="ln">${line}</div>
+      <div class="pts">${'★'.repeat(target.stars)} +${pts}</div></div>
+    <div class="flash"></div>`;
+  el.hidden = false;
+  Sound.play('cutin');
+  return abortable(new Promise(res => {
+    let done = false;
+    const end = () => { if (done) return; done = true; el.hidden = true; el.innerHTML = ''; document.removeEventListener('pointerdown', skip); res(); };
+    const skip = () => setTimeout(end, 0);
+    setTimeout(() => document.addEventListener('pointerdown', skip), 400);   // 撳一下可以跳過
+    setTimeout(end, 2350);
+    session.abortP.catch(end);
+  }));
+}
+
 /* ---------- 驗算：觀察 → 分解 → 驗算 ---------- */
 function buildProof(target, factors) {
   const T = target.poly, Tt = T.toTeX();
@@ -2498,7 +2613,7 @@ function buildProof(target, factors) {
 function showVerify(pi, target, factors, stoneValue, isModel = false) {
   return abortable(new Promise(resolve => {
     const pr = buildProof(target, factors);
-    $('verifyTitle').innerHTML = `${t('verifyTitle')} · ${tex(target.poly.toTeX())}`;
+    $('verifyTitle').innerHTML = `${tp('verifyTitle')} · ${tex(target.poly.toTeX())}`;
     $('verifyWho').innerHTML = (isModel ? t('verifyAnswer') : t('verifyBy', { name: nameOf(pi) })) + (stoneValue ? ` · ${t('stoneAs', { k: stoneValue })}` : '');
     const step = (tag, body) => `<div class="vstep"><div class="tag">${tag}</div><div class="body">${body}</div></div>`;
     const methodName = t(methodOf(target));
@@ -2626,14 +2741,16 @@ function simpleRulesHTML() {
   const W = CFG.winScoreSimple, ex = tex('xy + 2x + 3y + 6'), ab = tex('(x + 3)') + ' ' + tex('(y + 2)');
   const zh = `<h1 style="font-size:1.6em">點樣玩（簡易玩法）</h1>
   <h2>目標</h2><p>桌面有 4 張<b>目標卡</b>（多項式）。用手上嘅<b>因式卡</b>砌出佢嘅因式分解，先夠 <b>${W}</b> 分就贏。</p>
-  <h2>你嘅回合</h2><ol><li>自動抽 1 張卡。</li><li>撳一張<b>目標卡</b>，再撳幾張<b>手牌</b>：佢哋相乘要等於目標。</li><li>按「<b>鍊成！</b>」。</li><li>湊唔到？撳 1 張唔要嘅手牌，按「<b>換走呢張</b>」；或者直接「結束回合」。</li></ol>
+  <h2>你嘅回合</h2><ol><li>自動抽 1 張卡（起手 ${CFG.handStartSimple} 張，最多 ${CFG.handLimitSimple} 張）。</li><li>撳一張<b>目標卡</b>，再撳幾張<b>手牌</b>：佢哋相乘要等於目標。</li><li>按「<b>鍊成！</b>」。</li><li>湊唔到？撳 1 張唔要嘅手牌，按「<b>換走呢張</b>」；或者直接「結束回合」。</li></ol>
   <h2>結果</h2><ul><li>✓ <b>正確</b>：攞走目標卡（★ 1 分、★★ 2 分、★★★ 3 分），再睇一次驗算。</li><li>✗ <b>乘積錯</b>：卡退返手上，回合結束。</li><li>⚠ <b>唔夠簡</b>：例如用咗 ${tex('(2x + 4)')}，佢仲可以抽出 2，嗰張卡會被棄掉。應該出 ${tex('2')} 同 ${tex('(x + 2)')}。</li></ul>
-  <h2>例子同小貼士</h2><ul><li>${ex} → 撳 ${ab}。</li><li>${tex('(x + 3)^2')} 要出兩張 ${tex('(x + 3)')}；常數可以拆，${tex('6 = 2 \\times 3')}。</li><li>唔知用咩方法？揀目標卡再按「提示」（每局 ${CFG.hintsPerGame} 次）。</li></ul>`;
+  <h2>例子同小貼士</h2><ul><li>${ex} → 撳 ${ab}。</li><li>${tex('(x + 3)^2')} 要出兩張 ${tex('(x + 3)')}；常數可以拆，${tex('6 = 2 \\times 3')}。</li><li>唔知用咩方法？揀目標卡再按「提示」（每局 ${CFG.hintsPerGame} 次）。</li></ul>
+  <h2>四種方法</h2><p>★ 提取公因式　★★ 分組分解　★★★ 平方差恆等式 ${tex('a^2-b^2=(a+b)(a-b)')}、完全平方恆等式 ${tex('a^2\\pm 2ab+b^2=(a\\pm b)^2')}</p>`;
   const en = `<h1 style="font-size:1.6em">How to play (Simple)</h1>
   <h2>Goal</h2><p>There are 4 <b>target cards</b> (polynomials) on the table. Build their factorizations with your <b>factor cards</b>. First to <b>${W}</b> points wins.</p>
-  <h2>Your turn</h2><ol><li>You draw 1 card automatically.</li><li>Tap a <b>target</b>, then tap <b>hand cards</b> that multiply to it.</li><li>Press <b>Transmute!</b></li><li>Can't make one? Tap 1 unwanted card and press <b>Swap it</b>, or just end your turn.</li></ol>
+  <h2>Your turn</h2><ol><li>You draw 1 card automatically (start with ${CFG.handStartSimple}, hold up to ${CFG.handLimitSimple}).</li><li>Tap a <b>target</b>, then tap <b>hand cards</b> that multiply to it.</li><li>Press <b>Transmute!</b></li><li>Can't make one? Tap 1 unwanted card and press <b>Swap it</b>, or just end your turn.</li></ol>
   <h2>Results</h2><ul><li>✓ <b>Correct</b>: you win the target (★ 1, ★★ 2, ★★★ 3 points) and see the check.</li><li>✗ <b>Wrong product</b>: cards return to your hand; turn over.</li><li>⚠ <b>Not fully factorized</b>: e.g. ${tex('(2x + 4)')} still has a factor 2, so that card is discarded. Use ${tex('2')} and ${tex('(x + 2)')}.</li></ul>
-  <h2>Example and tips</h2><ul><li>${ex} → tap ${ab}.</li><li>${tex('(x + 3)^2')} needs two ${tex('(x + 3)')} cards; constants can be split, ${tex('6 = 2 \\times 3')}.</li><li>Not sure which method? Select a target and press Hint (${CFG.hintsPerGame} per game).</li></ul>`;
+  <h2>Example and tips</h2><ul><li>${ex} → tap ${ab}.</li><li>${tex('(x + 3)^2')} needs two ${tex('(x + 3)')} cards; constants can be split, ${tex('6 = 2 \\times 3')}.</li><li>Not sure which method? Select a target and press Hint (${CFG.hintsPerGame} per game).</li></ul>
+  <h2>Four methods</h2><p>★ common factor · ★★ grouping · ★★★ difference of two squares ${tex('a^2-b^2=(a+b)(a-b)')} and perfect square ${tex('a^2\\pm 2ab+b^2=(a\\pm b)^2')}</p>`;
   return LANG === 'zh' ? zh : LANG === 'en' ? en : zh + '<hr>' + en;
 }
 function rulesHTML() {
@@ -2644,7 +2761,7 @@ function rulesHTML() {
   <h2>最簡因式組合</h2><ul><li>所有卡相乘要等於目標；出卡次序唔重要。</li><li>每張一次因式卡要 primitive：係數 gcd = 1，首項係數係正數。</li><li>重複因式要出兩張，例如 (x + 3)² 要出兩張 (x + 3)。</li><li>常數可以拆開出，例如 6 = 2 × 3。</li></ul>
   <h2>功能卡</h2><ul><li><b>逆鍊成</b>：將手上一張一次因式嘅 +/− 互換，例如 (x − 2) → (x + 2)。</li><li><b>賢者之石</b>：鍊成時當任意一個正整數常數。</li><li><b>分解之手</b>：只可以喺反應窗口打出，強制展開對手嘅鍊成，目標卡退返桌面。</li></ul>
   <h2>真理之門</h2><p>一整輪冇人成功鍊成，就會換走桌面上最舊嗰張目標卡。</p>
-  <h2>星級</h2><p>★ 公因式（1 分）　★★ 分組分解（2 分）　★★★ 恆等式（3 分）</p>`;
+  <h2>四種方法</h2><p>★ 提取公因式（1 分）　★★ 分組分解（2 分）　★★★ 平方差恆等式／完全平方恆等式（3 分）</p>`;
   const en = `<h1 style="font-size:1.6em">Rules</h1>
   <h2>Goal</h2><p>Use factor cards to transmute (factorize) the target polynomials on the table. First to <b>${CFG.winScore}</b> points wins; if the targets run out, the highest score wins.</p>
   <h2>Your turn</h2><ol><li>Draw 1 card automatically.</li><li>You may use function cards (Reverse).</li><li>Select 1 target and some hand cards, then press Transmute!</li><li>If you did not transmute, you may swap 1 card (discard 1, draw 1) or just end your turn.</li><li>Hand limit: ${CFG.handLimit} cards.</li></ol>
@@ -2652,7 +2769,7 @@ function rulesHTML() {
   <h2>Complete factorization</h2><ul><li>The cards must multiply to the target; order does not matter.</li><li>Every linear factor must be primitive: coefficient gcd = 1 and a positive leading coefficient.</li><li>Repeated factors need two cards, e.g. (x + 3)² needs two (x + 3).</li><li>Constants may be split, e.g. 6 = 2 × 3.</li></ul>
   <h2>Function cards</h2><ul><li><b>Reverse</b>: flip +/− of a linear factor in your hand, e.g. (x − 2) → (x + 2).</li><li><b>Philosopher's Stone</b>: counts as any positive integer in a transmutation.</li><li><b>Hand of Decomposition</b>: only in a reaction window; forces an opponent's transmutation apart and the target returns to the table.</li></ul>
   <h2>Gate of Truth</h2><p>If nobody succeeds for a whole round, the oldest target on the table is replaced.</p>
-  <h2>Stars</h2><p>★ common factor (1 pt) · ★★ grouping (2 pts) · ★★★ identities (3 pts)</p>`;
+  <h2>Four methods</h2><p>★ common factor (1 pt) · ★★ grouping (2 pts) · ★★★ difference of two squares / perfect square (3 pts)</p>`;
   return LANG === 'zh' ? zh : LANG === 'en' ? en : zh + '<hr>' + en;
 }
 function bindStatic() {
