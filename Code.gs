@@ -65,6 +65,28 @@ function doGet() {
   return json_({ ok: true, service: 'Factor Alchemy records' });
 }
 
+/**
+ * 測試用：喺 Apps Script 編輯器揀「testDoPost」再按「執行」，
+ * 「Games」同「Attempts」會各多一行 TEST 記錄（測試完可以刪走）。
+ */
+function testDoPost() {
+  var now = new Date();
+  var rec = {
+    gameId: 'TEST-' + now.getTime(), version: 'test', 'class': '2A', studentNo: 0, name: '測試學生',
+    startTime: new Date(now.getTime() - 300000).toISOString(), endTime: now.toISOString(), durationSec: 300,
+    players: 2, difficulty: 'national', stars: '1,2,3', language: 'zh', character: 'Edward', rules: 'simple',
+    score: 10, rank: 1, result: 'win', status: 'completed',
+    success1: 2, success2: 1, success3: 2, wrongCount: 1, incompleteCount: 1,
+    snipeSuccess: 0, snipeMissed: 0, destroyedCount: 0, hintsUsed: 1, turns: 20,
+    attempts: [
+      { time: now.toISOString(), target: 'x² − 9', stars: 3, cards: '(x + 3) (x − 3)', result: 'correct' },
+      { time: now.toISOString(), target: '4x + 8', stars: 1, cards: '(2x + 4) 2', result: 'incomplete' }
+    ]
+  };
+  var out = doPost({ postData: { contents: JSON.stringify(rec) } });
+  Logger.log(out.getContent());
+}
+
 /* 工作表唔存在就自動建立並加入標題列 */
 function getSheet_(ss, name, headers) {
   var sh = ss.getSheetByName(name);
