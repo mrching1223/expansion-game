@@ -7,17 +7,9 @@
 
 ---
 
-## 第 0 步：準備記錄網址（可以遲啲先做）
+## 第 0 步：學生記錄（已經設定好）
 
-1. 開一個新 Google Sheet →「擴充功能 → Apps Script」→ 貼入 `Code.gs` → 儲存。
-2. 「部署 → 新增部署作業 → 網頁應用程式」：執行身分「我」、存取權「所有人」→ 部署 → 授權。
-3. 複製網址（結尾 `/exec`），貼入 `index.html` 頂部：
-   ```js
-   scriptUrl: 'https://script.google.com/macros/s/XXXXXXXX/exec',
-   ```
-4. 順手檢查 `classes`（班別）、`defaultRules`（預設玩法）、`winScoreSimple` / `winScore`（勝利分數）、`starsIncluded`（星級）。
-
-未填 `scriptUrl` 都玩得，不過記錄只會儲存喺學生部機，唔會交到 Google Sheet。
+成績記錄沿用「數學小島物語」嘅 Apps Script 同 Google Sheet，唔使另外設定。部署前可以順手檢查 `CONFIG` 嘅 `classes`（班別）、`defaultRules`（預設玩法）、`badgePass`（得徽章要第一次答對幾多題）。
 
 ---
 
@@ -53,8 +45,8 @@
 
 - [ ] 用 Chromebook / iPad 開網址，見到羊皮紙登入畫面同燭光桌面。
 - [ ] 填班別、學號、姓名、語言 → 開始一局。
-- [ ] 玩完（測試可以先將 `winScoreSimple` 改細，例如 `3`）→ 檢討頁顯示「記錄已交俾老師 ✓」。
-- [ ] Google Sheet 出現「Games」同「Attempts」兩個工作表同一行記錄。
+- [ ] 玩一個關卡，答錯一次、答啱一次 → Google Sheet 見到 `game = factor-alchemy` 嘅 start / answer 記錄。
+- [ ] 同一部機開「數學小島物語」，學生資料唔使再輸入。
 - [ ] 舊遊戲：`https://<名>.netlify.app/2ab-bomb-squad/` 都開到。
 
 ## 常見問題
@@ -62,7 +54,6 @@
 | 情況 | 原因 / 解決 |
 | --- | --- |
 | 一片黑 / 卡住 | 學校網絡封鎖 `cdn.jsdelivr.net` 或 `fonts.googleapis.com`，請 IT 開放。 |
-| 檢討頁顯示「暫時未能連線…」 | Apps Script 未部署成「所有人」，或者 `scriptUrl` 貼錯；記錄會儲存喺本機，下次開遊戲自動重傳。 |
-| 改咗 `Code.gs` 冇反應 | Apps Script 要「管理部署作業 → 編輯 → 新版本」再部署。 |
+| Google Sheet 冇記錄 | 確認學生填咗班別同學號；喺 claude.ai 預覽入面唔會傳送，要用 Netlify 網址測試。 |
 | 改咗 `CONFIG` 學生見唔到 | 重新部署；`netlify.toml` 已設定 `index.html` 唔快取，學生重新載入就得。 |
 | 畫面報「CONFIG 驗證失敗」 | 新加嘅目標卡標準答案錯，或者因式唔係 primitive，按畫面提示改返。 |

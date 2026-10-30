@@ -11,10 +11,11 @@
    - expr：目標多項式；answer：標準答案（因式相乘，例如 3x(x - 2)、(x + 3)^2）
    - 標準答案入面每個一次因式都要 primitive（係數 gcd = 1，首項係數正數）
    - 遊戲啟動時會自動驗證，有錯會喺畫面顯示錯誤
+   - 每張目標卡要有獨一無二嘅 id（成績記錄入面嘅 qid）
+   - 學生成績記錄設定（SHEET_ENDPOINT、GAME）喺下面程式碼「teacher score log」嗰段
    ===================================================================== */
 window.CONFIG = {
   version: '1.0.0',
-  scriptUrl: 'https://script.google.com/macros/s/AKfycbxHmkSfwGv5GbMjPSY8P7W-79_-x7ooctm6kQFivzOeZzAmsHkwbdVCAQWf0gAWxqMR/exec',   // ← 貼上 Google Apps Script 網頁應用程式網址（…/exec）
   classes: ['2A', '2B', '2C', '2D', '2E'],
   studentNoMin: 1,
   studentNoMax: 40,
@@ -32,7 +33,9 @@ window.CONFIG = {
   handLimit: 8,                       // 進階玩法：手牌上限
   handStartSimple: 8,                 // 簡易玩法：起手多啲牌，容易湊到答案
   handLimitSimple: 10,                // 簡易玩法：手牌上限（最多 10，再多畫面會太擠）
-  hintsPerGame: 3,
+  hintsPerGame: 3,                    // 每局提示卡
+  badgePass: 3,                       // 闖關：第一次就答對（鍊成）呢個數量或以上就得到該方法嘅徽章
+  rewards: { first: 300, second: 150, fixed: 150 },   // 鈴錢：第一次答對／第二次答對／錯題本改正；第三次先答對冇獎勵
   reactionMs: { hand: 3000, snipe: 5000 },
   aiThinkMs: [1000, 2000],
 
@@ -42,40 +45,52 @@ window.CONFIG = {
   trapCards: ['2x + 4', '2x - 4', '3x - 6', '2x + 6', '2y + 4', '3x + 3', '2x + 2y', '2x - 6', '5x + 15', '4x + 2'],
   functionCards: { reverse: 5, stone: 5, hand: 5 },   // 逆鍊成、賢者之石、分解之手
 
+  // 四種方法各 10 張；每種方法就係一個關卡（徽章）
   targets: [
-    // ★ 一星：提取公因式
-    { stars: 1, expr: '3x^2 - 6x',   answer: '3x(x - 2)' },
-    { stars: 1, expr: '4x + 8',      answer: '4(x + 2)' },
-    { stars: 1, expr: '5x^2 + 15x',  answer: '5x(x + 3)' },
-    { stars: 1, expr: '2xy + 6y',    answer: '2y(x + 3)' },
-    { stars: 1, expr: '6x - 9',      answer: '3(2x - 3)' },
-    { stars: 1, expr: 'x^2 - x',     answer: 'x(x - 1)' },
-    { stars: 1, expr: '6x + 12',     answer: '6(x + 2)' },
-    { stars: 1, expr: '2x^2 + 2xy',  answer: '2x(x + y)' },
-    { stars: 1, expr: '3xy - 3y^2',  answer: '3y(x - y)' },
-    { stars: 1, expr: '4x^2 + 2x',   answer: '2x(2x + 1)' },
-    // ★★ 二星：分組分解
-    { stars: 2, expr: 'xy + 2x + 3y + 6',     answer: '(x + 3)(y + 2)' },
-    { stars: 2, expr: 'xy - 2x + 3y - 6',     answer: '(x + 3)(y - 2)' },
-    { stars: 2, expr: 'xy + 2x - y - 2',      answer: '(x - 1)(y + 2)' },
-    { stars: 2, expr: 'x^2 + 3x + xy + 3y',   answer: '(x + 3)(x + y)' },
-    { stars: 2, expr: 'x^2 - 2x + xy - 2y',   answer: '(x - 2)(x + y)' },
-    { stars: 2, expr: '2xy + 4x + y + 2',     answer: '(2x + 1)(y + 2)' },
-    { stars: 2, expr: 'xy - 2x - 2y + 4',     answer: '(x - 2)(y - 2)' },
-    { stars: 2, expr: 'x^2 - 3x - xy + 3y',   answer: '(x - 3)(x - y)' },
-    { stars: 2, expr: '2x^2 + 2xy + 3x + 3y', answer: '(2x + 3)(x + y)' },
-    { stars: 2, expr: '2xy + 4x + 6y + 12',   answer: '2(x + 3)(y + 2)' },
-    // ★★★ 三星：平方差恆等式 a² − b²、完全平方恆等式 (a ± b)²（可以先抽公因式）
-    { stars: 3, expr: 'x^2 - 9',          answer: '(x + 3)(x - 3)' },
-    { stars: 3, expr: '2x^2 - 8',         answer: '2(x + 2)(x - 2)' },
-    { stars: 3, expr: 'x^2 + 6x + 9',     answer: '(x + 3)^2' },
-    { stars: 3, expr: '4x^2 - 9',         answer: '(2x + 3)(2x - 3)' },
-    { stars: 3, expr: 'x^2 - 4x + 4',     answer: '(x - 2)^2' },
-    { stars: 3, expr: '4x^2 + 4x + 1',    answer: '(2x + 1)^2' },
-    { stars: 3, expr: '3x^2 - 3',         answer: '3(x + 1)(x - 1)' },
-    { stars: 3, expr: 'x^2 - y^2',        answer: '(x + y)(x - y)' },
-    { stars: 3, expr: 'x^2 + 2xy + y^2',  answer: '(x + y)^2' },
-    { stars: 3, expr: '2x^2 - 12x + 18',  answer: '2(x - 3)^2' },
+    // ★ 提取公因式
+    { id: 'c01', stars: 1, expr: '3x^2 - 6x',   answer: '3x(x - 2)' },
+    { id: 'c02', stars: 1, expr: '4x + 8',      answer: '4(x + 2)' },
+    { id: 'c03', stars: 1, expr: '5x^2 + 15x',  answer: '5x(x + 3)' },
+    { id: 'c04', stars: 1, expr: '2xy + 6y',    answer: '2y(x + 3)' },
+    { id: 'c05', stars: 1, expr: '6x - 9',      answer: '3(2x - 3)' },
+    { id: 'c06', stars: 1, expr: 'x^2 - x',     answer: 'x(x - 1)' },
+    { id: 'c07', stars: 1, expr: '6x + 12',     answer: '6(x + 2)' },
+    { id: 'c08', stars: 1, expr: '2x^2 + 2xy',  answer: '2x(x + y)' },
+    { id: 'c09', stars: 1, expr: '3xy - 3y^2',  answer: '3y(x - y)' },
+    { id: 'c10', stars: 1, expr: '4x^2 + 2x',   answer: '2x(2x + 1)' },
+    // ★★ 分組分解
+    { id: 'g01', stars: 2, expr: 'xy + 2x + 3y + 6',     answer: '(x + 3)(y + 2)' },
+    { id: 'g02', stars: 2, expr: 'xy - 2x + 3y - 6',     answer: '(x + 3)(y - 2)' },
+    { id: 'g03', stars: 2, expr: 'xy + 2x - y - 2',      answer: '(x - 1)(y + 2)' },
+    { id: 'g04', stars: 2, expr: 'x^2 + 3x + xy + 3y',   answer: '(x + 3)(x + y)' },
+    { id: 'g05', stars: 2, expr: 'x^2 - 2x + xy - 2y',   answer: '(x - 2)(x + y)' },
+    { id: 'g06', stars: 2, expr: '2xy + 4x + y + 2',     answer: '(2x + 1)(y + 2)' },
+    { id: 'g07', stars: 2, expr: 'xy - 2x - 2y + 4',     answer: '(x - 2)(y - 2)' },
+    { id: 'g08', stars: 2, expr: 'x^2 - 3x - xy + 3y',   answer: '(x - 3)(x - y)' },
+    { id: 'g09', stars: 2, expr: '2x^2 + 2xy + 3x + 3y', answer: '(2x + 3)(x + y)' },
+    { id: 'g10', stars: 2, expr: '2xy + 4x + 6y + 12',   answer: '2(x + 3)(y + 2)' },
+    // ★★★ 平方差恆等式 a² − b² = (a + b)(a − b)（可以先抽公因式）
+    { id: 'd01', stars: 3, expr: 'x^2 - 9',          answer: '(x + 3)(x - 3)' },
+    { id: 'd02', stars: 3, expr: '2x^2 - 8',         answer: '2(x + 2)(x - 2)' },
+    { id: 'd03', stars: 3, expr: '4x^2 - 9',         answer: '(2x + 3)(2x - 3)' },
+    { id: 'd04', stars: 3, expr: '3x^2 - 3',         answer: '3(x + 1)(x - 1)' },
+    { id: 'd05', stars: 3, expr: 'x^2 - y^2',        answer: '(x + y)(x - y)' },
+    { id: 'd06', stars: 3, expr: 'x^2 - 16',         answer: '(x + 4)(x - 4)' },
+    { id: 'd07', stars: 3, expr: '9x^2 - 1',         answer: '(3x + 1)(3x - 1)' },
+    { id: 'd08', stars: 3, expr: 'x^2 - 4y^2',       answer: '(x + 2y)(x - 2y)' },
+    { id: 'd09', stars: 3, expr: '5x^2 - 20',        answer: '5(x + 2)(x - 2)' },
+    { id: 'd10', stars: 3, expr: '2x^2 - 18',        answer: '2(x + 3)(x - 3)' },
+    // ★★★ 完全平方恆等式 a² ± 2ab + b² = (a ± b)²（可以先抽公因式）
+    { id: 'p01', stars: 3, expr: 'x^2 + 6x + 9',     answer: '(x + 3)^2' },
+    { id: 'p02', stars: 3, expr: 'x^2 - 4x + 4',     answer: '(x - 2)^2' },
+    { id: 'p03', stars: 3, expr: '4x^2 + 4x + 1',    answer: '(2x + 1)^2' },
+    { id: 'p04', stars: 3, expr: 'x^2 + 2xy + y^2',  answer: '(x + y)^2' },
+    { id: 'p05', stars: 3, expr: '2x^2 - 12x + 18',  answer: '2(x - 3)^2' },
+    { id: 'p06', stars: 3, expr: 'x^2 + 4x + 4',     answer: '(x + 2)^2' },
+    { id: 'p07', stars: 3, expr: 'x^2 - 6x + 9',     answer: '(x - 3)^2' },
+    { id: 'p08', stars: 3, expr: '9x^2 + 6x + 1',    answer: '(3x + 1)^2' },
+    { id: 'p09', stars: 3, expr: 'x^2 - 2xy + y^2',  answer: '(x - y)^2' },
+    { id: 'p10', stars: 3, expr: '3x^2 + 12x + 12',  answer: '3(x + 2)^2' },
   ],
 
   // 電腦難度（延遲單位：毫秒）
@@ -240,6 +255,22 @@ body.lowfx .card3d.pick .front { box-shadow: 0 0 0 4px #8fe0ff; }
 body.lowfx #cutin .circ svg { animation: none; filter: none; }
 body.lowfx #cutin .fig { filter: none; }
 
+/* ---------- 答錯提示 ---------- */
+#tipPanel { position: fixed; z-index: 22; left: 50%; top: 60px; transform: translateX(-50%); width: min(620px, 62vw); padding: 12px 16px; border-color: #ff9a7a; box-shadow: 0 0 24px rgba(255,120,80,.35); }
+#tipPanel .tt { font-weight: 700; font-size: 1.1em; color: #ffb39c; margin-bottom: 4px; }
+#tipPanel .tb { line-height: 1.55; }
+#tipPanel .tb .bi-en { font-size: .85em; }
+#tipPanel .tr { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: .85em; opacity: .95; }
+#tipPanel .tr .btn { font-size: 1.1em; }
+#chMode { margin-bottom: 4px; grid-template-columns: repeat(5, 1fr); }
+#chMode .choice, #chDiff .choice { padding: 5px 6px; }
+#chChar { grid-template-columns: repeat(3, 1fr); }
+#chChar .choice { padding: 4px; }
+#chChar .choice svg { width: 2.1em; height: 2.1em; margin-bottom: 2px; }
+#screenSetup .sheet h2 { margin: .45em 0 .3em; }
+#screenSetup .sheet h1 { font-size: clamp(24px, 4.6vh, 40px); }
+@media (max-width: 760px) { #chMode { grid-template-columns: repeat(3, 1fr); } }
+
 /* ---------- 對白 ---------- */
 #speech { position: fixed; z-index: 25; left: 50%; top: 18%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 12px 18px; max-width: min(80vw, 720px); opacity: 0; transition: opacity .3s; pointer-events: none; }
 #speech.show { opacity: 1; }
@@ -340,6 +371,11 @@ table.review th { color: #5b1d10; }
 <div id="toast" class="panel"></div>
 <div id="speech" class="panel"></div>
 <div id="cutin" hidden></div>
+<div id="tipPanel" class="panel" hidden>
+  <div class="tt" id="tipTitle"></div>
+  <div class="tb" id="tipBody"></div>
+  <div class="tr"><button class="btn gold" id="btnUnderstood"></button><span id="tipSaved"></span></div>
+</div>
 
 <!-- ===== 登入 ===== -->
 <div id="screenLogin" class="screen" hidden>
@@ -353,7 +389,7 @@ table.review th { color: #5b1d10; }
       <label for="inNo">學號 No.</label>
       <input id="inNo" type="number" inputmode="numeric" min="1" max="40" step="1" autocomplete="off">
       <div class="err" id="errNo"></div>
-      <label for="inName">姓名 Name</label>
+      <label for="inName">姓名 Name<br><small style="font-weight:400">（選填 optional）</small></label>
       <input id="inName" type="text" autocomplete="off">
       <div class="err" id="errName"></div>
       <label>語言 Language</label>
@@ -375,6 +411,8 @@ table.review th { color: #5b1d10; }
   <div class="sheet">
     <h1 id="setupTitle"></h1>
     <p class="who-line" id="setupWho"></p>
+    <h2 data-t="mode"></h2>
+    <div class="choices" id="chMode"></div>
     <div class="setup-grid">
       <div>
         <div id="rulesBox"><h2 data-t="rulesMode"></h2>
@@ -393,6 +431,7 @@ table.review th { color: #5b1d10; }
     <p class="notice" id="setupInfo"></p>
     <div class="row-btns">
       <button class="btn primary" id="btnStart"></button>
+      <button class="btn" id="btnNotebook"></button>
       <button class="btn" id="btnRules2"></button>
       <button class="btn" id="btnNotMe2"></button>
     </div>
@@ -617,6 +656,10 @@ function methodOf(target) {
   const kind = lins.length === 2 && lins[0].equals(lins[1]) ? 'perfSq' : 'diffSq';
   return target.answer.some(f => f.isMonomial()) ? kind + 'Common' : kind;
 }
+/* 關卡（徽章）= 四種方法 */
+const LEVELS = ['common', 'group', 'diffSq', 'perfSq'];
+const levelOf = (target) => methodOf(target).replace('Common', '');
+const qidOf = (target) => target.src.id || ('t' + (target.index + 1));
 function buildDeck(cfg) {
   const stars = cfg.starsIncluded && cfg.starsIncluded.length ? cfg.starsIncluded : [1, 2, 3];
   let uid = 0;
@@ -630,7 +673,10 @@ function buildDeck(cfg) {
     return { kind: 'target', stars: t.stars, poly, answer, src: t, index: n };
   });
   validateTargets(allTargets);
-  const targets = allTargets.filter(t => stars.includes(t.stars)).map(add);
+  // onlyLevel：闖關只用嗰種方法嘅目標；onlyIds：錯題本只用指定題目
+  const targets = allTargets.filter(t => stars.includes(t.stars)
+    && (!cfg.onlyLevel || levelOf(t) === cfg.onlyLevel)
+    && (!cfg.onlyIds || cfg.onlyIds.includes(qidOf(t)))).map(add);
   if (!targets.length) throw new Error('CONFIG.starsIncluded 冇包含任何目標卡');
 
   // 一次因式：由標準答案生成；每個因式最少有「單一目標需要嘅最大數量」張
@@ -671,7 +717,11 @@ function buildDeck(cfg) {
   return { cards, targets, factorCards, funcCards };
 }
 function validateTargets(targets) {
+  const ids = new Set();
   for (const t of targets) {
+    const id = qidOf(t);
+    if (ids.has(id)) throw new Error(`目標 id「${id}」重複咗`);
+    ids.add(id);
     const label = `目標「${t.src.expr}」`;
     if (![1, 2, 3].includes(t.stars)) throw new Error(`${label} 星級要係 1–3`);
     if (!Poly.product(t.answer).equals(t.poly)) throw new Error(`${label} 嘅標準答案「${t.src.answer}」展開後唔等於目標`);
@@ -823,6 +873,13 @@ class Game {
     if (p.score >= this.cfg.winScore) this.over = true;
     return this.refillTable();
   }
+  /* 第三次或以後先答對：目標卡清走，但唔計分 */
+  retire(targetId) {
+    const n = this.table.findIndex(t => t.id === targetId);
+    if (n >= 0) this.table.splice(n, 1);
+    this.successThisTurn = true;
+    return this.refillTable();
+  }
   /* 一整輪冇人成功 → 真理之門：換走最舊嘅目標卡 */
   endTurn() {
     if (this.successThisTurn) this.noSuccessTurns = 0; else this.noSuccessTurns++;
@@ -958,7 +1015,7 @@ const store = {
   set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch (e) { return false; } },
   del(key) { try { localStorage.removeItem(key); } catch (e) { /* ignore */ } },
 };
-const KEYS = { student: 'fa_student_v1', queue: 'fa_queue_v1', mute: 'fa_mute_v1', lowfx: 'fa_lowfx_v1', setup: 'fa_setup_v1', tutorial: 'fa_tutorial_v1' };
+const KEYS = { mute: 'fa_mute_v1', lowfx: 'fa_lowfx_v1', setup: 'fa_setup_v1' };   // 只係個人顯示偏好；學生資料同進度見下面 STU_KEY / SAVE_KEY
 
 /* ---------- 語言 ---------- */
 let LANG = 'zh';
@@ -972,6 +1029,34 @@ const STR = {
   wrongSimple: ['等價交換失敗！卡退返手上，回合結束。', 'Exchange failed! Cards return to your hand; turn over.'],
   incompleteSimple: ['分解不徹底：{f} 仲可以抽出公因數 {g}，呢張卡被棄掉。應該用 {g} 同 {p}。', 'Incomplete: {f} still has a common factor {g}, so it is discarded. Use {g} and {p} instead.'],
   cutinTitle: ['鍊成成功！', 'Transmuted!'],
+  mode: ['關卡', 'Stage'], mixed: ['綜合對戰', 'Mixed battle'], mixedD: ['四種方法混合，唔計徽章', 'All four methods; no badge'],
+  levelD: ['第一次就答對 {p} 題得徽章', '{p} first-try correct earns the badge'], badgeGot: ['🏅 已取得徽章', '🏅 Badge earned'],
+  bestScore: ['最佳 {s}/{n}', 'Best {s}/{n}'], firstOk: ['第一次答對 {s}', 'First-try {s}'],
+  levelInfo: ['闖關：只出呢種方法嘅題目，玩到目標卡用完；第一次就答對 {p} 題或以上得徽章 · 提示每局 {hints} 次', 'Stage: only this method; play until the targets run out. {p}+ first-try correct earns the badge · {hints} hints'],
+  notebookBtn: ['📒 錯題本（{n}）', '📒 Notebook ({n})'], notebookEmpty: ['錯題本係空嘅，好嘢！', 'Your notebook is empty. Great!'],
+  practiceTitle: ['錯題本練習', 'Notebook practice'], practiceBanner: ['📒 錯題本 {i} / {n}：用手牌砌出呢條式嘅因式分解', '📒 Notebook {i} / {n}: build the factorization from your hand'],
+  practiceDone: ['錯題本練習完成！今次改正咗 {f} 題。', 'Notebook practice done! {f} fixed.'], skip: ['跳過', 'Skip'],
+  correctPractice: ['答對！記住呢個方法。', 'Correct! Remember this method.'],
+  understood: ['👍 我明白了', '👍 I understand'], tipTitle: ['⚠️ 再諗諗！', '⚠️ Think again!'],
+  tipSaved: ['讀完提示，再揀過卡（已記錄到錯題本 📒）', 'Read the tip, then choose again (saved to your notebook 📒)'],
+  tipWrong: ['乘積係 {p}，唔等於目標 {t}。', 'The product is {p}, not the target {t}.'],
+  tipIncomplete: ['乘積啱咗，但 {f} 仲可以抽出公因數 {g}：改用 {g} 同 {q}。', 'The product is right, but {f} still has a common factor {g}: use {g} and {q} instead.'],
+  mtip_common: ['提示：先搵出每一項都有嘅數字同字母，抽出嚟之後，括號入面要冇公因式。', 'Tip: find the number and letters in every term, take them out, and check the bracket has no common factor left.'],
+  mtip_group: ['提示：將四項分成兩組，每組抽公因式之後，兩個括號要一模一樣。', 'Tip: split the four terms into two pairs; after factoring each pair, both brackets must match.'],
+  mtip_diffSq: ['提示：睇吓係咪「□² − △²」，答案係 (□ + △)(□ − △)。', 'Tip: is it □² − △²? Then it is (□ + △)(□ − △).'],
+  mtip_perfSq: ['提示：頭尾係咪平方、中間係咪 2 × □ × △？答案係 (□ ± △)²，要出兩張一樣嘅卡。', 'Tip: are the first and last terms squares and the middle 2 × □ × △? Then it is (□ ± △)², using two identical cards.'],
+  mtip_first: ['記住：第一步永遠先抽公因式！', 'Remember: always take out the common factor first!'],
+  retryNote: ['重試後答對：記住呢個方法！', 'Correct after a retry: remember this method!'],
+  thirdNote: ['試咗幾次先答對，今次冇分數同鈴錢；睇清楚驗算，下次一定得！', 'Several tries this time, so no points or Bells. Read the check and you will get it next time!'],
+  fixedNote: ['✏️ 成功改正錯題，已從錯題本移除！', '✏️ Mistake fixed and removed from your notebook!'],
+  levelResult: ['第一次答對：{s} / {n}', 'First-try correct: {s} / {n}'],
+  newBadge: ['🏅 太厲害！你取得【{m}】徽章！', '🏅 Amazing! You earned the "{m}" badge!'],
+  haveBadge: ['你已經有呢個徽章，繼續保持！', 'You already own this badge. Keep it up!'],
+  noBadge: ['差少少！要第一次答對 {p} 題。打開錯題本重溫，再嚟挑戰！', 'So close! You need {p} first-try correct. Review your notebook and try again!'],
+  allBadges: ['🏆 集齊四枚徽章，你已成為國家鍊金術師！', '🏆 All four badges: you are now a State Alchemist!'],
+  bellsEarned: ['今局鈴錢 +{b}', 'Bells this game +{b}'],
+  recOn: ['📊 成績記錄：開啟（班別及學號必填，答題紀錄會傳送給老師）', '📊 Score log: on (class and number required; results are sent to your teacher)'],
+  recOnShort: ['📊 成績記錄：開啟', '📊 Score log: on'], recOff: ['成績記錄：關閉（預覽模式）', 'Score log: off (preview)'],
   tutStart: ['明白，開始！', "Got it, let's go!"],
   players: ['人數', 'Players'], p2: ['2 人', '2 players'], p4: ['4 人', '4 players'],
   difficulty: ['電腦難度', 'AI difficulty'], character: ['你嘅角色', 'Your character'],
@@ -1049,10 +1134,10 @@ const STR = {
   syncQueued: ['暫時未能連線，記錄已儲存，下次開遊戲會自動重傳', 'Offline: record saved and will be re-sent next time'],
   syncNoUrl: ['（老師未設定記錄網址，記錄只儲存喺本機）', '(No record URL set; the record is stored on this device)'],
   syncing: ['傳送記錄中…', 'Sending record…'],
-  quitConfirm: ['確定要離開呢局？記錄會標記為「中途離開」。', 'Leave this game? It will be recorded as abandoned.'],
+  quitConfirm: ['確定要離開呢局？', 'Leave this game?'],
   yes: ['確定', 'Yes'], no: ['取消', 'Cancel'], ok: ['明白', 'OK'],
   errClass: ['請揀班別', 'Please choose your class'], errNo: ['學號要係 {a}–{b} 之間嘅整數', 'Number must be {a}–{b}'],
-  errName: ['請輸入姓名（最多 {n} 字）', 'Enter your name (max {n} chars)'], errLang: ['請揀語言', 'Please choose a language'],
+  errName: ['姓名最多 {n} 字', 'Name: max {n} chars'], errLang: ['請揀語言', 'Please choose a language'],
   lowfxOn: ['已開啟簡化特效', 'Simplified effects on'], lowfxOff: ['已關閉簡化特效', 'Simplified effects off'],
   lowfxAuto: ['畫面有啲慢，已自動開啟簡化特效', 'Running slowly; simplified effects enabled'],
   target: ['目標', 'Target'], factor: ['因式', 'Factor'],
@@ -1274,38 +1359,56 @@ const Sound = {
   },
 };
 
-/* ---------- 遊戲記錄：Apps Script（text/plain 避免 CORS preflight） ---------- */
-const Recorder = {
-  queue() { const q = store.get(KEYS.queue, []); return Array.isArray(q) ? q : []; },
-  saveQueue(q) { store.set(KEYS.queue, q.slice(-50)); },
-  enqueue(rec) {
-    const q = this.queue();
-    const i = q.findIndex(r => r.gameId === rec.gameId);
-    if (i >= 0) { if (q[i].status === 'completed' && rec.status !== 'completed') return; q[i] = rec; }
-    else q.push(rec);
-    this.saveQueue(q);
-  },
-  dequeue(gameId, status) { this.saveQueue(this.queue().filter(r => !(r.gameId === gameId && (!status || r.status === status)))); },
-  async send(rec) {
-    if (!CFG.scriptUrl) { this.enqueue(rec); return 'nourl'; }
-    try {
-      const res = await fetch(CFG.scriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(rec), redirect: 'follow' });
-      if (res.ok || res.type === 'opaque') { this.dequeue(rec.gameId); return 'ok'; }
-      throw new Error('HTTP ' + res.status);
-    } catch (e) {
-      this.enqueue(rec); return 'queued';
-    }
-  },
-  beacon(rec) {
-    this.enqueue(rec);                 // 先排隊，萬一 beacon 失敗下次會重傳（後端會用 gameId 去重）
-    if (!CFG.scriptUrl || !navigator.sendBeacon) return false;
-    try { return navigator.sendBeacon(CFG.scriptUrl, new Blob([JSON.stringify(rec)], { type: 'text/plain;charset=utf-8' })); } catch (e) { return false; }
-  },
-  async flush() {
-    if (!CFG.scriptUrl) return;
-    for (const rec of this.queue()) { const r = await this.send(rec); if (r !== 'ok') break; }
-  },
+/* ---------------- teacher score log (Google Sheet) ----------------
+   Paste your Google Apps Script web-app URL between the quotes to record
+   every student's answers, scores and play time in your Google Sheet.
+   Leave it empty to turn recording off. */
+const SHEET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzQFC7-5wyvuPbcgPmVaAZmRVd8XpOwvXHUzggUOAU5JR66dk-0S4yu4_4tMuSL6hg4/exec';
+/* This game is one of several that share one site: GAME.id tags every log line, and the student
+   details + a small progress list (HUB_KEY) are shared by all games opened from the same address. */
+const GAME = { id:'factor-alchemy', zh:'因式鍊金術', en:'Factor Alchemy', total:4 };
+const HUB_KEY = 'mathverse-hub';
+const STU_KEY = 'mathverse-student';
+const SESSION_ID = Math.random().toString(36).slice(2, 10);
+let student = { cls:'', no:'', name:'' };
+try{ Object.assign(student, JSON.parse(localStorage.getItem(STU_KEY) || '{}')); }catch(e){}
+const recordingOn = () => !!SHEET_ENDPOINT && !window.claude;
+let lastActive = Date.now();
+function logEvent(ev, extra){
+  if(!recordingOn()) return;
+  if(!student.cls || !student.no) return;            // 班別同學號未填好就唔傳送
+  const body = JSON.stringify(Object.assign({ v:2, game:GAME.id, badgeTotal:GAME.total, sid:SESSION_ID, cls:student.cls, no:student.no, name:student.name, ev,
+    bells:state.bells, badges:badgeCount(), t:new Date().toISOString(),
+    dev: /iPad|iPhone|Android|Mobile/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1 ? 'tablet/phone' : 'computer' }, extra || {}));
+  try{ if(navigator.sendBeacon && navigator.sendBeacon(SHEET_ENDPOINT, new Blob([body], {type:'text/plain'}))) return; }catch(e){}
+  try{ fetch(SHEET_ENDPOINT, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body, keepalive:true }).catch(()=>{}); }catch(e){}
+}
+
+/* ---------------- state & save ---------------- */
+const SAVE_KEY = 'factor-alchemy-v1';
+const state = {
+  bells:0, badges:{ common:false, group:false, diffSq:false, perfSq:false },
+  best:{ common:0, group:0, diffSq:0, perfSq:0 }, tries:{}, notebook:[], fixed:0, fixedIds:{}, won:false, lang:'', tutorial:false
 };
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} hubSync(); }
+function hubSync(){   // progress summary that a future hub page can read to show every game's stamps
+  try{
+    const hub = JSON.parse(localStorage.getItem(HUB_KEY) || '{}'); hub.games = hub.games || {};
+    const b = badgeCount();
+    hub.games[GAME.id] = { zh:GAME.zh, en:GAME.en, badges:b, total:GAME.total, done:b >= GAME.total, bells:state.bells, t:Date.now() };
+    localStorage.setItem(HUB_KEY, JSON.stringify(hub));
+  }catch(e){}
+}
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if(s){ for(const k in state){ if(s[k] !== undefined) state[k] = s[k]; } }
+  }catch(e){}
+}
+load();
+const badgeCount = () => LEVELS.filter(k => state.badges[k]).length;
+const inNotebook = (qid) => state.notebook.some(n => n.id === qid);
+function addNotebook(qid){ if(!inNotebook(qid)){ state.notebook.push({ id:qid, t:Date.now() }); save(); } }
 
 /* =====================================================================
    VIEW：Three.js 桌面場景 + CSS3D 卡牌 + 特效（只負責畫，唔改遊戲狀態）
@@ -2016,56 +2119,67 @@ const par = (p) => (p.isMonomial() ? p.toTeX() : `(${p.toTeX()})`);
 
 /* ---------- 啟動 ---------- */
 function boot() {
-  if (/[?&]debug\b/.test(location.search)) window.__fa = { get game() { return game; }, ui, act, view, AI, snipeValid, showVerify, buildProof, resolveSynthesis, get session() { return session; } };
-  try { buildDeck(CFG); }        // 啟動驗證：答案展開一致、因式 primitive、牌組足夠
+  if (/[?&]debug\b/.test(location.search)) window.__fa = { get game() { return game; }, ui, act, view, AI, snipeValid, showVerify, buildProof, resolveSynthesis, state, get student() { return student; }, get session() { return session; } };
+  try { buildDeck(CFG); LEVELS.forEach(lv => buildDeck({ ...CFG, onlyLevel: lv })); }   // 啟動驗證：答案展開一致、因式 primitive、牌組足夠（包括每個關卡）
   catch (e) { $('fatal').hidden = false; $('fatal').textContent = '⚠ CONFIG 驗證失敗 Config validation failed\n\n' + e.message; throw e; }
   try { view.init(); } catch (e) { $('fatal').hidden = false; $('fatal').textContent = '⚠ 呢部裝置唔支援 WebGL：' + e.message; throw e; }
   view.onCardClick = onCardClick;
   view.onHover = () => { if (game && ui.interactive) view.layout(game, ui, 140); };
   bindStatic();
-  Recorder.flush();
   window.addEventListener('pointerdown', () => Sound.ensure(), { once: true });
-  showLogin();
+  ['pointerdown', 'keydown'].forEach(tp => window.addEventListener(tp, () => { lastActive = Date.now(); }, true));
+  hubSync();
+  // 已經有 mathverse-student（班別＋學號）就唔使再輸入
+  if (student.cls && student.no) showSetup(); else showLogin();
+}
+/* 開始遊戲時傳一次 start，之後每 60 秒 heartbeat（頁面可見而且 2 分鐘內有操作） */
+let logStarted = false;
+function startLogging() {
+  if (logStarted) return; logStarted = true;
+  logEvent('start');
+  setInterval(() => { if (document.visibilityState === 'visible' && Date.now() - lastActive < 120000) logEvent('heartbeat'); }, 60000);
 }
 
-/* ---------- 登入 ---------- */
+/* ---------- 登入（學生資料沿用 mathverse-student） ---------- */
 function showLogin() {
   LANG = 'bi';
   hideAllScreens(); $('screenLogin').hidden = false; $('hud').hidden = true;
   const sel = $('inClass');
-  sel.innerHTML = `<option value="">— 請揀 Choose —</option>` + CFG.classes.map(c => `<option>${c}</option>`).join('');
+  const classes = CFG.classes.includes(student.cls) || !student.cls ? CFG.classes : CFG.classes.concat([student.cls]);
+  sel.innerHTML = `<option value="">— 請揀 Choose —</option>` + classes.map(c => `<option>${escapeHTML(c)}</option>`).join('');
   $('inNo').min = CFG.studentNoMin; $('inNo').max = CFG.studentNoMax; $('inName').maxLength = CFG.nameMaxLength;
-  const s = store.get(KEYS.student);
-  if (s) { sel.value = CFG.classes.includes(s.cls) ? s.cls : ''; $('inNo').value = s.no || ''; $('inName').value = s.name || ''; setSeg('segLang', s.lang); }
-  else { sel.value = ''; $('inNo').value = ''; $('inName').value = ''; setSeg('segLang', null); }
+  sel.value = student.cls || ''; $('inNo').value = student.no || ''; $('inName').value = student.name || '';
+  setSeg('segLang', state.lang || null);
   ['errClass', 'errNo', 'errName', 'errLang'].forEach(k => $(k).textContent = '');
 }
 function setSeg(id, v) { $(id).querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === String(v))); }
 function segVal(id) { const b = $(id).querySelector('button.on'); return b ? b.dataset.v : null; }
 function doLogin() {
-  const cls = $('inClass').value, noStr = String($('inNo').value).trim(), name = $('inName').value.trim(), lang = segVal('segLang');
+  const cls = $('inClass').value.trim().toUpperCase(), noStr = String($('inNo').value).trim(), name = $('inName').value.trim(), lang = segVal('segLang');
   const no = Number(noStr);
   let ok = true;
   const err = (k, key, p) => { $(k).innerHTML = key ? tl(fmt(STR[key][0], p), fmt(STR[key][1], p)) : ''; if (key) ok = false; };
-  err('errClass', CFG.classes.includes(cls) ? null : 'errClass');
+  err('errClass', cls ? null : 'errClass');
   err('errNo', /^\d+$/.test(noStr) && no >= CFG.studentNoMin && no <= CFG.studentNoMax ? null : 'errNo', { a: CFG.studentNoMin, b: CFG.studentNoMax });
-  err('errName', name && [...name].length <= CFG.nameMaxLength ? null : 'errName', { n: CFG.nameMaxLength });
+  err('errName', [...name].length <= CFG.nameMaxLength ? null : 'errName', { n: CFG.nameMaxLength });
   err('errLang', lang ? null : 'errLang');
   if (!ok) { Sound.play('fail'); return; }
-  store.set(KEYS.student, { cls, no, name, lang });
+  student.cls = cls; student.no = String(no); student.name = name;
+  try { localStorage.setItem(STU_KEY, JSON.stringify(student)); } catch (e) {}
+  state.lang = lang; save();
   Sound.play('success');
   showSetup();
 }
 function notMe() {
-  store.del(KEYS.student);
+  student = { cls: '', no: '', name: '' };
+  try { localStorage.removeItem(STU_KEY); } catch (e) {}
   showLogin();
 }
 
 /* ---------- 對局設定 ---------- */
 let setupSel = { players: 2, difficulty: 'national', char: 'ed', rules: null };
 function applyLang() {
-  const s = store.get(KEYS.student);
-  LANG = (s && s.lang) || 'zh';
+  LANG = state.lang || 'bi';
   document.body.className = 'lang-' + LANG + (view.lowfx ? ' lowfx' : '');
   document.documentElement.lang = LANG === 'en' ? 'en' : 'zh-Hant-HK';
   document.querySelectorAll('[data-t]').forEach(el => el.innerHTML = t(el.dataset.t));
@@ -2078,49 +2192,63 @@ function applyLang() {
 function showSetup() {
   applyLang();
   hideAllScreens(); $('screenSetup').hidden = false; $('hud').hidden = true;
-  const s = store.get(KEYS.student);
   setupSel = { ...setupSel, ...(store.get(KEYS.setup) || {}) };
   if (!PLAYER_CHARS.includes(setupSel.char)) setupSel.char = 'ed';
+  if (!setupSel.mode || !(LEVELS.includes(setupSel.mode) || setupSel.mode === 'mixed')) setupSel.mode = LEVELS.find(lv => !state.badges[lv]) || 'mixed';
   $('setupTitle').innerHTML = t('setupTitle');
-  $('setupWho').innerHTML = t('whoLine', { cls: s.cls, no: s.no, name: escapeHTML(s.name) });
+  $('setupWho').innerHTML = t('whoLine', { cls: escapeHTML(student.cls), no: escapeHTML(student.no), name: escapeHTML(student.name) })
+    + ` · 💰 ${state.bells} · 🏅 ${badgeCount()}/${GAME.total}`;
+  const lvCount = (lv) => CFG.targets.filter((tg, n) => levelOf({ stars: tg.stars, answer: parseFactorList(tg.answer), src: tg, index: n }) === lv).length;
+  $('chMode').innerHTML = LEVELS.map((lv, n) => `<div class="choice" data-v="${lv}"><b>${['★', '★★', '★★★', '★★★'][n]} ${t(lv)}</b>
+      <div class="d">${state.badges[lv] ? t('badgeGot') : t('levelD', { p: CFG.badgePass })}${state.best[lv] ? ' · ' + tp('bestScore', { s: state.best[lv], n: lvCount(lv) }) : ''}</div></div>`).join('')
+    + `<div class="choice" data-v="mixed"><b>${t('mixed')}</b><div class="d">${t('mixedD')}</div></div>`;
+  $('btnNotebook').innerHTML = t('notebookBtn', { n: state.notebook.length });
+  $('btnNotebook').disabled = !state.notebook.length;
   setSeg('segPlayers', setupSel.players);
   $('chDiff').innerHTML = ['apprentice', 'national', 'flame'].map(d => `<div class="choice" data-v="${d}"><b>${t(d)}</b><div class="d">${t(d + 'D')}</div></div>`).join('');
   $('chChar').innerHTML = PLAYER_CHARS.map(c => `<div class="choice" data-v="${c}">${ART.emblem(c)}<b>${charNameHTML(c)}</b></div>`).join('');
   const mark = () => {
     $('chDiff').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.difficulty));
     $('chChar').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.char));
+    $('chMode').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.mode));
     setSeg('segPlayers', setupSel.players);
     const r = rulesChoice();
     setSeg('segRules', r); $('rulesDesc').innerHTML = t(r + 'D');
     $('rulesBox').hidden = !CFG.allowRuleChoice;
     const stars = (CFG.starsIncluded || [1, 2, 3]).map(n => '★'.repeat(n)).join(' ');
-    $('setupInfo').innerHTML = t('setupInfo', { win: winFor(r), stars, hints: CFG.hintsPerGame });
+    $('setupInfo').innerHTML = (setupSel.mode === 'mixed' ? t('setupInfo', { win: winFor(r), stars, hints: CFG.hintsPerGame }) : t('levelInfo', { p: CFG.badgePass, hints: CFG.hintsPerGame }))
+      + `<br>${t(recordingOn() ? 'recOn' : 'recOff')}`;
   };
+  $('chMode').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.mode = c.dataset.v; Sound.play('select'); mark(); } };
   $('segRules').onclick = (e) => { const b = e.target.closest('button'); if (b) { setupSel.rules = b.dataset.v; Sound.play('select'); mark(); } };
   $('chDiff').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.difficulty = c.dataset.v; Sound.play('select'); mark(); } };
   $('chChar').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.char = c.dataset.v; Sound.play('select'); mark(); } };
   mark();
 }
 function escapeHTML(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-function hideAllScreens() { ['screenLogin', 'screenSetup', 'screenReview', 'modalVerify', 'modalRules', 'modalConfirm'].forEach(id => $(id).hidden = true); $('reaction').hidden = true; }
+function hideAllScreens() { ['screenLogin', 'screenSetup', 'screenReview', 'modalVerify', 'modalRules', 'modalConfirm', 'tipPanel'].forEach(id => $(id).hidden = true); $('reaction').hidden = true; }
 
 /* ---------- 開局 ---------- */
 async function startGame() {
   Sound.ensure();
   store.set(KEYS.setup, setupSel);
-  const student = store.get(KEYS.student);
-  if (!student) return showLogin();
+  if (!student.cls || !student.no) return showLogin();
   if (session) endSession();
+  startLogging();
+  const mode = setupSel.mode || 'mixed', level = LEVELS.includes(mode);
   const opps = shuffle(AI_CHARS.slice()).slice(0, setupSel.players - 1);
   const defs = [{ char: setupSel.char, isHuman: true }].concat(opps.map(c => ({ char: c, isHuman: false, difficulty: setupSel.difficulty })));
   const rules = rulesChoice();
   // 簡易玩法：唔放功能卡入牌組，勝利分數用 winScoreSimple
-  game = new Game(rules === 'simple' ? { ...CFG, winScore: CFG.winScoreSimple, handStart: CFG.handStartSimple, handLimit: CFG.handLimitSimple, functionCards: {} } : CFG, defs);
+  const base = rules === 'simple' ? { ...CFG, winScore: CFG.winScoreSimple, handStart: CFG.handStartSimple, handLimit: CFG.handLimitSimple, functionCards: {} } : CFG;
+  // 闖關：只用嗰種方法嘅目標卡，玩到目標卡用完為止
+  game = new Game(level ? { ...base, onlyLevel: mode, starsIncluded: [1, 2, 3], winScore: Infinity } : base, defs);
   let abort; const abortP = new Promise((_, rej) => { abort = () => rej(new AbortGame()); });
   abortP.catch(() => {});
   session = {
     gameId: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-    student, settings: { ...setupSel }, rules, start: new Date(), active: true, finished: false, abort, abortP,
+    settings: { ...setupSel }, rules, mode, place: mode, start: new Date(), active: true, finished: false, abort, abortP,
+    tries: new Map(), t0: new Map(), hinted: new Set(), wasNb: new Map(), firstCount: 0, bellsEarned: 0, fixedCount: 0,
     hintsLeft: CFG.hintsPerGame, lowfxChecked: false,
     stats: { succ: { 1: 0, 2: 0, 3: 0 }, wrong: 0, incomplete: 0, snipe: 0, snipeMissed: 0, destroyed: 0, hints: 0 },
     attempts: [], mistakes: [], claimed: new Map(), endReason: '',
@@ -2137,7 +2265,7 @@ async function startGame() {
   banner('');
   try {
     await relayout(520);
-    if (rules === 'simple' && !store.get(KEYS.tutorial, false)) { await abortable(showRules(true)); store.set(KEYS.tutorial, true); }
+    if (rules === 'simple' && !state.tutorial) { await abortable(showRules(true)); state.tutorial = true; save(); }
     await intros();
     setTimeout(() => checkPerf(), 4000);
     await runLoop();
@@ -2201,7 +2329,8 @@ function act(a) { if (actionResolver) { const r = actionResolver; actionResolver
 const turnBanner = () => banner(t(isSimple() ? 'yourTurnSimple' : 'yourTurn'));
 async function humanTurn() {
   turnBanner();
-  await drawCards(0, 1);
+  session.t0 = new Map();                 // 每個回合重新計：揀目標卡嗰刻開始計時
+  if (session.mode !== 'notebook') await drawCards(0, 1);
   ui.interactive = true; ui.mode = 'main';
   updateButtons(); renderPreview();
   for (;;) {
@@ -2221,7 +2350,12 @@ async function humanTurn() {
     }
     ui.interactive = false; updateButtons();
     if (a.type === 'synth') {
-      await resolveSynthesis(0, a.targetId, a.cardIds);
+      const r = await resolveSynthesis(0, a.targetId, a.cardIds);
+      if (r === 'retry') {                // 答錯唔扣分，讀完提示可以再試
+        ui.interactive = true; ui.mode = 'main';
+        turnBanner(); updateButtons(); renderPreview(); relayout(200).catch(() => {});
+        continue;
+      }
     } else if (a.type === 'swap') {
       ui.selected.clear();
       game.discard(0, [a.cardId]);
@@ -2277,6 +2411,7 @@ function onCardClick(id) {
   }
   if (onTable) {
     ui.selectedTarget = ui.selectedTarget === id ? null : id;
+    if (ui.selectedTarget && !session.t0.has(id)) session.t0.set(id, Date.now());
     Sound.play(ui.selectedTarget ? 'select' : 'deselect');
   } else if (inHand) {
     if (c.kind === 'func' && c.func === 'reverse' && !ui.selected.has(id)) {
@@ -2297,8 +2432,8 @@ function updateButtons() {
   $('btnSynth').disabled = !(main && ui.selectedTarget && ui.selected.size > 0);
   $('btnSwap').disabled = !(main && ui.selected.size === 1);
   $('btnEnd').disabled = !main;
-  const swapOnEnd = isSimple() && main && ui.selected.size === 1 && !ui.selectedTarget;
-  $('btnEnd').innerHTML = t(swapOnEnd ? 'swapEnd' : 'end');
+  const swapOnEnd = isSimple() && main && ui.selected.size === 1 && !ui.selectedTarget && !(session && session.mode === 'notebook');
+  $('btnEnd').innerHTML = t(session && session.mode === 'notebook' ? 'skip' : swapOnEnd ? 'swapEnd' : 'end');
   $('btnEnd').classList.toggle('gold', swapOnEnd);
   $('btnHint').disabled = !(main && session && session.hintsLeft > 0);
   $('btnHint').innerHTML = t('hint', { n: session ? session.hintsLeft : CFG.hintsPerGame });
@@ -2345,10 +2480,62 @@ async function aiTurn(pi) {
 }
 
 /* ---------- 合成判定流程 ---------- */
+/* ---------- 學生作答：記錄 + 獎勵（答錯唔扣分；第三次先答對冇獎勵） ---------- */
+const topicOf = (target) => STR[levelOf(target)][0];
+function humanAnswer(target, ev) {
+  const qid = qidOf(target), ok = ev.result === 'correct';
+  const attempt = (session.tries.get(target.id) || 0) + 1;
+  session.tries.set(target.id, attempt);
+  const first = ok && attempt === 1;
+  // review = 錯題本重做：錯題本練習，或者呢題喺今局第一次出手之前已經喺錯題本
+  if (!session.wasNb.has(target.id)) session.wasNb.set(target.id, inNotebook(qid));
+  const review = session.mode === 'notebook' || session.wasNb.get(target.id);
+  let fixed = false, bells = 0;
+  if (ok) {
+    // 錯題本練習只有「改正」獎勵；對戰入面第一次 300、第二次 150、第三次或以後冇獎勵
+    bells = session.mode === 'notebook' ? 0 : attempt === 1 ? CFG.rewards.first : attempt === 2 ? CFG.rewards.second : 0;
+    if (first && review) {
+      state.notebook = state.notebook.filter(n => n.id !== qid);
+      if (!state.fixedIds[qid]) { state.fixedIds[qid] = true; state.fixed++; fixed = true; bells += CFG.rewards.fixed; session.fixedCount++; }
+    }
+    if (first) session.firstCount++;
+    state.bells += bells; session.bellsEarned += bells; save();
+  } else {
+    addNotebook(qid);
+    session.stats[ev.result === 'wrong' ? 'wrong' : 'incomplete']++;
+  }
+  const t0 = session.t0.get(target.id) || Date.now();
+  logEvent('answer', { place: session.place, qid, topic: topicOf(target), ok, attempt, first, hint: session.hinted.has(target.id),
+    secs: Math.min(600, Math.round((Date.now() - t0) / 1000)),   // 由揀目標卡（或者按「我明白了」）計起
+    review, fixed });
+  return { attempt, first, bells, fixed };
+}
+/* 答錯：先讀提示，按「我明白了」先可以再揀 */
+function showTip(html) {
+  return abortable(new Promise(res => {
+    const prev = ui.mode; ui.mode = 'tip'; updateButtons();
+    $('tipTitle').innerHTML = t('tipTitle'); $('tipBody').innerHTML = html;
+    $('btnUnderstood').innerHTML = t('understood'); $('tipSaved').innerHTML = t('tipSaved');
+    $('tipPanel').hidden = false;
+    $('btnUnderstood').onclick = () => { Sound.play('select'); $('tipPanel').hidden = true; ui.mode = prev; res(); };
+    session.abortP.catch(() => { $('tipPanel').hidden = true; });
+  }));
+}
+function mistakeTip(target, ev) {
+  const lv = levelOf(target);
+  const firstStep = methodOf(target).endsWith('Common') || (lv === 'group' && target.answer.some(f => f.isConstant())) ? `<br>${t('mtip_first')}` : '';
+  if (ev.result === 'incomplete') {
+    const bad = ev.bad[0].poly, g = bad.content();
+    const q = new Poly(bad.terms().map(x => [x.i + ',' + x.j, x.c / g]));
+    return t('tipIncomplete', { f: tex(par(bad)), g, q: tex(par(q)) });
+  }
+  return t('tipWrong', { p: tex(ev.product.toTeX()), t: tex(target.poly.toTeX()) }) + `<br>${t('mtip_' + lv)}${firstStep}`;
+}
+
 async function resolveSynthesis(pi, targetId, cardIds) {
   const human = pi === 0, target = game.card(targetId);
   const ev = game.evaluate(targetId, cardIds);
-  const attempt = { target: target.poly.toString(), stars: target.stars, cards: cardIds.map(id => cardText(game.card(id))).join(' '), result: '', time: new Date().toISOString() };
+  const ans = human ? humanAnswer(target, ev) : null;
   ui.selected.clear(); ui.selectedTarget = null; renderPreview();
   ui.staged = { targetId, cardIds };
   game.table.forEach(tt => { if (tt.id !== targetId) view.setClass(tt.id, 'dim', true); });
@@ -2359,30 +2546,46 @@ async function resolveSynthesis(pi, targetId, cardIds) {
   await wait(1300);
   const undim = () => view.clearClasses('dim');
 
-  if (ev.result === 'wrong') {
-    view.setGlow(0); Sound.play('fail');
-    banner(`${t('wrongTitle')}`);
-    toast(t('wrongDetail', { p: tex(ev.product.toTeX()), t: tex(target.poly.toTeX()) }), 'bad', 3200);
+  // 學生答錯（乘積錯或者唔夠簡）：唔扣分、卡退返手上，讀完提示再試
+  if (human && ev.result !== 'correct') {
+    view.setGlow(0); Sound.play(ev.result === 'wrong' ? 'fail' : 'warn');
+    banner(t(ev.result === 'wrong' ? 'wrongTitle' : 'snipeTitle'));
     ui.staged = null; undim();
     await relayout(450);
-    if (human) {
-      session.stats.wrong++; attempt.result = 'wrong';
-      session.mistakes.push({ kind: 'wrong', target, cards: cardIds.map(id => game.card(id)), product: ev.product });
-      session.attempts.push(attempt);
-    }
-    if (isSimple()) { banner(t('wrongSimple')); await wait(1600); return; }   // 簡易玩法：唔使棄牌做代價
-    if (human) {
-      const id = await chooseDiscard(t('payCost'));
-      game.discard(0, [id]);
-    } else {
-      await wait(900);
-      game.discard(pi, AI.pickDiscard(game, pi, CFG.ai[game.player(pi).difficulty]));
-    }
-    await relayout(380);
-    return;
+    session.mistakes.push(ev.result === 'wrong'
+      ? { kind: 'wrong', target, cards: cardIds.map(id => game.card(id)), product: ev.product }
+      : { kind: 'incomplete', target, cards: cardIds.map(id => game.card(id)), bad: ev.bad[0].poly });
+    await showTip(mistakeTip(target, ev));
+    session.t0.set(targetId, Date.now());          // 按「我明白了」之後重新計時
+    return 'retry';
+  }
+
+  if (ev.result === 'wrong') {                     // 電腦答錯（進階玩法要棄牌）
+    view.setGlow(0); Sound.play('fail');
+    banner(`${t('wrongTitle')}`);
+    ui.staged = null; undim();
+    await relayout(450);
+    if (!isSimple()) { await wait(900); game.discard(pi, AI.pickDiscard(game, pi, CFG.ai[game.player(pi).difficulty])); await relayout(380); }
+    return 'done';
   }
 
   if (ev.result === 'correct') {
+    const proof = cardIds.map(id => game.card(id)).map(c => c.kind === 'factor' ? c.poly : Poly.const(ev.stoneValue));
+    const stoneShown = ev.stoneValue && ev.stoneValue > 1 ? ev.stoneValue : null;
+    // 錯題本練習／第三次或以後先答對：清走目標，唔計分、冇鈴錢
+    if (human && (session.mode === 'notebook' || ans.attempt >= 3)) {
+      game.discard(pi, cardIds);
+      if (session.mode === 'notebook') game.table = game.table.filter(tt => tt.id !== targetId); else game.retire(targetId);
+      ui.staged = null; undim(); view.setGlow(0);
+      Sound.play('success'); view.successFx();
+      banner(ans.attempt >= 3 ? t('thirdNote') : ans.fixed ? t('fixedNote') : t('correctPractice'));
+      const lay = relayout(620);
+      renderScoreboard();
+      await cutIn(pi, target, ans);
+      await lay;
+      await showVerify(pi, target, proof, stoneShown);
+      return 'done';
+    }
     view.setGlow(0.55);
     banner(human ? t('waitReact') : t('handTitle', { name: nameOf(pi) }));
     const react = isSimple() ? null : await reactionWindow('hand', pi, targetId, ev);
@@ -2396,11 +2599,10 @@ async function resolveSynthesis(pi, targetId, cardIds) {
       ui.staged = null; undim(); view.setGlow(0);
       await relayout(520);
       await drawCards(pi, cardIds.length);
-      if (human) { session.stats.destroyed++; attempt.result = 'destroyed'; session.attempts.push(attempt); }
+      if (human) session.stats.destroyed++;
       await wait(500);
-      return;
+      return 'done';
     }
-    const proof = cardIds.map(id => game.card(id)).map(c => c.kind === 'factor' ? c.poly : Poly.const(ev.stoneValue));
     game.discard(pi, cardIds);
     game.award(pi, targetId);
     session.claimed.set(targetId, pi);
@@ -2409,14 +2611,14 @@ async function resolveSynthesis(pi, targetId, cardIds) {
     banner(t('scored', { name: nameOf(pi), p: CFG.points[target.stars] }));
     const lay = relayout(620);
     renderScoreboard();
-    await cutIn(pi, target);
+    await cutIn(pi, target, ans);
     await lay;
-    if (human) { session.stats.succ[target.stars]++; attempt.result = 'correct'; session.attempts.push(attempt); }
-    await showVerify(pi, target, proof, ev.stoneValue && ev.stoneValue > 1 ? ev.stoneValue : null);
-    return;
+    if (human) session.stats.succ[target.stars]++;
+    await showVerify(pi, target, proof, stoneShown);
+    return 'done';
   }
 
-  // 正確但唔最簡
+  // 電腦交出「正確但唔最簡」
   Sound.play('warn');
   const bad = ev.bad[0].poly;
   banner(`${t('snipeTitle')}`);
@@ -2424,23 +2626,15 @@ async function resolveSynthesis(pi, targetId, cardIds) {
     // 簡易玩法：冇截胡；只係棄走唔夠簡嗰張卡，其他卡退返手上
     game.discard(pi, ev.bad.map(c => c.id));
     ui.staged = null; undim(); view.setGlow(0);
-    if (human) {
-      session.stats.incomplete++; attempt.result = 'incomplete'; session.attempts.push(attempt);
-      session.mistakes.push({ kind: 'incomplete', target, cards: cardIds.map(id => game.card(id)), bad });
-    }
     const g = bad.content();
     banner(t('incompleteSimple', { f: tex(par(bad)), g, p: tex(par(new Poly(bad.terms().map(x => [x.i + ',' + x.j, x.c / g])))) }));
     await relayout(520);
     await wait(2600);
-    return;
+    return 'done';
   }
   const react = await reactionWindow('snipe', pi, targetId, ev);
   game.discard(pi, cardIds);
   ui.staged = null; undim(); view.setGlow(0);
-  if (human) {
-    session.stats.incomplete++;
-    session.mistakes.push({ kind: 'incomplete', target, cards: cardIds.map(id => game.card(id)), bad });
-  }
   if (react) {
     game.discard(react.pi, [react.cardId]);
     game.award(react.pi, targetId);
@@ -2452,14 +2646,13 @@ async function resolveSynthesis(pi, targetId, cardIds) {
     renderScoreboard();
     await cutIn(react.pi, target);
     await lay;
-    if (human) { attempt.result = 'sniped'; session.attempts.push(attempt); }
     await showVerify(react.pi, target, target.answer, null, true);
   } else {
     banner(t('incompleteReveal', { f: tex(par(bad)), g: bad.content() }));
     await relayout(520);
-    if (human) { attempt.result = 'incomplete'; session.attempts.push(attempt); }
     await wait(1800);
   }
+  return 'done';
 }
 
 /* 反應窗口：真人用大掣，電腦按難度延遲 */
@@ -2525,7 +2718,7 @@ function reactionWindow(kind, synthPi, targetId, ev) {
 }
 
 /* ---------- 成功鍊成 cut-in（原創剪影 + 角色徽章 + 原創對白） ---------- */
-function cutIn(pi, target) {
+function cutIn(pi, target, ans) {
   const p = game.player(pi), c = CHARACTERS[p.char], el = $('cutin');
   const pts = CFG.points[target.stars];
   const line = LANG === 'en' ? `“${c.win[1]}”` : LANG === 'bi' ? `「${c.win[0]}」<span class="bi-en">${c.win[1]}</span>` : `「${c.win[0]}」`;
@@ -2537,7 +2730,8 @@ function cutIn(pi, target) {
     <div class="txt"><div class="big">${t('cutinTitle')}</div>
       <div class="who">${ART.emblem(p.char)}<b>${charNameHTML(p.char)}</b></div>
       <div class="ln">${line}</div>
-      <div class="pts">${'★'.repeat(target.stars)} +${pts}</div></div>
+      <div class="pts">${ans && (session.mode === 'notebook' || ans.attempt >= 3) ? '' : `${'★'.repeat(target.stars)} +${pts}`}${ans && ans.bells ? ` · 💰 +${ans.bells}` : ''}</div>
+      ${ans && ans.attempt === 2 ? `<div class="ln">${t('retryNote')}</div>` : ''}${ans && ans.attempt >= 3 ? `<div class="ln">${t('thirdNote')}</div>` : ''}${ans && ans.fixed ? `<div class="ln">${t('fixedNote')}</div>` : ''}</div>
     <div class="flash"></div>`;
   el.hidden = false;
   Sound.play('cutin');
@@ -2637,47 +2831,40 @@ function showVerify(pi, target, factors, stoneValue, isModel = false) {
 function renderScoreboard() {
   if (!game) return;
   $('scoreboard').innerHTML = game.players.map((p, i) => `<div class="row ${game.current === i && !game.over ? 'cur' : ''}">${ART.emblem(p.char)}<span>${charName(p.char)}${p.isHuman ? ' ★' : ''}</span><span class="s">${p.score}</span></div>`).join('') +
-    `<div class="goal">${tp('goal', { n: game.cfg.winScore })}</div>`;
+    `<div class="goal">${session && session.mode === 'notebook' ? tp('practiceTitle') : LEVELS.includes(session && session.mode) ? `${tp(session.mode)} · ${tp('firstOk', { s: session.firstCount })}` : tp('goal', { n: game.cfg.winScore })}</div>`
+    + `<div class="goal">💰 ${state.bells} · 🏅 ${badgeCount()}/${GAME.total}</div>`;
 }
 
 /* ---------- 完局 ---------- */
-function buildRecord(status) {
-  const s = session, me = game.player(0), ranks = game.ranking(), end = new Date();
-  const top = Math.max(...game.players.map(p => p.score));
-  const tie = game.players.filter(p => p.score === top).length > 1;
-  const result = status !== 'completed' ? 'abandoned' : ranks[0] === 1 ? (tie ? 'draw' : 'win') : 'lose';
-  return {
-    gameId: s.gameId, version: CFG.version,
-    class: s.student.cls, studentNo: s.student.no, name: s.student.name,
-    startTime: s.start.toISOString(), endTime: end.toISOString(), durationSec: Math.round((end - s.start) / 1000),
-    players: game.players.length, difficulty: s.settings.difficulty, stars: (CFG.starsIncluded || [1, 2, 3]).join(','), language: LANG,
-    character: CHARACTERS[s.settings.char].en,
-    score: me.score, rank: ranks[0], result, status,
-    success1: s.stats.succ[1], success2: s.stats.succ[2], success3: s.stats.succ[3],
-    wrongCount: s.stats.wrong, incompleteCount: s.stats.incomplete,
-    snipeSuccess: s.stats.snipe, snipeMissed: s.stats.snipeMissed,
-    destroyedCount: s.stats.destroyed, hintsUsed: s.stats.hints, rules: s.rules,
-    turns: game.turnNo,
-    attempts: s.attempts.slice(),
-  };
-}
 async function finishGame() {
   session.finished = true; ui.interactive = false; updateButtons();
-  const me = game.player(0);
   const winner = game.players.find(p => p.score >= game.cfg.winScore);
   banner(winner ? t('gameOverScore', { name: nameOf(winner.idx), n: game.cfg.winScore }) : t('gameOverDeck'));
   await wait(1600);
-  const rec = buildRecord('completed');
-  Sound.play(rec.result === 'win' ? 'win' : rec.result === 'draw' ? 'success' : 'lose');
-  showReview(rec, 'syncing');
-  const r = await Recorder.send(rec);
-  const sync = $('syncLine'); if (sync) sync.innerHTML = r === 'ok' ? t('syncOk') : r === 'nourl' ? t('syncNoUrl') : t('syncQueued');
+  const ranks = game.ranking(), top = Math.max(...game.players.map(p => p.score));
+  const result = ranks[0] === 1 ? (game.players.filter(p => p.score === top).length > 1 ? 'draw' : 'win') : 'lose';
+  // 闖關完成：第一次答對夠 badgePass 題就得到徽章
+  let lvRes = null;
+  if (LEVELS.includes(session.mode)) {
+    const lv = session.mode, total = [...game.cards.values()].filter(c => c.kind === 'target').length, score = session.firstCount;
+    const wasBadge = !!state.badges[lv];
+    state.tries[lv] = (state.tries[lv] || 0) + 1;
+    state.best[lv] = Math.max(state.best[lv] || 0, score);
+    if (score >= CFG.badgePass) state.badges[lv] = true;
+    const newBadge = !wasBadge && !!state.badges[lv];
+    save();
+    logEvent('house_result', { place: lv, topic: STR[lv][0], score, total, badge: !!state.badges[lv], newBadge });
+    lvRes = { lv, score, total, newBadge, badge: !!state.badges[lv] };
+    if (newBadge && badgeCount() >= GAME.total && !state.won) { state.won = true; save(); logEvent('win'); lvRes.win = true; }
+  }
+  Sound.play(lvRes ? (lvRes.newBadge ? 'win' : lvRes.badge ? 'success' : 'lose') : result === 'win' ? 'win' : result === 'draw' ? 'success' : 'lose');
+  showReview(result, lvRes);
+  if (lvRes && lvRes.newBadge) view.successFx(0xffd27a);
   session.active = false;
 }
-function showReview(rec, syncState) {
+function showReview(result, lvRes) {
   const ranks = game.ranking();
   const order = game.players.map((p, i) => i).sort((a, b) => ranks[a] - ranks[b]);
-  const resultTxt = t(rec.result === 'win' ? 'win' : rec.result === 'draw' ? 'draw' : 'lose');
   const st = session.stats;
   const seenRows = game.seenTargets.map(id => {
     const c = game.card(id), who = session.claimed.has(id) ? charName(game.player(session.claimed.get(id)).char) : tp('nobody');
@@ -2688,11 +2875,16 @@ function showReview(rec, syncState) {
     const why = m.kind === 'wrong' ? t('whyWrong', { p: tex(m.product.toTeX()) }) : t('whyIncomplete', { f: tex(par(m.bad)), g: m.bad.content() });
     return `<tr><td><span class="pill ${m.kind}">${t(m.kind === 'wrong' ? 'wrongKind' : 'incompleteKind')}</span></td><td>${tex(m.target.poly.toTeX())}</td><td>${cardsTeX}</td><td>${why}</td><td>${tex(factorsToTeX(m.target.answer))}</td></tr>`;
   }).join('');
+  const head = lvRes
+    ? `<div class="big-result">${lvRes.newBadge || lvRes.badge ? '🏅' : '📚'} ${t('levelResult', { s: lvRes.score, n: lvRes.total })}</div>
+       <p class="sync" style="font-size:1em">${lvRes.newBadge ? t('newBadge', { m: STR[lvRes.lv][0] + ' / ' + STR[lvRes.lv][1] }) : lvRes.badge ? t('haveBadge') : t('noBadge', { p: CFG.badgePass })}</p>
+       ${lvRes.win ? `<div class="big-result">${t('allBadges')}</div>` : ''}`
+    : `<div class="big-result">${t(result)}</div>`;
   $('reviewSheet').innerHTML = `
     <h1>${t('review')}</h1>
-    <div class="big-result">${resultTxt}</div>
+    ${head}
     <div class="rank-list">${order.map(i => `<div class="r ${i === 0 ? 'me' : ''}">${ART.emblem(game.player(i).char)}<div><b>${tp('rankN', { n: ranks[i] })}</b> ${charName(game.player(i).char)}<br>${game.player(i).score} ★</div></div>`).join('')}</div>
-    <p class="sync" id="syncLine">${t(syncState)}</p>
+    <p class="sync">💰 ${tp('bellsEarned', { b: session.bellsEarned })} · 🏅 ${badgeCount()}/${GAME.total} · 📒 ${state.notebook.length} · ${t(recordingOn() ? 'recOnShort' : 'recOff')}</p>
     <h2>${t('stats')}</h2>
     <table class="review"><tr><td>${t('stSucc')}</td><td>${st.succ[1]} / ${st.succ[2]} / ${st.succ[3]}</td><td>${t('stWrong')}</td><td>${st.wrong}</td><td>${t('stInc')}</td><td>${st.incomplete}</td></tr>
     ${session.rules === 'simple' ? '' : `<tr><td>${t('stSnipe')}</td><td>${st.snipe}</td><td>${t('stMiss')}</td><td>${st.snipeMissed}</td><td>${t('stDestroyed')}</td><td>${st.destroyed}</td></tr>`}
@@ -2701,24 +2893,78 @@ function showReview(rec, syncState) {
     ${mis ? `<table class="review"><tr><th></th><th>${t('target')}</th><th>${t('played')}</th><th>${t('why')}</th><th>${t('answer')}</th></tr>${mis}</table>` : `<p>${t('noMistakes')}</p>`}
     <h2>${t('seen')}</h2>
     <table class="review"><tr><th></th><th>${t('target')}</th><th>${t('answer')}</th><th>${t('method')}</th><th>${t('claimedBy')}</th></tr>${seenRows}</table>
-    <div class="row-btns"><button class="btn primary" id="btnAgain">${t('playAgain')}</button><button class="btn" id="btnBack">${t('backSetup')}</button></div>`;
+    <div class="row-btns"><button class="btn primary" id="btnAgain">${t('playAgain')}</button>${state.notebook.length ? `<button class="btn" id="btnReviewNb">${t('notebookBtn', { n: state.notebook.length })}</button>` : ''}<button class="btn" id="btnBack">${t('backSetup')}</button></div>`;
   $('hud').hidden = true;
   $('screenReview').hidden = false;
   $('btnAgain').onclick = () => { Sound.play('select'); startGame(); };
   $('btnBack').onclick = () => { Sound.play('select'); showSetup(); };
+  if ($('btnReviewNb')) $('btnReviewNb').onclick = () => { Sound.play('select'); startPractice(); };
 }
 
-/* ---------- 中途離開 ---------- */
-function abandonRecord() {
-  if (!session || !session.active || session.finished || !game) return null;
-  return buildRecord('abandoned');
+/* ---------- 錯題本練習：每題派返啱用嘅卡加幾張干擾卡，再砌一次 ---------- */
+async function startPractice() {
+  const ids = state.notebook.map(n => n.id).filter(id => CFG.targets.some((tg, n) => (tg.id || 't' + (n + 1)) === id));
+  if (!ids.length) { toast(t('notebookEmpty')); return; }
+  if (session) endSession();
+  startLogging();
+  game = new Game({ ...CFG, onlyIds: ids, starsIncluded: [1, 2, 3], functionCards: {}, tableSize: 1, handStart: 0, handLimit: 99, winScore: Infinity },
+    [{ char: setupSel.char, isHuman: true }]);
+  let abort; const abortP = new Promise((_, rej) => { abort = () => rej(new AbortGame()); });
+  abortP.catch(() => {});
+  session = {
+    settings: { ...setupSel }, rules: 'simple', mode: 'notebook', place: 'notebook', start: new Date(), active: true, finished: false, abort, abortP,
+    tries: new Map(), t0: new Map(), hinted: new Set(), wasNb: new Map(), firstCount: 0, bellsEarned: 0, fixedCount: 0,
+    hintsLeft: CFG.hintsPerGame, lowfxChecked: true,
+    stats: { succ: { 1: 0, 2: 0, 3: 0 }, wrong: 0, incomplete: 0, snipe: 0, snipeMissed: 0, destroyed: 0, hints: 0 },
+    mistakes: [], claimed: new Map(),
+  };
+  for (const { obj } of view.objs.values()) view.cssScene.remove(obj);
+  view.objs.clear();
+  for (const c of game.cards.values()) view.createCard(c);
+  view.buildLayout(2);
+  view.setupPiles(game.players);
+  resetUI();
+  hideAllScreens(); $('hud').hidden = false;
+  const order = ids.map(id => [...game.cards.values()].find(c => c.kind === 'target' && qidOf(c) === id)).filter(Boolean);
+  try {
+    for (let i = 0; i < order.length && session.active; i++) {
+      const target = order[i], me = game.player(0);
+      // 收返上一題嘅卡，派新一題
+      game.drawPile.push(...me.hand.splice(0), ...game.discardPile.splice(0));
+      game.table.forEach(tt => game.targetDeck.push(tt.id)); game.table = [];
+      game.targetDeck = game.targetDeck.filter(id => id !== target.id);
+      game.table = [{ id: target.id, since: 0 }];
+      const factors = [...game.cards.values()].filter(c => c.kind === 'factor');
+      const used = new Set(), pick = (poly) => { const c = factors.find(f => !used.has(f.id) && f.poly.equals(poly)); if (c) used.add(c.id); return c; };
+      const need = target.answer.map(pick).filter(Boolean);
+      const others = shuffle(factors.filter(f => !used.has(f.id) && !target.answer.some(a => a.equals(f.poly)))).slice(0, 4);
+      me.hand = shuffle(need.concat(others).map(c => c.id));
+      game.drawPile = game.drawPile.filter(id => !me.hand.includes(id));
+      session.t0 = new Map([[target.id, Date.now()]]);
+      ui.selectedTarget = target.id;
+      renderScoreboard();
+      await relayout(500);
+      banner(t('practiceBanner', { i: i + 1, n: order.length }));
+      ui.interactive = true; ui.mode = 'main'; updateButtons(); renderPreview();
+      for (;;) {
+        const a = await waitAction();
+        ui.interactive = false; updateButtons();
+        if (a.type === 'synth') {
+          const r = await resolveSynthesis(0, a.targetId, a.cardIds);
+          if (r === 'retry') { ui.interactive = true; ui.mode = 'main'; ui.selectedTarget = target.id; banner(t('practiceBanner', { i: i + 1, n: order.length })); updateButtons(); renderPreview(); relayout(200).catch(() => {}); continue; }
+        }
+        break;                                   // 鍊成完成，或者按「跳過」
+      }
+      ui.selected.clear(); ui.selectedTarget = null; ui.mode = 'idle';
+    }
+    session.active = false;
+    toast(t('practiceDone', { f: session.fixedCount }), 'good', 3500);
+    showSetup();
+  } catch (e) {
+    if (!(e instanceof AbortGame)) { console.error(e); toast('⚠ ' + e.message, 'bad', 6000); }
+  }
 }
-window.addEventListener('pagehide', () => { const r = abandonRecord(); if (r) Recorder.beacon(r); });
-document.addEventListener('visibilitychange', () => {
-  if (!session) return;
-  if (document.visibilityState === 'hidden') { const r = abandonRecord(); if (r) Recorder.enqueue(r); }
-  else if (session.active && !session.finished) Recorder.dequeue(session.gameId, 'abandoned');
-});
+
 function confirmBox(html) {
   return new Promise(res => {
     $('confirmText').innerHTML = html; $('modalConfirm').hidden = false;
@@ -2780,14 +3026,14 @@ function bindStatic() {
   $('btnNotMe').onclick = notMe;
   $('btnNotMe2').onclick = notMe;
   $('btnStart').onclick = () => { Sound.play('clap'); startGame(); };
+  $('btnNotebook').onclick = () => { Sound.play('select'); startPractice(); };
   $('btnRules').onclick = () => showRules(false); $('btnRules2').onclick = () => showRules(false);
   $('btnMute').onclick = () => { Sound.ensure(); Sound.setMuted(!Sound.muted); updateMuteBtn(); };
   $('btnFx').onclick = () => { view.setLowFx(!view.lowfx); updateFxBtn(); toast(t(view.lowfx ? 'lowfxOn' : 'lowfxOff')); };
   $('btnQuit').onclick = async () => {
     if (!session || !session.active) return showSetup();
     if (!(await confirmBox(t('quitConfirm')))) return;
-    const r = abandonRecord(); if (r) Recorder.beacon(r);
-    endSession(); resetUI(); showSetup();
+    endSession(); resetUI(); $('tipPanel').hidden = true; showSetup();
   };
   $('btnSynth').onclick = () => { if (!$('btnSynth').disabled) act({ type: 'synth', targetId: ui.selectedTarget, cardIds: [...ui.selected] }); };
   $('btnSwap').onclick = () => { if (!$('btnSwap').disabled) act({ type: 'swap', cardId: [...ui.selected][0] }); };
@@ -2801,6 +3047,8 @@ function bindStatic() {
     if (!session || session.hintsLeft <= 0) { toast(t('hintNone'), 'bad'); return; }
     if (!ui.selectedTarget) { toast(t('hintPick')); return; }
     session.hintsLeft--; session.stats.hints++;
+    const ht = game.card(ui.selectedTarget); session.hinted.add(ht.id);
+    logEvent('hint', { qid: qidOf(ht), topic: topicOf(ht) });
     toast(t('hintText', { m: t(methodOf(game.card(ui.selectedTarget))) }), 'good', 3500);
     Sound.play('select'); updateButtons();
   };

@@ -2,7 +2,7 @@
 
 俾香港中二學生溫習因式分解嘅 3D 卡牌網頁遊戲，以《鋼之鍊金術師》做主題（等價交換、鍊成陣、賢者之石、真理之門）。
 支援 Chromebook、iPad 同手機瀏覽器（橫向）。純靜態網站，唔需要 build step，可以直接部署去 Netlify。
-學生嘅遊戲記錄會經 Google Apps Script 寫入 Google Sheet。
+學生記錄沿用「數學小島物語」同一套方式（同一個 Apps Script、同一個 Google Sheet、同一份學生資料 `mathverse-student`）。
 
 > 美術全部係原創（程式畫嘅鍊成陣、齒輪、機械鎧紋理），冇用原作角色樣貌、官方 logo 或截圖；角色只用名字同原創出場對白。
 
@@ -11,7 +11,6 @@
 | 檔案 | 用途 |
 | --- | --- |
 | `index.html` | 遊戲本身（所有程式碼都喺入面）。頂部嘅 `window.CONFIG` 係老師設定同牌組。 |
-| `Code.gs` | Google Apps Script 後端，將記錄寫入 Google Sheet。 |
 | `netlify.toml` | Netlify 設定（publish 根目錄，冇 build command）。 |
 | `2ab-bomb-squad/index.html` | 之前放喺根目錄嘅《2ab 拆彈小隊》，搬咗入子資料夾，網址係 `/2ab-bomb-squad/`。 |
 
@@ -19,22 +18,9 @@
 
 ## 部署
 
-### 1. Google Sheet + Apps Script（遊戲記錄）
+### 1. 學生記錄（唔使另外設定）
 
-1. 開一個新嘅 Google Sheet。
-2. 「擴充功能 → Apps Script」，刪走預設內容，貼入 `Code.gs` 全部內容，儲存。
-3. 「部署 → 新增部署作業」，類型揀 **網頁應用程式**：
-   - 執行身分：**我**
-   - 存取權：**所有人**
-4. 授權之後，複製網頁應用程式網址（結尾係 `/exec`）。
-5. 打開 `index.html`，將網址貼入 `CONFIG.scriptUrl`：
-   ```js
-   scriptUrl: 'https://script.google.com/macros/s/XXXXXXXX/exec',
-   ```
-
-第一次收到記錄嗰陣，後端會自動建立「Games」同「Attempts」兩個工作表同標題列。
-
-> 之後如果改咗 `Code.gs`，要用「管理部署作業 → 編輯 → 新版本」重新部署，網址先會用到新程式碼。
+沿用「數學小島物語」已經部署好嘅 Apps Script（`index.html` 入面「teacher score log」嗰段嘅 `SHEET_ENDPOINT`），唔使另開 Apps Script。記錄會寫入同一個 Google Sheet，用 `game = factor-alchemy` 分辨。
 
 ### 2. Netlify
 
@@ -46,7 +32,8 @@
 
 | 設定 | 預設 | 說明 |
 | --- | --- | --- |
-| `scriptUrl` | `''` | Apps Script 網址。留空嘅話記錄只會排隊儲存喺本機。 |
+| `badgePass` | `3` | 闖關：第一次就答對幾多題得到該方法嘅徽章。 |
+| `rewards` | `300 / 150 / 150` | 鈴錢：第一次答對、第二次答對、錯題本改正；第三次或以後先答對冇獎勵。 |
 | `classes` | `['2A'…'2E']` | 登入畫面嘅班別下拉選單。 |
 | `studentNoMin` / `studentNoMax` | `1` / `40` | 學號範圍。 |
 | `nameMaxLength` | `20` | 姓名最多幾多字。 |
@@ -123,21 +110,35 @@
 - 完局檢討頁：所有出現過嘅目標卡同標準答案、玩家犯過嘅錯（乘積錯、唔最簡）同原因。
 - 登入時揀中文 / English / 雙語，術語跟住顯示。
 
-## 遊戲記錄
+## 關卡、徽章同錯題本
 
-- 每局完結用 `fetch` POST（`Content-Type: text/plain;charset=utf-8`，避免 CORS preflight）。
-- 中途離開（關分頁、按離開掣）用 `navigator.sendBeacon`，標記 `status: "abandoned"`。
-- 傳送失敗會排隊存喺 localStorage，下次開遊戲自動重傳，成功先清除。後端用 `gameId` 去重，唔會重複寫入。
+- **4 個關卡 = 4 種方法**（`GAME.total = 4`）：提取公因式、分組分解、平方差恆等式、完全平方恆等式，每關 10 張目標卡。闖關時只出嗰種方法嘅題目，玩到目標卡用完；第一次就答對 `badgePass`（3）題或以上就得到徽章。集齊 4 枚就係「國家鍊金術師」。
+- **綜合對戰**：四種方法混合，唔計徽章。
+- **答錯唔扣分**：卡退返手上，畫面彈出提示（點解錯、呢種方法點做），按「👍 我明白了」先可以再揀卡再試。
+- **獎勵**：第一次答對 = 分數 + 300 鈴錢；第二次答對 = 分數 + 150 鈴錢；第三次或以後先答對 = 目標卡清走，但冇分數、冇鈴錢（鼓勵再試，唔好亂試）。
+- **錯題本**：答錯過嘅題目會自動記低。設定畫面「📒 錯題本」可以逐題重做（派返啱用嘅卡加干擾卡）；第一次就答對就算「改正」，+150 鈴錢並移出錯題本。
 
-**Games 工作表（每局一行）**：gameId、receivedAt、class、studentNo、name、startTime、endTime、durationSec、players、difficulty、stars、language、character、score、rank、result（win / lose / draw / abandoned）、status（completed / abandoned）、success1–3、successTotal、wrongCount、incompleteCount、snipeSuccess、snipeMissed、destroyedCount、hintsUsed、turns、attemptCount、version、rules（simple / full）。
+## 學生記錄（同數學小島物語一樣）
 
-**Attempts 工作表（每次合成嘗試一行）**：gameId、class、studentNo、name、attemptNo、time、target、stars、cards、result（correct / wrong / incomplete / sniped / destroyed）、gameStatus。可以直接用篩選或者樞紐分析。
+- 學生資料：`localStorage['mathverse-student']`（`{cls, no, name}`），所有 mathverse 遊戲共用；已有資料會自動填好，唔使再輸入。班別同學號必填，姓名選填。
+- 進度存檔：`localStorage['factor-alchemy-v1']`；每次存檔都會 `hubSync()`，更新 `localStorage['mathverse-hub'].games['factor-alchemy']`，主頁可以讀到徽章同鈴錢。
+- 傳送：`navigator.sendBeacon`（`text/plain`），失敗就改用 `fetch(…, { mode: 'no-cors', keepalive: true })`。喺 claude.ai 預覽（`window.claude` 存在）唔會傳送。
+- 每筆都帶：`v:2, game, badgeTotal, sid, cls, no, name, ev, bells, badges, t, dev`。
+
+| ev | 幾時傳 | 額外欄位 |
+| --- | --- | --- |
+| `start` | 開始第一局（或錯題本練習）時 | — |
+| `heartbeat` | 每 60 秒；只喺頁面可見而且 2 分鐘內有操作 | — |
+| `answer` | 每次按「鍊成！」 | `place`（common / group / diffSq / perfSq / mixed / notebook）、`qid`（例如 d03）、`topic`、`ok`、`attempt`、`first`、`hint`、`secs`（揀目標卡至作答，上限 600；答錯後按「我明白了」重新計時）、`review`、`fixed` |
+| `hint` | 用提示卡 | `qid`、`topic` |
+| `house_result` | 完成一個關卡 | `place`、`topic`、`score`（第一次答對數）、`total`、`badge`、`newBadge` |
+| `win` | 集齊 4 枚徽章 | — |
 
 ## 效能
 
 - 鏡頭固定，CSS3D 只喺有變化嗰陣先重畫；燭光用 2 盞點光源；冇陰影。
 - 右上角 ⚡ 掣係「簡化特效」：關閉閃電、碎片、塵埃同燭光閃爍，降低解像度。開局 4 秒內如果偵測到幀率太低會自動開啟。
-- 設定（靜音、簡化特效、上次揀嘅角色）同學生資料都記喺 localStorage，所有讀寫都有 try/catch，私密瀏覽模式都玩得。
+- 設定（靜音、簡化特效、上次揀嘅角色）、學生資料同進度都記喺 localStorage，所有讀寫都有 try/catch，私密瀏覽模式都玩得。
 
 ## 本機測試
 
