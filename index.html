@@ -342,8 +342,10 @@ body.lowfx #cutin .fig { filter: none; }
 .btn-start .bi-en { font-size: .5em; }
 .av-title, .stage-title { font-size: clamp(24px, 5.5vh, 44px); color: var(--gold-hi); font-weight: 700; letter-spacing: .12em; margin: 0; text-align: center; text-shadow: 0 0 16px rgba(255,190,80,.5); }
 .av-title .bi-en, .stage-title .bi-en { font-size: .45em; letter-spacing: .1em; }
-.av-cards { display: flex; gap: 8vw; }
-.av-card { font-family: inherit; cursor: pointer; padding: 10px 26px; min-width: 9.5em; border-radius: 14px; background: rgba(30,18,8,.85); border: 2px solid var(--brass); color: var(--parch); font-size: 1.15em; }
+.av-cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; width: min(900px, 94vw); }
+.av-card { font-family: inherit; cursor: pointer; padding: 6px 4px; border-radius: 14px; background: rgba(30,18,8,.85); border: 2px solid var(--brass); color: var(--parch); font-size: .95em; line-height: 1.15; }
+.av-card svg { width: 3em; height: 3em; display: block; margin: 0 auto 2px; }
+.av-card .bi-en { font-size: .75em; }
 .av-card.on { border-color: var(--gold-hi); background: rgba(100,58,16,.9); box-shadow: 0 0 22px rgba(255,200,90,.65); }
 .av-nav { display: flex; gap: 12px; }
 .btn-big { font-size: 1.3em !important; padding: .5em 1.8em !important; }
@@ -373,6 +375,10 @@ body.lowfx #cutin .fig { filter: none; }
 #scoreboard .row svg { width: 1.6em; height: 1.6em; }
 @media (max-height: 520px) {
   .stage-card .st-vs { display: none; }
+  .av-stage.big { height: 40vh; }
+  #screenAvatar { gap: 1vh; }
+  .av-title { font-size: 22px; }
+  .av-card svg { width: 2.2em; height: 2.2em; }
   .cover-sins svg { width: 10vh; height: 10vh; }
 }
 
@@ -520,7 +526,8 @@ table.review th { color: #5b1d10; }
 <div id="screenAvatar" class="screen" hidden>
   <div class="av-title" id="avTitle"></div>
   <div id="avatarStage" class="av-stage big"></div>
-  <div class="av-cards" id="avCards"><button class="av-card" data-v="boy"></button><button class="av-card" data-v="girl"></button></div>
+  <div class="cover-lang" id="avGender"><button data-v="m"></button><button data-v="f"></button></div>
+  <div class="av-cards" id="avCards"></div>
   <div class="av-nav"><button class="btn" id="btnAvBack"></button><button class="btn primary btn-big" id="btnAvNext"></button></div>
 </div>
 
@@ -1224,7 +1231,7 @@ const STR = {
   loginTitle: ['學生資料', 'Student details'], lblClass: ['班別', 'Class'], lblNo: ['學號', 'No.'], lblName: ['姓名（選填）', 'Name (optional)'],
   loginNote: ['遊戲記錄會交俾老師作學習評估用。', 'Your game records are sent to your teacher for learning assessment.'], choose: ['請揀', 'Choose'],
   next: ['下一步 ▶', 'Next ▶'], back: ['← 返回', '← Back'], done: ['完成', 'Done'], settings: ['設定', 'Settings'],
-  pickAvatar: ['揀你嘅鍊金術師', 'Choose your alchemist'], avatar_boy: ['👦 男鍊金術師', '👦 Alchemist (boy)'], avatar_girl: ['👧 女鍊金術師', '👧 Alchemist (girl)'],
+  pickAvatar: ['揀你嘅角色', 'Choose your character'], g_m: ['👦 男', '👦 Male'], g_f: ['👧 女', '👧 Female'],
   pickStage: ['揀關卡', 'Choose a stage'], bestShort: ['最佳 {s}', 'Best {s}'], changeAvatar: ['換角色', 'Change character'],
   tutStart: ['明白，開始！', "Got it, let's go!"],
   players: ['人數', 'Players'], p2: ['2 人', '2 players'], p4: ['4 人', '4 players'],
@@ -1362,6 +1369,20 @@ const CHARACTERS = {
   hohenheim: { zh: '霍恩海姆', en: 'Hohenheim', color: '#5b4a2f', sides: 9, line: ['我見過無數條式，答案永遠藏喺結構入面。', 'I have seen countless expressions; the answer always hides in the structure.'], win: ['結構早已寫喺式入面，只係等你睇穿。', 'The structure was always in the expression, waiting to be seen.'] },
 };
 /* 夥伴：一開始有一男一女（阿姆斯特朗、溫莉），其餘靠闖關／錯題本解鎖 */
+/* 玩家角色：六個職業（名、原創對白） */
+const HERO_INFO = {
+  mage:    { name: ['魔法師／煉金術士', 'Mage / Alchemist'], line: ['魔法同鍊金術都講等價交換，因式分解都一樣！', 'Magic and alchemy follow Equivalent Exchange, and so does factorization!'], win: ['咒文完成，分解成功！', 'Spell complete, factorized!'] },
+  paladin: { name: ['聖騎士', 'Paladin'], line: ['以聖劍之名，守護每一個因式！', 'In the name of the holy sword, I guard every factor!'], win: ['正義一擊，分解完成！', 'A righteous strike, factorization complete!'] },
+  priest:  { name: ['牧師', 'Priest'], line: ['冷靜諗清楚，答案自然會出現。', 'Stay calm and think. The answer will appear.'], win: ['祝福降臨，等價交換成立！', 'Blessings! Equivalent Exchange complete!'] },
+  archer:  { name: ['弓戰手', 'Archer'], line: ['瞄準公因式，一箭命中！', 'Aim for the common factor. Bullseye!'], win: ['正中紅心！', 'Right on target!'] },
+  giant:   { name: ['巨人', 'Giant'], line: ['再大嘅式，我都一手拆開！', 'No expression is too big for me to break!'], win: ['轟！拆晒！', 'BOOM! All broken down!'] },
+  fighter: { name: ['格鬥家', 'Fighter'], line: ['一拳一個因式，拆到最簡為止！', 'One punch per factor until it is fully factorized!'], win: ['連續技完成！', 'Combo complete!'] },
+};
+function setHero() {             // 將揀咗嘅職業登記做玩家角色 'hero'
+  const a = state.avatar || { cls: 'mage', g: 'm' }, h = HERO_INFO[a.cls], st = HERO_STYLE[a.cls];
+  CHARACTERS.hero = { zh: h.name[0], en: h.name[1], color: '#' + st.coat.toString(16).padStart(6, '0'), sides: 6, line: h.line, win: h.win };
+}
+const COVER_LINEUP = [{ cls: 'mage', g: 'm' }, { cls: 'paladin', g: 'f' }, { cls: 'priest', g: 'm' }, { cls: 'archer', g: 'f' }, { cls: 'giant', g: 'm' }, { cls: 'fighter', g: 'f' }];
 const PLAYER_CHARS = ['armstrong', 'winry', 'ed', 'al', 'riza', 'roy', 'izumi'];
 const AI_CHARS = ['gluttony', 'lust', 'envy', 'pride', 'wrath', 'greed', 'sloth'];   // 對手＝七宗罪怪獸
 const PARTNERS = {
@@ -1458,8 +1479,44 @@ const ART = {
       `<polygon points="${ART.polygon(32, 32, 24, c.sides)}" fill="none" stroke="#e8c97a" stroke-width="2"/>` +
       `<circle cx="32" cy="32" r="9" fill="${c.color}" stroke="#e8c97a" stroke-width="1.5"/><circle cx="32" cy="32" r="3" fill="#e8c97a"/></svg>`;
   },
+  /* 玩家角色頭像（六個職業 × 男女，原創） */
+  hero(cls, g) {
+    const st = HERO_STYLE[cls] || HERO_STYLE.mage, girl = g === 'f';
+    const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+    const hair = hex(st.hair[girl ? 1 : 0]), coat = hex(st.coat), trim = hex(st.trim), skin = hex(st.skin || 0xf6d7b8);
+    let s = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="47" fill="${coat}" opacity=".28"/>`;
+    s += {
+      mage: `<line x1="84" y1="22" x2="78" y2="98" stroke="#7c4a1e" stroke-width="4"/><circle cx="85" cy="19" r="7" fill="#67e8f9" stroke="${trim}" stroke-width="2"/>`,
+      priest: `<line x1="84" y1="24" x2="80" y2="98" stroke="${trim}" stroke-width="3.5"/><circle cx="85" cy="20" r="7" fill="none" stroke="${trim}" stroke-width="3"/>`,
+      paladin: `<path d="M84 12 L84 70" stroke="#e5e7eb" stroke-width="5"/><rect x="77" y="66" width="14" height="4" fill="${trim}"/>`,
+      archer: `<path d="M80 16 Q98 50 80 84" fill="none" stroke="#7c4a1e" stroke-width="4"/><path d="M80 16 L80 84" stroke="#f5f5f4" stroke-width="1"/>`,
+      giant: `<path d="M78 28 L90 92" stroke="#78350f" stroke-width="10" stroke-linecap="round"/>`,
+      fighter: '',
+    }[cls];
+    if (girl) s += `<path d="M24 76 Q20 40 30 30 L31 84 Z M76 76 Q80 40 70 30 L69 84 Z" fill="${hair}"/>`;
+    s += `<path d="M24 98 Q26 72 50 70 Q74 72 76 98 Z" fill="${coat}"/><path d="M42 72 L50 86 L58 72" fill="none" stroke="${trim}" stroke-width="2.5"/>`;
+    if (cls === 'paladin') s += `<ellipse cx="28" cy="80" rx="11" ry="6" fill="#94a3b8"/><ellipse cx="72" cy="80" rx="11" ry="6" fill="#94a3b8"/>`;
+    s += `<circle cx="50" cy="48" r="22" fill="${skin}" stroke="#7a4a2a" stroke-width="1.5"/>`;
+    if (cls !== 'mage' && cls !== 'giant') s += girl
+      ? `<path d="M27 48 Q25 22 50 21 Q75 22 73 48 Q66 34 52 32 Q44 40 30 42 Z" fill="${hair}"/>`
+      : `<path d="M27 46 Q26 22 50 21 Q75 22 73 46 L66 38 L62 44 L56 34 L50 42 L44 33 L38 43 L33 37 Z" fill="${hair}"/>`;
+    s += `<circle cx="42" cy="51" r="3" fill="#1f2937"/><circle cx="58" cy="51" r="3" fill="#1f2937"/><circle cx="43" cy="50" r="1" fill="#fff"/><circle cx="59" cy="50" r="1" fill="#fff"/>
+      <ellipse cx="36" cy="58" rx="3.5" ry="2" fill="#f9a8a8"/><ellipse cx="64" cy="58" rx="3.5" ry="2" fill="#f9a8a8"/><path d="M46 61 Q50 64 54 61" fill="none" stroke="#7a2e2e" stroke-width="1.8" stroke-linecap="round"/>`;
+    s += {
+      mage: `<ellipse cx="50" cy="33" rx="33" ry="6" fill="#4c1d95"/><path d="M32 32 Q42 -2 68 2 Q58 12 68 32 Z" fill="#5b21b6"/><rect x="32" y="27" width="36" height="4.5" fill="${trim}"/>${girl ? `<path d="M28 38 Q24 56 28 70 L33 40 Z M72 38 Q76 56 72 70 L67 40 Z" fill="${hair}"/>` : ''}`,
+      paladin: `<path d="M28 37 Q50 29 72 37" fill="none" stroke="#e5e7eb" stroke-width="4"/><circle cx="50" cy="31" r="3" fill="${trim}"/>
+        <path d="M10 62 h22 v14 q0 10 -11 14 q-11 -4 -11 -14 z" fill="#1e40af" stroke="${trim}" stroke-width="2"/>`,
+      priest: `<ellipse cx="50" cy="13" rx="17" ry="4.5" fill="none" stroke="#facc15" stroke-width="3"/><rect x="14" y="74" width="16" height="20" rx="2" fill="#7f1d1d" stroke="${trim}" stroke-width="1.5"/>`,
+      archer: `<path d="M26 35 Q30 11 52 11 Q70 13 77 31 Q60 26 26 35 Z" fill="#166534"/><path d="M64 17 L86 3" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>`,
+      giant: `<path d="M27 42 Q28 18 50 18 Q72 18 73 42 Z" fill="#78716c"/><path d="M29 31 Q14 22 16 7 Q24 22 33 26 Z M71 31 Q86 22 84 7 Q76 22 67 26 Z" fill="#fafaf9" stroke="#a8a29e"/>${girl ? `<path d="M30 42 Q26 60 30 74 M70 42 Q74 60 70 74" stroke="${hair}" stroke-width="6" fill="none" stroke-linecap="round"/>` : ''}`,
+      fighter: `<path d="M27 39 Q50 31 73 39" stroke="#dc2626" stroke-width="5" fill="none"/><path d="M72 39 L88 46 M72 39 L85 54" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="20" cy="88" r="8" fill="#dc2626"/><circle cx="80" cy="88" r="8" fill="#dc2626"/>`,
+    }[cls];
+    return s + '</svg>';
+  },
   /* 角色象徵物（原創簡化圖案，唔係原作角色樣貌） */
   symbol(key) {
+    if (key === 'hero') return ART.hero(state.avatar ? state.avatar.cls : 'mage', state.avatar ? state.avatar.g : 'm');
     const c = CHARACTERS[key].color;
     const bg = `<circle cx="50" cy="50" r="47" fill="${c}" opacity=".22"/><g opacity=".35">${ART.circle(50, 50, 44, c, CHARACTERS[key].sides < 4 ? 6 : CHARACTERS[key].sides, 1)}</g>`;
     const spark = (x, y, r, col) => `<path d="M${x} ${y - r} L${x + r * .25} ${y - r * .25} L${x + r} ${y} L${x + r * .25} ${y + r * .25} L${x} ${y + r} L${x - r * .25} ${y + r * .25} L${x - r} ${y} L${x - r * .25} ${y - r * .25} Z" fill="${col}"/>`;
@@ -1685,7 +1742,7 @@ const SAVE_KEY = 'factor-alchemy-v1';
 const state = {
   bells:0, badges:{ common:false, group:false, diffSq:false, perfSq:false },
   best:{ common:0, group:0, diffSq:0, perfSq:0 }, tries:{}, notebook:[], fixed:0, fixedIds:{}, won:false, lang:'', tutorial:false,
-  partners:{}, shiny:{}, dex:{}, avatar:''                      // 夥伴使用次數、閃卡、合成獸圖鑑
+  partners:{}, shiny:{}, dex:{}, avatar:null                      // 夥伴使用次數、閃卡、合成獸圖鑑
 };
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} hubSync(); }
 function hubSync(){   // progress summary that a future hub page can read to show every game's stamps
@@ -1703,6 +1760,7 @@ function load(){
   }catch(e){}
 }
 load();
+if (typeof state.avatar === 'string') state.avatar = state.avatar === 'girl' ? { cls: 'mage', g: 'f' } : state.avatar === 'boy' ? { cls: 'mage', g: 'm' } : null;   // 舊版只有男／女
 const badgeCount = () => LEVELS.filter(k => state.badges[k]).length;
 const inNotebook = (qid) => state.notebook.some(n => n.id === qid);
 function addNotebook(qid){ if(!inNotebook(qid)){ state.notebook.push({ id:qid, t:Date.now() }); save(); } }
@@ -2375,57 +2433,115 @@ class View {
 }
 
 /* =====================================================================
-   3D 鍊金術師（原創 Q 版男／女角色）：封面同揀角色畫面用
+   3D 角色（原創 Q 版）：六個職業 × 男／女，服飾道具配合職業
    ===================================================================== */
-function buildChibi(kind) {
-  const girl = kind === 'girl';
+const HERO_CLASSES = ['mage', 'paladin', 'priest', 'archer', 'giant', 'fighter'];
+const HERO_STYLE = {
+  mage:    { coat: 0x4c1d95, trim: 0xd4a548, pants: 0x1f2937, boots: 0x3b2416, robe: true,  hair: [0x3b2a1a, 0x9d174d] },
+  paladin: { coat: 0xcbd5e1, trim: 0xd4a548, pants: 0x64748b, boots: 0x475569, robe: false, hair: [0xd4a548, 0xfbbf24] },
+  priest:  { coat: 0xf8fafc, trim: 0xd4a548, pants: 0xe2e8f0, boots: 0xb8954f, robe: true,  hair: [0x7c2d12, 0xe7c9a0] },
+  archer:  { coat: 0x15803d, trim: 0x92400e, pants: 0x78350f, boots: 0x3b2416, robe: false, hair: [0x4a2c17, 0xb45309] },
+  giant:   { coat: 0x92400e, trim: 0x57534e, pants: 0x44403c, boots: 0x292524, robe: false, hair: [0x7c2d12, 0x991b1b], skin: 0xd8a47f, scale: 1.22 },
+  fighter: { coat: 0xf8fafc, trim: 0xb91c1c, pants: 0xf8fafc, boots: 0x1f2937, robe: false, hair: [0x111111, 0x1c1917], bareArms: true },
+};
+function buildHero(cls, g, circleTex) {
+  const st = HERO_STYLE[cls], girl = g === 'f';
   const M = (c) => new THREE.MeshToonMaterial({ color: c });
-  const skin = M(0xf6d7b8), hairC = M(girl ? 0x1c1917 : 0x4a2c17), coat = M(girl ? 0x7f1d3a : 0x1e3a8a), trim = M(0xd4a548), dark = M(0x1f2937), shoe = M(0x3b2416);
-  const g = new THREE.Group(), add = (geo, mat, x, y, z, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
-  // 腳同鞋
-  [-0.12, 0.12].forEach(x => { add(new THREE.CapsuleGeometry(0.085, 0.22, 4, 10), dark, x, 0.27, 0); const s = add(new THREE.SphereGeometry(0.11, 14, 10), shoe, x, 0.07, 0.04); s.scale.set(1, 0.6, 1.4); });
-  // 長外套 + 腰帶 + 金邊
-  add(new THREE.CylinderGeometry(0.27, girl ? 0.46 : 0.4, 0.72, 24), coat, 0, 0.72, 0);
-  add(new THREE.TorusGeometry(0.29, 0.03, 8, 24), trim, 0, 0.66, 0).rotation.x = Math.PI / 2;
-  add(new THREE.TorusGeometry(0.22, 0.035, 8, 24), trim, 0, 1.06, 0).rotation.x = Math.PI / 2;
-  add(new THREE.CircleGeometry(0.06, 16), trim, 0, 0.86, 0.29);
-  // 手臂（右手會揮）
+  const glow = (c) => new THREE.MeshBasicMaterial({ color: c });
+  const skinC = st.skin || 0xf6d7b8;
+  const skin = M(skinC), hairM = M(st.hair[girl ? 1 : 0]), coat = M(st.coat), trim = M(st.trim), pants = M(st.pants), boots = M(st.boots), dark = M(0x1f2937);
+  const root = new THREE.Group(), g0 = new THREE.Group(); root.add(g0);
+  const add = (geo, mat, x, y, z, parent = g0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
+  // 腳
+  [-0.12, 0.12].forEach(x => { add(new THREE.CapsuleGeometry(0.085, 0.22, 4, 10), pants, x, 0.27, 0); const s = add(new THREE.SphereGeometry(0.11, 14, 10), boots, x, 0.07, 0.04); s.scale.set(1, 0.6, 1.4); });
+  // 身體：長袍（魔法師、牧師）或者短上衣；女角下擺闊啲
+  if (st.robe) add(new THREE.CylinderGeometry(0.27, 0.46, 0.92, 24), coat, 0, 0.6, 0);
+  else add(new THREE.CylinderGeometry(cls === 'giant' ? 0.34 : 0.27, girl ? 0.42 : (cls === 'giant' ? 0.42 : 0.34), 0.58, 24), coat, 0, 0.8, 0);
+  add(new THREE.TorusGeometry(st.robe ? 0.31 : 0.3, 0.035, 8, 24), trim, 0, st.robe ? 0.72 : 0.62, 0).rotation.x = Math.PI / 2;   // 腰帶
+  add(new THREE.TorusGeometry(0.22, 0.035, 8, 24), trim, 0, 1.06, 0).rotation.x = Math.PI / 2;                                   // 領口
+  if (cls === 'priest') add(new THREE.BoxGeometry(0.08, 0.8, 0.02), trim, 0, 0.62, 0.36);                                        // 金色聖帶
+  if (cls === 'fighter') { const k = add(new THREE.BoxGeometry(0.1, 0.22, 0.03), M(0x111111), 0.12, 0.5, 0.32); k.rotation.z = -0.2; }
+  // 手臂（揸住道具）
   const arm = (side) => {
-    const pivot = new THREE.Group(); pivot.position.set(side * 0.3, 1.0, 0); g.add(pivot);
-    add(new THREE.CapsuleGeometry(0.075, 0.3, 4, 10), coat, 0, -0.2, 0, pivot);
-    add(new THREE.SphereGeometry(0.08, 12, 10), M(0xf8fafc), 0, -0.42, 0, pivot);       // 白手套
+    const pivot = new THREE.Group(); pivot.position.set(side * 0.3, 1.0, 0); g0.add(pivot);
+    add(new THREE.CapsuleGeometry(0.075, 0.3, 4, 10), st.bareArms || cls === 'giant' ? skin : coat, 0, -0.2, 0, pivot);
+    const fistC = cls === 'fighter' ? 0xdc2626 : cls === 'paladin' ? 0x94a3b8 : cls === 'giant' ? skinC : 0xf8fafc;
+    add(new THREE.SphereGeometry(cls === 'fighter' || cls === 'giant' ? 0.11 : 0.08, 12, 10), M(fistC), 0, -0.42, 0, pivot);
     pivot.rotation.z = side * 0.35;
     return pivot;
   };
   const armL = arm(-1), armR = arm(1);
-  // 頭
-  const head = new THREE.Group(); head.position.y = 1.42; g.add(head);
+  const hand = (pivot) => { const h = new THREE.Group(); h.position.set(0, -0.42, 0.04); pivot.add(h); return h; };
+  const handR = hand(armR), handL = hand(armL);
+  // 頭、五官
+  const head = new THREE.Group(); head.position.y = 1.42; g0.add(head);
   add(new THREE.SphereGeometry(0.4, 28, 22), skin, 0, 0, 0, head);
   [-0.14, 0.14].forEach(x => {
     add(new THREE.SphereGeometry(0.055, 12, 10), dark, x, -0.02, 0.36, head);
-    add(new THREE.SphereGeometry(0.018, 8, 6), M(0xffffff), x + 0.02, 0.0, 0.405, head);
+    add(new THREE.SphereGeometry(0.018, 8, 6), M(0xffffff), x + 0.02, 0, 0.405, head);
     const b = add(new THREE.SphereGeometry(0.05, 10, 8), M(0xf9a8a8), x * 1.55, -0.12, 0.31, head); b.scale.set(1, 0.55, 0.4);
   });
   const mouth = add(new THREE.TorusGeometry(0.04, 0.012, 6, 12, Math.PI), M(0x7a2e2e), 0, -0.13, 0.38, head); mouth.rotation.z = Math.PI;
-  // 頭髮
-  const cap = add(new THREE.SphereGeometry(0.43, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hairC, 0, 0.03, -0.02, head);
-  cap.rotation.x = -0.25;
+  // 頭髮：男短髮尖角、女長髮
+  add(new THREE.SphereGeometry(0.43, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hairM, 0, 0.03, -0.02, head).rotation.x = -0.25;
   if (girl) {
-    const tail = add(new THREE.CapsuleGeometry(0.11, 0.45, 4, 10), hairC, 0, -0.1, -0.42, head); tail.rotation.x = 0.35;
-    [-1, 1].forEach(s => { const lock = add(new THREE.CapsuleGeometry(0.07, 0.42, 4, 8), hairC, s * 0.36, -0.2, 0.02, head); lock.rotation.z = s * 0.12; });
-    add(new THREE.SphereGeometry(0.07, 10, 8), M(0xe11d48), 0.18, 0.22, -0.34, head);       // 髮夾
-  } else {
-    for (let i = 0; i < 6; i++) {
-      const sp = add(new THREE.ConeGeometry(0.09, 0.26, 8), hairC, -0.25 + i * 0.1, 0.3, 0.2 - Math.abs(i - 2.5) * 0.04, head);
-      sp.rotation.x = 0.9; sp.rotation.z = (i - 2.5) * 0.15;
-    }
+    [-1, 1].forEach(s => { const lock = add(new THREE.CapsuleGeometry(0.075, 0.46, 4, 8), hairM, s * 0.36, -0.22, 0.0, head); lock.rotation.z = s * 0.12; });
+    const tail = add(new THREE.CapsuleGeometry(0.11, 0.5, 4, 10), hairM, 0, -0.12, -0.42, head); tail.rotation.x = 0.35;
+  } else if (cls !== 'mage' && cls !== 'giant') {
+    for (let i = 0; i < 6; i++) { const sp = add(new THREE.ConeGeometry(0.09, 0.26, 8), hairM, -0.25 + i * 0.1, 0.3, 0.2 - Math.abs(i - 2.5) * 0.04, head); sp.rotation.x = 0.9; sp.rotation.z = (i - 2.5) * 0.15; }
   }
+  // ===== 職業服飾同道具 =====
+  if (cls === 'mage') {                                   // 尖帽 + 寶珠法杖
+    const hat = M(0x4c1d95);
+    add(new THREE.CylinderGeometry(0.62, 0.62, 0.04, 28), hat, 0, 0.3, 0, head);
+    const cone = add(new THREE.ConeGeometry(0.36, 0.72, 24), hat, 0, 0.66, -0.04, head); cone.rotation.x = -0.18;
+    add(new THREE.TorusGeometry(0.37, 0.035, 8, 24), trim, 0, 0.34, 0, head).rotation.x = Math.PI / 2;
+    add(new THREE.CylinderGeometry(0.03, 0.035, 1.3, 10), M(0x7c4a1e), 0, 0.3, 0, handR);
+    add(new THREE.SphereGeometry(0.11, 16, 12), glow(0x67e8f9), 0, 0.98, 0, handR);
+    add(new THREE.TorusGeometry(0.12, 0.02, 6, 16), trim, 0, 0.98, 0, handR);
+  } else if (cls === 'paladin') {                         // 肩甲 + 披風 + 聖劍 + 盾
+    const steel = M(0x94a3b8);
+    [-1, 1].forEach(s => { const p = add(new THREE.SphereGeometry(0.15, 14, 10), steel, s * 0.3, 1.05, 0); p.scale.set(1.2, 0.7, 1.1); });
+    const cape = add(new THREE.PlaneGeometry(0.62, 0.85), new THREE.MeshToonMaterial({ color: 0xb91c1c, side: THREE.DoubleSide }), 0, 0.66, -0.3); cape.rotation.x = 0.12;
+    add(new THREE.TorusGeometry(0.4, 0.03, 8, 28), M(0xe5e7eb), 0, 0.22, 0, head).rotation.x = Math.PI / 2 - 0.2;
+    add(new THREE.BoxGeometry(0.06, 0.82, 0.02), M(0xe5e7eb), 0, 0.5, 0, handR);
+    add(new THREE.BoxGeometry(0.26, 0.05, 0.05), trim, 0, 0.08, 0, handR);
+    add(new THREE.CylinderGeometry(0.025, 0.025, 0.16, 8), M(0x7c4a1e), 0, -0.04, 0, handR);
+    const shield = add(new THREE.CylinderGeometry(0.28, 0.28, 0.05, 28), M(0x1e40af), 0, 0.05, 0.1, handL); shield.rotation.x = Math.PI / 2;
+    const rim = add(new THREE.TorusGeometry(0.28, 0.025, 8, 28), trim, 0, 0.05, 0.13, handL);
+    add(new THREE.SphereGeometry(0.07, 12, 10), trim, 0, 0.05, 0.15, handL);
+  } else if (cls === 'priest') {                          // 光環 + 法杖 + 聖典
+    add(new THREE.TorusGeometry(0.28, 0.03, 8, 28), glow(0xfde68a), 0, 0.62, 0, head).rotation.x = Math.PI / 2;
+    add(new THREE.CylinderGeometry(0.42, 0.42, 0.06, 24), M(0xf8fafc), 0, 0.3, -0.02, head);
+    add(new THREE.CylinderGeometry(0.03, 0.03, 1.25, 10), trim, 0, 0.28, 0, handR);
+    add(new THREE.TorusGeometry(0.13, 0.025, 8, 24), trim, 0, 0.98, 0, handR);
+    add(new THREE.SphereGeometry(0.06, 12, 10), glow(0xfef3c7), 0, 0.98, 0, handR);
+    add(new THREE.BoxGeometry(0.22, 0.28, 0.07), M(0x7f1d1d), 0, 0.02, 0.06, handL);
+    add(new THREE.BoxGeometry(0.06, 0.12, 0.075), trim, 0, 0.02, 0.07, handL);
+  } else if (cls === 'archer') {                          // 羽毛帽 + 弓 + 箭筒
+    const capM = M(0x166534);
+    const cap = add(new THREE.ConeGeometry(0.44, 0.34, 24), capM, 0, 0.36, -0.04, head); cap.rotation.x = -0.35;
+    const feather = add(new THREE.BoxGeometry(0.04, 0.34, 0.02), M(0xdc2626), 0.24, 0.48, -0.1, head); feather.rotation.z = -0.6;
+    const bow = add(new THREE.TorusGeometry(0.42, 0.025, 8, 24, Math.PI), M(0x7c4a1e), 0, 0.02, 0.05, handL); bow.rotation.z = Math.PI / 2;
+    add(new THREE.CylinderGeometry(0.006, 0.006, 0.84, 4), M(0xf5f5f4), 0, 0.02, 0.05, handL);
+    const quiver = add(new THREE.CylinderGeometry(0.08, 0.07, 0.5, 12), M(0x92400e), 0.12, 0.95, -0.3); quiver.rotation.z = -0.4;
+    [-0.03, 0.03].forEach(dx => { const a = add(new THREE.ConeGeometry(0.03, 0.08, 6), M(0xe5e7eb), 0.24 + dx, 1.25, -0.3); a.rotation.z = -0.4; });
+  } else if (cls === 'giant') {                           // 牛角頭盔 + 大棒
+    add(new THREE.SphereGeometry(0.43, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.42), M(0x78716c), 0, 0.06, 0, head);
+    [-1, 1].forEach(s => { const h = add(new THREE.ConeGeometry(0.08, 0.34, 10), M(0xfafaf9), s * 0.38, 0.32, 0, head); h.rotation.z = -s * 0.9; });
+    if (girl) [-1, 1].forEach(s => add(new THREE.CapsuleGeometry(0.06, 0.4, 4, 8), hairM, s * 0.3, -0.36, -0.1, head));
+    const club = add(new THREE.CylinderGeometry(0.13, 0.06, 0.95, 12), M(0x78350f), 0, 0.42, 0, handR);
+    [0, 1, 2].forEach(i => add(new THREE.SphereGeometry(0.035, 6, 6), M(0xd6d3d1), Math.cos(i * 2.1) * 0.12, 0.75, Math.sin(i * 2.1) * 0.12, handR));
+  } else if (cls === 'fighter') {                         // 頭帶 + 拳套
+    add(new THREE.TorusGeometry(0.405, 0.035, 8, 28), M(0xdc2626), 0, 0.12, 0, head).rotation.x = Math.PI / 2 - 0.1;
+    [-1, 1].forEach(s => { const tail = add(new THREE.BoxGeometry(0.06, 0.3, 0.02), M(0xdc2626), s * 0.08, 0.0, -0.42, head); tail.rotation.z = s * 0.4; tail.rotation.x = 0.3; });
+  }
+  if (st.scale) g0.scale.setScalar(st.scale);
   // 腳下鍊成陣
-  const circle = new THREE.Mesh(new THREE.CircleGeometry(0.62, 48),
-    new THREE.MeshBasicMaterial({ map: view.circleCanvas('rgba(170,230,255,1)', true), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
-  circle.rotation.x = -Math.PI / 2; circle.position.y = 0.01; g.add(circle);
-  g.userData = { armL, armR, head, circle, phase: girl ? 1.7 : 0 };
-  return g;
+  const circle = new THREE.Mesh(new THREE.CircleGeometry(0.62, 48), new THREE.MeshBasicMaterial({ map: circleTex, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
+  circle.rotation.x = -Math.PI / 2; circle.position.y = 0.01; root.add(circle);
+  root.userData = { armL, armR, head, circle, body: g0, cls, phase: HERO_CLASSES.indexOf(cls) * 0.9 + (girl ? 0.5 : 0) };
+  return root;
 }
 class AvatarStage {
   init() {
@@ -2435,15 +2551,32 @@ class AvatarStage {
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+    this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 80);
     this.scene.add(new THREE.HemisphereLight(0xfff3dc, 0x2a1a0a, 1.2));
     const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(2, 4, 4); this.scene.add(key);
     const rim = new THREE.DirectionalLight(0x8fd8ff, 0.9); rim.position.set(-3, 2, -3); this.scene.add(rim);
-    this.avatars = { boy: buildChibi('boy'), girl: buildChibi('girl') };
-    this.avatars.boy.position.x = -0.95; this.avatars.girl.position.x = 0.95;
-    Object.values(this.avatars).forEach(a => this.scene.add(a));
-    this.selected = null; this.jumpT = 9; this.clock = new THREE.Clock();
+    this.circleTex = view.circleCanvas('rgba(170,230,255,1)', true);
+    this.models = []; this.lineupKey = ''; this.selected = null; this.jumpT = 9; this.clock = new THREE.Clock();
     window.addEventListener('resize', () => this.el && this.resize());
+  }
+  /* 換一排角色：[{ cls, g }] */
+  setLineup(list) {
+    if (!this.ok) return;
+    const key = JSON.stringify(list); if (key === this.lineupKey) return;
+    this.lineupKey = key;
+    for (const m of this.models) {
+      this.scene.remove(m);
+      m.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map !== this.circleTex) o.material.dispose(); });
+    }
+    const n = list.length, gap = 1.18;
+    this.models = list.map((a, i) => { const m = buildHero(a.cls, a.g, this.circleTex); m.position.x = (i - (n - 1) / 2) * gap; this.scene.add(m); return m; });
+    this.halfW = (n - 1) / 2 * gap + 0.7;
+    if (this.el) this.resize();
+  }
+  pickAt(clientX) {        // 撳畫布：按位置估係邊個角色
+    const r = this.el.getBoundingClientRect(), n = this.models.length;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((clientX - r.left) / r.width * n)));
+    return this.models[i] && this.models[i].userData.cls;
   }
   mount(el) {
     if (!this.ok) return;
@@ -2454,29 +2587,31 @@ class AvatarStage {
   resize() {
     const w = Math.max(10, this.el.clientWidth), h = Math.max(10, this.el.clientHeight);
     this.renderer.setSize(w, h); this.camera.aspect = w / h;
-    const d = 6.1 * Math.max(1, 1.5 / this.camera.aspect);
-    this.camera.position.set(0, 1.45, d); this.camera.lookAt(0, 1.0, 0); this.camera.updateProjectionMatrix();
+    const tanV = Math.tan(THREE.MathUtils.degToRad(15)), tanH = tanV * this.camera.aspect;
+    const d = Math.max((this.halfW || 1.5) / tanH, 1.35 / tanV) * 1.08;
+    this.camera.position.set(0, 1.5, d); this.camera.lookAt(0, 1.05, 0); this.camera.updateProjectionMatrix();
   }
-  select(k) { this.selected = k; this.jumpT = 0; }
+  select(cls) { this.selected = cls; this.jumpT = 0; }
   frame() {
     const dt = Math.min(this.clock.getDelta(), 0.05), time = this.clock.elapsedTime;
     this.jumpT += dt;
-    for (const [k, a] of Object.entries(this.avatars)) {
-      const u = a.userData, sel = this.selected === k, other = this.selected && !sel;
+    for (const m of this.models) {
+      const u = m.userData, sel = this.selected === u.cls, other = this.selected && !sel;
       const jump = sel && this.jumpT < 0.7 ? Math.sin(Math.PI * this.jumpT / 0.7) * 0.3 : 0;
-      a.position.y = Math.sin(time * 2.2 + u.phase) * 0.03 + jump;
-      a.rotation.y = sel && this.jumpT < 0.7 ? (this.jumpT / 0.7) * Math.PI * 2 : Math.sin(time * 0.8 + u.phase) * 0.28 + (k === 'boy' ? 0.15 : -0.15);
-      const s = sel ? 1.12 : other ? 0.88 : 1; a.scale.setScalar(a.scale.x + (s - a.scale.x) * Math.min(1, dt * 8));
-      u.armR.rotation.z = (sel || !this.selected) ? -2.4 + Math.sin(time * 6 + u.phase) * 0.35 : 0.35;
-      u.armL.rotation.z = -0.35 + Math.sin(time * 2 + u.phase) * 0.05;
+      m.position.y = Math.sin(time * 2.2 + u.phase) * 0.03 + jump;
+      m.rotation.y = sel && this.jumpT < 0.7 ? (this.jumpT / 0.7) * Math.PI * 2 : Math.sin(time * 0.8 + u.phase) * 0.3;
+      const s = sel ? 1.15 : other ? 0.86 : 1; m.scale.setScalar(m.scale.x + (s - m.scale.x) * Math.min(1, dt * 8));
+      u.armR.rotation.z = (sel || !this.selected) ? -2.2 + Math.sin(time * 5 + u.phase) * 0.3 : 0.35;
+      u.armL.rotation.z = -0.5 + Math.sin(time * 2 + u.phase) * 0.06;
       u.head.rotation.z = Math.sin(time * 1.6 + u.phase) * 0.06;
-      u.circle.material.opacity = sel ? 0.9 + Math.sin(time * 8) * 0.1 : other ? 0.15 : 0.45;
+      u.circle.material.opacity = sel ? 0.9 + Math.sin(time * 8) * 0.1 : other ? 0.12 : 0.42;
       u.circle.rotation.z += dt * (sel ? 1.2 : 0.3);
     }
     this.renderer.render(this.scene, this.camera);
   }
 }
 const avatarStage = new AvatarStage();
+
 
 /* =====================================================================
    UI / CONTROLLER：畫面、回合流程、反應窗口、教學、記錄
@@ -2550,7 +2685,7 @@ function showCover() {
   $('coverSub').innerHTML = t('coverSub');
   setSeg('coverLang', LANG);
   $('btnCoverStart').innerHTML = '▶ ' + t('startBtn');
-  avatarStage.mount($('coverStage')); avatarStage.select(null);
+  avatarStage.setLineup(COVER_LINEUP); avatarStage.mount($('coverStage')); avatarStage.select(null);
 }
 
 /* ---------- 登入（學生資料沿用 mathverse-student；語言已喺封面揀） ---------- */
@@ -2590,21 +2725,38 @@ function notMe() {
   showLogin();
 }
 
-/* ---------- 揀角色：3D 男／女鍊金術師 ---------- */
+/* ---------- 揀角色：六個職業 × 男／女（3D） ---------- */
+let avGender = 'm';
 function showAvatar() {
   applyLang();
   hideAllScreens(); $('screenAvatar').hidden = false; $('hud').hidden = true;
+  if (state.avatar) avGender = state.avatar.g;
   $('avTitle').innerHTML = t('pickAvatar');
-  $('avCards').querySelectorAll('.av-card').forEach(b => { b.innerHTML = t('avatar_' + b.dataset.v); b.classList.toggle('on', b.dataset.v === state.avatar); });
   $('btnAvBack').innerHTML = t('back'); $('btnAvNext').innerHTML = t('next');
-  $('btnAvNext').disabled = !state.avatar;
-  avatarStage.mount($('avatarStage')); avatarStage.select(state.avatar || null);
+  renderAvatarChoices();
+  avatarStage.mount($('avatarStage'));
+  avatarStage.select(state.avatar && state.avatar.g === avGender ? state.avatar.cls : null);
 }
-function pickAvatar(k) {
-  state.avatar = k; save();
-  Sound.play('select'); avatarStage.select(k);
-  $('avCards').querySelectorAll('.av-card').forEach(b => b.classList.toggle('on', b.dataset.v === k));
+function renderAvatarChoices() {
+  $('avGender').children[0].innerHTML = t('g_m'); $('avGender').children[1].innerHTML = t('g_f');
+  setSeg('avGender', avGender);
+  avatarStage.setLineup(HERO_CLASSES.map(cls => ({ cls, g: avGender })));
+  const cur = state.avatar && state.avatar.cls;
+  $('avCards').innerHTML = HERO_CLASSES.map(cls => `<button class="av-card ${cur === cls ? 'on' : ''}" data-v="${cls}">${ART.hero(cls, avGender)}${tl(...HERO_INFO[cls].name)}</button>`).join('');
+  $('btnAvNext').disabled = !state.avatar;
+}
+function pickAvatar(cls) {
+  if (!cls) return;
+  state.avatar = { cls, g: avGender }; save();
+  Sound.play('select'); avatarStage.select(cls);
+  $('avCards').querySelectorAll('.av-card').forEach(b => b.classList.toggle('on', b.dataset.v === cls));
   $('btnAvNext').disabled = false;
+}
+function pickGender(g) {
+  avGender = g;
+  if (state.avatar) { state.avatar.g = g; save(); }
+  Sound.play('select'); renderAvatarChoices();
+  avatarStage.select(state.avatar ? state.avatar.cls : null);
 }
 
 /* ---------- 揀關卡：大卡片 + 夥伴 + 錯題本 + 圖鑑 + 開始；其餘收埋喺 ⚙ ---------- */
@@ -2615,8 +2767,8 @@ function showSetup() {
   setupSel = { ...setupSel, ...(store.get(KEYS.setup) || {}) };
   if (!PLAYER_CHARS.includes(setupSel.char) || !partnerUnlocked(setupSel.char)) setupSel.char = 'armstrong';
   if (!setupSel.mode || !(LEVELS.includes(setupSel.mode) || setupSel.mode === 'mixed')) setupSel.mode = LEVELS.find(lv => !state.badges[lv]) || 'mixed';
-  if (!state.avatar) state.avatar = 'boy';
-  $('setupWho').innerHTML = `${ART.symbol(state.avatar)}<span>${escapeHTML(student.cls)} · ${escapeHTML(student.no)} ${escapeHTML(student.name)}<br>💰 ${state.bells} · 🏅 ${badgeCount()}/${GAME.total}</span>`;
+  if (!state.avatar) state.avatar = { cls: 'mage', g: 'm' };
+  $('setupWho').innerHTML = `${ART.symbol('hero')}<span>${escapeHTML(student.cls)} · ${escapeHTML(student.no)} ${escapeHTML(student.name)}<br>💰 ${state.bells} · 🏅 ${badgeCount()}/${GAME.total}</span>`;
   $('setupTitle').innerHTML = t('pickStage');
   const card = (lv, stars, name) => {
     const boss = LEVEL_BOSS[lv], best = state.best[lv];
@@ -2700,7 +2852,8 @@ async function startGame() {
   const mode = setupSel.mode || 'mixed', level = LEVELS.includes(mode);
   const boss = LEVEL_BOSS[setupSel.mode || 'mixed'] || 'wrath';    // 每個關卡有一隻七宗罪頭目
   const opps = [boss].concat(shuffle(AI_CHARS.filter(k => k !== boss))).slice(0, setupSel.players - 1);
-  const defs = [{ char: state.avatar || 'boy', isHuman: true }].concat(opps.map(c => ({ char: c, isHuman: false, difficulty: setupSel.difficulty })));
+  setHero();
+  const defs = [{ char: 'hero', isHuman: true }].concat(opps.map(c => ({ char: c, isHuman: false, difficulty: setupSel.difficulty })));
   const rules = rulesChoice();
   // 簡易玩法：唔放功能卡入牌組，勝利分數用 winScoreSimple
   const base = rules === 'simple' ? { ...CFG, winScore: CFG.winScoreSimple, handStart: CFG.handStartSimple, handLimit: CFG.handLimitSimple, functionCards: {} } : CFG;
@@ -3366,7 +3519,7 @@ function cutIn(pi, target, ans) {
   el.style.setProperty('--cc', c.color + 'ee');
   el.innerHTML = `<div class="band"></div>
     <div class="circ"><svg viewBox="0 0 200 200">${ART.circle(100, 100, 92, '#bfeaff', c.sides < 4 ? 6 : c.sides, 2)}</svg></div>
-    ${p.isHuman ? `<div class="fig">${ART.alchemist(c.color, p.char === 'girl')}</div>` : `<div class="fig mon">${ART.symbol(p.char)}</div>`}
+    <div class="fig mon">${ART.symbol(p.char)}</div>
     <div class="txt"><div class="big">${t('cutinTitle')}</div>
       <div class="who">${ART.symbol(p.char)}<b>${p.isHuman ? nameOf(pi) : charNameHTML(p.char)}</b>${p.isHuman && session.partner ? ` ＋ ${ART.symbol(session.partner)}<b>${charName(session.partner)}</b>` : ''}</div>
       <div class="ln">${line}</div>
@@ -3557,9 +3710,9 @@ async function startPractice() {
   const izumiBefore = partnerUnlocked('izumi');
   if (!ids.length) { toast(t('notebookEmpty')); return; }
   if (session) endSession();
-  startLogging();
+  startLogging(); setHero();
   game = new Game({ ...CFG, onlyIds: ids, starsIncluded: [1, 2, 3], functionCards: {}, tableSize: 1, handStart: 0, handLimit: 99, winScore: Infinity },
-    [{ char: state.avatar || 'boy', isHuman: true }]);
+    [{ char: 'hero', isHuman: true }]);
   let abort; const abortP = new Promise((_, rej) => { abort = () => rej(new AbortGame()); });
   abortP.catch(() => {});
   session = {
@@ -3678,7 +3831,8 @@ function bindStatic() {
   $('btnLoginBack').onclick = () => { Sound.play('select'); showCover(); };
   $('inName').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
   $('avCards').onclick = (e) => { const b = e.target.closest('.av-card'); if (b) pickAvatar(b.dataset.v); };
-  $('avatarStage').addEventListener('click', (e) => { const r = $('avatarStage').getBoundingClientRect(); pickAvatar(e.clientX < r.left + r.width / 2 ? 'boy' : 'girl'); });
+  $('avatarStage').addEventListener('click', (e) => pickAvatar(avatarStage.pickAt(e.clientX)));
+  $('avGender').onclick = (e) => { const b = e.target.closest('button'); if (b) pickGender(b.dataset.v); };
   $('btnAvBack').onclick = () => { Sound.play('select'); showCover(); };
   $('btnAvNext').onclick = () => { if (!state.avatar) return; Sound.play('success'); showSetup(); };
   $('btnAvChange').onclick = () => { Sound.play('select'); showAvatar(); };
