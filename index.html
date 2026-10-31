@@ -179,6 +179,7 @@ body.lowfx .card3d.pick .front { box-shadow: 0 0 0 4px #8fe0ff; }
 .plate3d { width: 330px; padding: 12px 18px; border-radius: 16px; display: flex; align-items: center; gap: 14px; pointer-events: none;
   background: linear-gradient(180deg, rgba(48,30,14,.92), rgba(24,14,6,.92)); border: 2px solid var(--brass); color: var(--parch); font-size: 26px; }
 .plate3d .emb { width: 64px; height: 64px; flex: none; }
+.plate3d .emb svg { width: 100%; height: 100%; }
 .plate3d .nm { font-weight: 700; line-height: 1.1; }
 .plate3d .sub { font-size: 20px; opacity: .8; }
 .plate3d .sc { margin-left: auto; font-size: 40px; color: var(--gold-hi); }
@@ -319,6 +320,62 @@ body.lowfx #cutin .fig { filter: none; }
 #screenSetup .sheet h1 { font-size: clamp(24px, 4.6vh, 40px); }
 @media (max-width: 760px) { #chMode { grid-template-columns: repeat(3, 1fr); } }
 
+/* ---------- 封面 / 揀角色 / 揀關卡 ---------- */
+#screenCover, #screenAvatar, #screenSetup { flex-direction: column; gap: 1.6vh; background: radial-gradient(ellipse at 50% 38%, rgba(70,38,12,.35), rgba(8,4,2,.9) 70%); }
+.cover-sins { position: absolute; left: 0; right: 0; top: 4vh; display: flex; justify-content: center; gap: 1.2vw; opacity: .16; pointer-events: none; }
+.cover-sins svg { width: 13vh; height: 13vh; filter: brightness(0) drop-shadow(0 0 8px rgba(255,80,40,.9)); }
+.cover-title { text-align: center; position: relative; }
+.cover-title h1 { margin: 0; font-size: clamp(44px, 12vh, 120px); letter-spacing: .14em; line-height: 1.05; color: #e9c66f;
+  background: linear-gradient(180deg, #fff2c4, #e2b55a 50%, #8a5a1c); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 0 #3b1d0a) drop-shadow(0 0 22px rgba(255,190,80,.45)); }
+.cover-title .en { color: var(--parch); letter-spacing: .5em; font-size: clamp(14px, 2.6vh, 24px); margin-top: .2em; }
+.cover-sub { color: var(--parch); opacity: .8; font-size: clamp(13px, 2.2vh, 18px); margin-top: .5em; }
+.av-stage { width: min(560px, 72vw); height: min(34vh, 290px); position: relative; }
+.av-stage.big { width: min(760px, 88vw); height: min(50vh, 400px); }
+.av-stage canvas { width: 100% !important; height: 100% !important; display: block; }
+.cover-lang { display: flex; gap: 4px; background: rgba(20,12,6,.75); border: 1px solid var(--brass); border-radius: 999px; padding: 4px; }
+.cover-lang button { border: 0; background: transparent; color: var(--parch); padding: .45em 1.2em; border-radius: 999px; cursor: pointer; font-size: 1.05em; }
+.cover-lang button.on { background: linear-gradient(180deg, #e3b95e, #8a6420); color: #23160a; font-weight: 700; }
+.btn-start { font-family: inherit; font-size: clamp(22px, 4.6vh, 36px); padding: .4em 2.2em; border-radius: 999px; cursor: pointer; font-weight: 700; letter-spacing: .1em;
+  background: linear-gradient(180deg, #e0573a, #8c1a0c); border: 3px solid #ffe3a0; color: #fff4dd; box-shadow: 0 6px 0 #4a0b04, 0 0 30px rgba(255,120,60,.45); animation: pulse 1.8s ease-in-out infinite; }
+.btn-start:active { transform: translateY(3px); box-shadow: 0 3px 0 #4a0b04; }
+.btn-start .bi-en { font-size: .5em; }
+.av-title, .stage-title { font-size: clamp(24px, 5.5vh, 44px); color: var(--gold-hi); font-weight: 700; letter-spacing: .12em; margin: 0; text-align: center; text-shadow: 0 0 16px rgba(255,190,80,.5); }
+.av-title .bi-en, .stage-title .bi-en { font-size: .45em; letter-spacing: .1em; }
+.av-cards { display: flex; gap: 8vw; }
+.av-card { font-family: inherit; cursor: pointer; padding: 10px 26px; min-width: 9.5em; border-radius: 14px; background: rgba(30,18,8,.85); border: 2px solid var(--brass); color: var(--parch); font-size: 1.15em; }
+.av-card.on { border-color: var(--gold-hi); background: rgba(100,58,16,.9); box-shadow: 0 0 22px rgba(255,200,90,.65); }
+.av-nav { display: flex; gap: 12px; }
+.btn-big { font-size: 1.3em !important; padding: .5em 1.8em !important; }
+.stage-wrap { width: min(1040px, 96vw); display: flex; flex-direction: column; align-items: center; gap: 1.6vh; }
+.stage-top { width: 100%; display: flex; justify-content: space-between; align-items: center; color: var(--parch); }
+.stage-top #setupWho { display: flex; align-items: center; gap: .5em; }
+.stage-top #setupWho svg { width: 2.2em; height: 2.2em; }
+.stage-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.1vw; width: 100%; }
+.stage-card { cursor: pointer; border-radius: 16px; padding: 1vh .5vw 1.2vh; text-align: center; color: var(--ink); line-height: 1.2;
+  background: radial-gradient(ellipse at 50% 30%, #fbf1d8, #dcc28e 75%); border: 3px solid #6d4c25; box-shadow: 0 6px 16px rgba(0,0,0,.5); transition: transform .15s, box-shadow .15s; }
+.stage-card:hover { transform: translateY(-3px); }
+.stage-card.on { border-color: #ffd77a; box-shadow: 0 0 0 3px #ffd77a, 0 0 28px rgba(255,190,60,.8); transform: translateY(-6px); }
+.stage-card svg { width: min(16vh, 120px); height: min(16vh, 120px); display: block; margin: 0 auto; }
+.stage-card .st-stars { color: #9b2c16; letter-spacing: .1em; }
+.stage-card .st-name { font-weight: 700; font-size: 1.05em; }
+.stage-card .st-vs { font-size: .85em; color: #5a1d10; margin-top: 2px; }
+.stage-card .st-badge { font-size: 1.5em; min-height: 1.3em; }
+.stage-card .st-badge small { font-size: .5em; opacity: .7; }
+.stage-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.partner-chip { font-family: inherit; display: flex; align-items: center; gap: 8px; padding: 4px 14px 4px 4px; border-radius: 999px; background: rgba(30,18,8,.9); border: 2px solid var(--brass); color: var(--parch); cursor: pointer; font-size: 1em; text-align: left; line-height: 1.2; }
+.partner-chip svg { width: 2.6em; height: 2.6em; }
+.partner-chip small { opacity: .8; }
+.stage-foot { color: var(--parch); opacity: .75; font-size: .85em; text-align: center; }
+.linkbtn { font-family: inherit; background: none; border: 0; color: var(--gold-hi); cursor: pointer; text-decoration: underline; font-size: 1em; padding: 0; }
+#chChar { grid-template-columns: repeat(4, 1fr) !important; }
+#cutin .fig.mon svg { height: 60vh; width: 60vh; }
+#scoreboard .row svg { width: 1.6em; height: 1.6em; }
+@media (max-height: 520px) {
+  .stage-card .st-vs { display: none; }
+  .cover-sins svg { width: 10vh; height: 10vh; }
+}
+
 /* ---------- 對白 ---------- */
 #speech { position: fixed; z-index: 25; left: 50%; top: 18%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 12px 18px; max-width: min(80vw, 720px); opacity: 0; transition: opacity .3s; pointer-events: none; }
 #speech.show { opacity: 1; }
@@ -427,65 +484,85 @@ table.review th { color: #5b1d10; }
   <div class="tr"><button class="btn gold" id="btnUnderstood"></button><span id="tipSaved"></span></div>
 </div>
 
-<!-- ===== 登入 ===== -->
+<!-- ===== 封面：遊戲名稱、語言、開始 ===== -->
+<div id="screenCover" class="screen" hidden>
+  <div class="cover-sins" id="coverSins"></div>
+  <div class="cover-title"><h1>因式鍊金術</h1><div class="en">FACTOR ALCHEMY</div><div class="cover-sub" id="coverSub"></div></div>
+  <div id="coverStage" class="av-stage"></div>
+  <div class="cover-lang" id="coverLang"><button data-v="zh">中文</button><button data-v="en">English</button><button data-v="bi">中英雙語</button></div>
+  <button class="btn-start" id="btnCoverStart">▶ 開始 Start</button>
+</div>
+
+<!-- ===== 登入（只喺未有學生資料時出現） ===== -->
 <div id="screenLogin" class="screen" hidden>
-  <div class="sheet">
-    <h1>因式鍊金術<span class="en">Factor Alchemy</span></h1>
-    <p class="who-line" style="margin-top:.6em">國家鍊金術師資格試 · 因式分解篇<br><i>State Alchemist Exam · Factorization</i></p>
+  <div class="sheet" style="width:min(620px,94vw)">
+    <h1 style="font-size:1.8em" id="loginTitle"></h1>
     <div class="form">
-      <label for="inClass">班別 Class</label>
+      <label for="inClass" id="lblClass"></label>
       <select id="inClass"></select>
       <div class="err" id="errClass"></div>
-      <label for="inNo">學號 No.</label>
+      <label for="inNo" id="lblNo"></label>
       <input id="inNo" type="number" inputmode="numeric" min="1" max="40" step="1" autocomplete="off">
       <div class="err" id="errNo"></div>
-      <label for="inName">姓名 Name<br><small style="font-weight:400">（選填 optional）</small></label>
+      <label for="inName" id="lblName"></label>
       <input id="inName" type="text" autocomplete="off">
       <div class="err" id="errName"></div>
-      <label>語言 Language</label>
-      <div class="seg" id="segLang">
-        <button data-v="zh">中文</button><button data-v="en">English</button><button data-v="bi">雙語 Both</button>
-      </div>
-      <div class="err" id="errLang"></div>
     </div>
     <div class="row-btns">
-      <button class="btn primary" id="btnLogin">進入鍊成室 · Enter</button>
-      <button class="btn" id="btnNotMe">唔係我 · Not me</button>
+      <button class="btn primary" id="btnLogin"></button>
+      <button class="btn" id="btnLoginBack"></button>
     </div>
-    <p class="notice">遊戲記錄會交俾老師作學習評估用。<br><i>Your game records will be sent to your teacher for learning assessment.</i></p>
+    <p class="notice" id="loginNote"></p>
   </div>
 </div>
 
-<!-- ===== 對局設定 ===== -->
+<!-- ===== 揀角色：3D 男／女鍊金術師 ===== -->
+<div id="screenAvatar" class="screen" hidden>
+  <div class="av-title" id="avTitle"></div>
+  <div id="avatarStage" class="av-stage big"></div>
+  <div class="av-cards" id="avCards"><button class="av-card" data-v="boy"></button><button class="av-card" data-v="girl"></button></div>
+  <div class="av-nav"><button class="btn" id="btnAvBack"></button><button class="btn primary btn-big" id="btnAvNext"></button></div>
+</div>
+
+<!-- ===== 揀關卡（一個畫面只做一個決定） ===== -->
 <div id="screenSetup" class="screen" hidden>
-  <div class="sheet">
-    <h1 id="setupTitle"></h1>
-    <p class="who-line" id="setupWho"></p>
-    <h2 data-t="mode"></h2>
-    <div class="choices" id="chMode"></div>
-    <div class="setup-grid">
-      <div>
-        <div id="rulesBox"><h2 data-t="rulesMode"></h2>
-        <div class="seg" id="segRules"><button data-v="simple"></button><button data-v="full"></button></div>
-        <p class="notice" id="rulesDesc" style="margin:4px 0 0;text-align:left"></p></div>
-        <h2 data-t="players"></h2>
-        <div class="seg" id="segPlayers"><button data-v="2"></button><button data-v="4"></button></div>
-        <h2 data-t="difficulty"></h2>
-        <div class="choices" id="chDiff"></div>
-      </div>
-      <div>
-        <h2 data-t="character"></h2>
-        <div class="choices" id="chChar"></div>
-      </div>
-    </div>
-    <p class="notice" id="setupInfo"></p>
-    <div class="row-btns">
-      <button class="btn primary" id="btnStart"></button>
+  <div class="stage-wrap">
+    <div class="stage-top"><span id="setupWho"></span>
+      <span class="stage-icons"><button class="iconbtn panel" id="btnSettings" title="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button></span></div>
+    <h1 class="stage-title" id="setupTitle"></h1>
+    <div class="stage-cards" id="chMode"></div>
+    <div class="stage-bar">
+      <button class="partner-chip" id="btnPartner"></button>
       <button class="btn" id="btnNotebook"></button>
       <button class="btn" id="btnDex"></button>
-      <button class="btn" id="btnRules2"></button>
-      <button class="btn" id="btnNotMe2"></button>
     </div>
+    <button class="btn-start" id="btnStart"></button>
+    <div class="stage-foot"><button class="linkbtn" id="btnAvChange"></button> · <span id="setupRec"></span></div>
+  </div>
+</div>
+
+<!-- ===== 設定（收埋唔常用嘅選項） ===== -->
+<div id="modalSettings" class="modal" hidden>
+  <div class="sheet">
+    <h1 style="font-size:1.6em" data-t="settings"></h1>
+    <div id="rulesBox"><h2 data-t="rulesMode"></h2>
+      <div class="seg" id="segRules"><button data-v="simple"></button><button data-v="full"></button></div>
+      <p class="notice" id="rulesDesc" style="margin:4px 0 0;text-align:left"></p></div>
+    <h2 data-t="players"></h2>
+    <div class="seg" id="segPlayers"><button data-v="2"></button><button data-v="4"></button></div>
+    <h2 data-t="difficulty"></h2>
+    <div class="choices" id="chDiff"></div>
+    <p class="notice" id="setupInfo"></p>
+    <div class="row-btns"><button class="btn gold" id="btnSettingsOk"></button><button class="btn" id="btnRules2"></button><button class="btn" id="btnNotMe2"></button></div>
+  </div>
+</div>
+
+<!-- ===== 揀夥伴 ===== -->
+<div id="modalPartner" class="modal" hidden>
+  <div class="sheet">
+    <h1 style="font-size:1.6em" data-t="character"></h1>
+    <div class="choices" id="chChar"></div>
+    <div class="row-btns"><button class="btn gold" id="btnPartnerOk"></button></div>
   </div>
 </div>
 
@@ -1143,6 +1220,12 @@ const STR = {
   know_perfSq: ['完全平方恆等式：a² ± 2ab + b² = (a ± b)²；中間項係 2ab，要出兩張一樣嘅卡。', 'Perfect square: a² ± 2ab + b² = (a ± b)²; the middle term is 2ab and you need two identical cards.'],
   evoStart: ['咦？{t} 嘅樣子起變化…', 'What? {t} is evolving…'], evoStage: ['第 {i} 階段', 'Stage {i}'], evoDone: ['進化完成！', 'Evolution complete!'],
   newDex: ['📖 新收錄：{name}', '📖 New entry: {name}'], tapSkip: ['（撳一下跳過）', '(tap to skip)'],
+  coverSub: ['國家鍊金術師資格試 · 因式分解篇', 'State Alchemist Exam · Factorization'], startBtn: ['開始', 'Start'],
+  loginTitle: ['學生資料', 'Student details'], lblClass: ['班別', 'Class'], lblNo: ['學號', 'No.'], lblName: ['姓名（選填）', 'Name (optional)'],
+  loginNote: ['遊戲記錄會交俾老師作學習評估用。', 'Your game records are sent to your teacher for learning assessment.'], choose: ['請揀', 'Choose'],
+  next: ['下一步 ▶', 'Next ▶'], back: ['← 返回', '← Back'], done: ['完成', 'Done'], settings: ['設定', 'Settings'],
+  pickAvatar: ['揀你嘅鍊金術師', 'Choose your alchemist'], avatar_boy: ['👦 男鍊金術師', '👦 Alchemist (boy)'], avatar_girl: ['👧 女鍊金術師', '👧 Alchemist (girl)'],
+  pickStage: ['揀關卡', 'Choose a stage'], bestShort: ['最佳 {s}', 'Best {s}'], changeAvatar: ['換角色', 'Change character'],
   tutStart: ['明白，開始！', "Got it, let's go!"],
   players: ['人數', 'Players'], p2: ['2 人', '2 players'], p4: ['4 人', '4 players'],
   difficulty: ['電腦難度', 'AI difficulty'], character: ['你嘅夥伴', 'Your partner'],
@@ -1255,6 +1338,17 @@ const tex = (s) => (window.katex ? window.katex.renderToString(s, { throwOnError
 
 /* ---------- 角色（只用名字同原創對白，唔畫原作樣貌） ---------- */
 const CHARACTERS = {
+  // 玩家 3D 角色（原創）
+  boy:       { zh: '男鍊金術師', en: 'Alchemist (boy)',  color: '#1e3a8a', sides: 6, line: ['我係見習鍊金術師，今日要考國家資格！', 'I am an apprentice alchemist. Today is my State exam!'], win: ['等價交換成立！', 'Equivalent Exchange complete!'] },
+  girl:      { zh: '女鍊金術師', en: 'Alchemist (girl)', color: '#7f1d3a', sides: 6, line: ['見習鍊金術師準備好！每條式我都拆得開！', 'Apprentice alchemist ready! I can break down any expression!'], win: ['等價交換成立！', 'Equivalent Exchange complete!'] },
+  // 七宗罪：原創怪獸（根據「七宗罪」概念設計，唔係原作人物）
+  gluttony:  { zh: '暴食', en: 'Gluttony', color: '#8b5e3c', sides: 4, line: ['好肚餓……你啲因式，我全部食晒！', 'So hungry... I will eat all your factors!'], win: ['嗝……仲有冇得食？', 'Burp... is there more to eat?'] },
+  lust:      { zh: '色慾', en: 'Lust',     color: '#be185d', sides: 5, line: ['平方差？我嘅利爪可以將佢一分為二。', 'Difference of squares? My claws split it in two.'], win: ['乾淨利落，一分為二。', 'A clean cut, split in two.'] },
+  envy:      { zh: '嫉妒', en: 'Envy',     color: '#2f7d4f', sides: 6, line: ['分組？我可以變成任何一組，你分得清咩？', 'Grouping? I can become any group. Can you tell which?'], win: ['哈！你睇唔穿我嘅真面目！', 'Ha! You never saw my true face!'] },
+  pride:     { zh: '傲慢', en: 'Pride',    color: '#4c1d95', sides: 7, line: ['完全平方？喺我嘅影子下，一切都要完美。', 'Perfect squares? Under my shadow, all must be perfect.'], win: ['渺小嘅人類，終究不及我完美。', 'Tiny human, you will never be as perfect as me.'] },
+  wrath:     { zh: '憤怒', en: 'Wrath',    color: '#9b1c1c', sides: 3, line: ['我嘅劍睇得穿每一個公因式。', 'My blade sees through every common factor.'], win: ['一刀，就係答案。', 'One strike is the answer.'] },
+  greed:     { zh: '強欲', en: 'Greed',    color: '#b08d1a', sides: 6, line: ['所有目標卡，我全部都要！', 'I want every target card!'], win: ['又多一張！強欲永遠唔會滿足！', 'One more! Greed is never satisfied!'] },
+  sloth:     { zh: '懶惰', en: 'Sloth',    color: '#5b6470', sides: 4, line: ['好麻煩……不如你幫我分解……', 'So troublesome... you factorize for me...'], win: ['終於……可以瞓覺……', 'Finally... I can sleep...'] },
   ed:        { zh: '愛德華', en: 'Edward',    color: '#c0392b', sides: 3, line: ['身高唔重要，合掌一拍，你嘅式即刻拆到七零八落！', 'Height means nothing. One clap and your equations fall apart!'], win: ['等價交換成立！呢個因式分解，完美！', 'Equivalent Exchange complete! A perfect factorization!'] },
   al:        { zh: '阿爾馮斯', en: 'Alphonse', color: '#7f8c8d', sides: 4, line: ['每條式都係由細小嘅因式組成，我會溫柔咁拆開佢。', 'Every expression is built from small factors. I will take it apart gently.'], win: ['成功咗！每個因式都喺佢應該喺嘅位置。', 'We did it! Every factor is right where it belongs.'] },
   roy:       { zh: '羅伊',   en: 'Roy',       color: '#2c3e8f', sides: 5, line: ['冗餘嘅公因數？一彈指就燒得乾乾淨淨。', 'Redundant common factors? One snap and they burn away.'], win: ['一彈指，鍊成完畢。', 'One snap, and the transmutation is done.'] },
@@ -1269,7 +1363,7 @@ const CHARACTERS = {
 };
 /* 夥伴：一開始有一男一女（阿姆斯特朗、溫莉），其餘靠闖關／錯題本解鎖 */
 const PLAYER_CHARS = ['armstrong', 'winry', 'ed', 'al', 'riza', 'roy', 'izumi'];
-const AI_CHARS = ['hughes', 'olivier', 'scar', 'hohenheim'];
+const AI_CHARS = ['gluttony', 'lust', 'envy', 'pride', 'wrath', 'greed', 'sloth'];   // 對手＝七宗罪怪獸
 const PARTNERS = {
   armstrong: { type: 'common', unlock: 'start',    skill: 'muscle', title: ['剛腕之鍊金術師', 'Strong Arm Alchemist'] },
   winry:     { type: 'group',  unlock: 'start',    skill: 'flip',   title: ['天才機械鎧技師', 'Automail Prodigy'], rank2: ['機械鎧技師', 'Automail Engineer'] },
@@ -1385,6 +1479,43 @@ const ART = {
         ${spark(30, 18, 7, '#f97316')}${spark(76, 14, 9, '#fb923c')}${spark(84, 34, 5, '#fdba74')}`,
       armstrong: `<path d="M18 74 Q20 44 42 40 Q50 22 66 28 Q80 34 72 48 Q64 58 52 54 Q46 68 30 76 Z" fill="#e8b98a" stroke="#8a5a2b" stroke-width="2.5"/>
         <path d="M54 34 Q60 40 66 36" fill="none" stroke="#8a5a2b" stroke-width="1.8"/>${spark(22, 26, 8, '#f9a8d4')}${spark(80, 64, 7, '#f472b6')}${spark(70, 16, 5, '#fbcfe8')}`,
+      boy: `<path d="M24 96 Q26 72 50 70 Q74 72 76 96 Z" fill="#1e3a8a"/><path d="M42 72 L50 86 L58 72" fill="none" stroke="#d4a548" stroke-width="2.5"/>
+        <circle cx="50" cy="48" r="22" fill="#f6d7b8" stroke="#7a4a2a" stroke-width="1.5"/>
+        <path d="M27 46 Q26 22 50 21 Q75 22 73 46 L66 38 L62 44 L56 34 L50 42 L44 33 L38 43 L33 37 Z" fill="#4a2c17"/>
+        <circle cx="42" cy="51" r="3" fill="#1f2937"/><circle cx="58" cy="51" r="3" fill="#1f2937"/><circle cx="43" cy="50" r="1" fill="#fff"/><circle cx="59" cy="50" r="1" fill="#fff"/>
+        <ellipse cx="36" cy="58" rx="3.5" ry="2" fill="#f9a8a8"/><ellipse cx="64" cy="58" rx="3.5" ry="2" fill="#f9a8a8"/><path d="M46 61 Q50 64 54 61" fill="none" stroke="#7a2e2e" stroke-width="1.8" stroke-linecap="round"/>`,
+      girl: `<path d="M22 70 Q20 40 30 30 L30 80 Z M78 70 Q80 40 70 30 L70 80 Z" fill="#1c1917"/><path d="M70 30 Q92 40 86 78 Q82 64 74 58 Z" fill="#1c1917"/>
+        <path d="M24 96 Q26 72 50 70 Q74 72 76 96 Z" fill="#7f1d3a"/><path d="M42 72 L50 86 L58 72" fill="none" stroke="#d4a548" stroke-width="2.5"/>
+        <circle cx="50" cy="48" r="22" fill="#f6d7b8" stroke="#7a4a2a" stroke-width="1.5"/>
+        <path d="M27 48 Q25 22 50 21 Q75 22 73 48 Q66 34 52 32 Q44 40 30 42 Z" fill="#1c1917"/><circle cx="68" cy="30" r="4" fill="#e11d48"/>
+        <circle cx="42" cy="51" r="3" fill="#1f2937"/><circle cx="58" cy="51" r="3" fill="#1f2937"/><circle cx="43" cy="50" r="1" fill="#fff"/><circle cx="59" cy="50" r="1" fill="#fff"/>
+        <ellipse cx="36" cy="58" rx="3.5" ry="2" fill="#f9a8a8"/><ellipse cx="64" cy="58" rx="3.5" ry="2" fill="#f9a8a8"/><path d="M46 61 Q50 64 54 61" fill="none" stroke="#7a2e2e" stroke-width="1.8" stroke-linecap="round"/>`,
+      gluttony: `<ellipse cx="50" cy="60" rx="35" ry="31" fill="#d9c2a3" stroke="#5c4033" stroke-width="2.5"/><ellipse cx="50" cy="70" rx="22" ry="16" fill="#e8d6bd"/>
+        <path d="M24 58 Q50 94 76 58 Q50 66 24 58 Z" fill="#3b0a0a"/>
+        <path d="M28 60 L32 67 L36 61 L40 68 L44 62 L48 69 L52 62 L56 69 L60 62 L64 68 L68 61 L72 67 L74 60" fill="#fefce8" stroke="#a8a29e" stroke-width=".8"/>
+        <circle cx="41" cy="42" r="3" fill="#111"/><circle cx="59" cy="42" r="3" fill="#111"/><path d="M60 80 q2 7 0 12" stroke="#93c5fd" stroke-width="3" stroke-linecap="round"/>`,
+      lust: `<path d="M50 12 Q65 16 62 34 Q74 48 67 90 H33 Q26 48 38 34 Q35 16 50 12 Z" fill="#1f0a14" stroke="#be185d" stroke-width="2"/>
+        <path d="M38 34 Q30 40 26 30 M62 34 Q70 40 74 30" stroke="#1f0a14" stroke-width="5" fill="none"/>
+        <circle cx="45" cy="28" r="2.6" fill="#f43f5e"/><circle cx="55" cy="28" r="2.6" fill="#f43f5e"/>
+        <path d="M66 58 L95 38 M67 60 L97 50 M66 62 L95 62" stroke="#e5e7eb" stroke-width="2.6" stroke-linecap="round"/>`,
+      envy: `<path d="M18 82 Q12 52 28 36 Q42 14 62 22 Q88 30 84 56 Q92 78 70 88 Q44 96 18 82 Z" fill="#2f7d4f" stroke="#14532d" stroke-width="2.5"/>
+        <circle cx="40" cy="46" r="8" fill="#fff"/><circle cx="41" cy="47" r="3.5" fill="#7c2d12"/><circle cx="63" cy="38" r="4.5" fill="#fff"/><circle cx="64" cy="39" r="2" fill="#111"/>
+        <circle cx="65" cy="60" r="6" fill="#fff"/><circle cx="64" cy="61" r="2.6" fill="#111"/>
+        <path d="M28 68 L34 74 L40 68 L46 75 L52 68 L58 75" fill="none" stroke="#052e16" stroke-width="2.5" stroke-linejoin="round"/>`,
+      pride: `<path d="M12 90 Q18 60 32 50 Q28 30 50 22 Q72 30 68 50 Q82 60 88 90 Q76 80 68 94 Q60 80 50 94 Q40 80 32 94 Q24 80 12 90 Z" fill="#0b0b10"/>
+        <polygon points="40,24 43,12 47,20 50,8 53,20 57,12 60,24" fill="#d4a548" stroke="#7c5a1a" stroke-width="1"/>
+        ${[[42, 36], [58, 36], [30, 62], [70, 60], [50, 54], [40, 76], [62, 78], [22, 82], [80, 82]].map(([x, y], i) => `<ellipse cx="${x}" cy="${y}" rx="${i < 2 ? 4 : 3}" ry="${i < 2 ? 2.8 : 2.2}" fill="#fff"/><circle cx="${x}" cy="${y}" r="1.4" fill="#b91c1c"/>`).join('')}`,
+      wrath: `<path d="M18 86 L82 18 M82 86 L18 18" stroke="#cbd5e1" stroke-width="5" stroke-linecap="round"/><rect x="12" y="78" width="14" height="5" rx="2" fill="#d4a548" transform="rotate(-45 19 80)"/><rect x="74" y="78" width="14" height="5" rx="2" fill="#d4a548" transform="rotate(45 81 80)"/>
+        <path d="M28 70 Q26 30 50 26 Q74 30 72 70 Q60 78 50 78 Q40 78 28 70 Z" fill="#334155" stroke="#0f172a" stroke-width="2.5"/>
+        <rect x="34" y="46" width="32" height="7" rx="2" fill="#0f172a"/><circle cx="58" cy="49.5" r="3" fill="#ef4444"/><path d="M50 26 V44" stroke="#0f172a" stroke-width="2"/>`,
+      greed: `<polygon points="${ART.polygon(50, 52, 34, 6, 0)}" fill="#3f3f46" stroke="#b08d1a" stroke-width="3"/><polygon points="${ART.polygon(50, 52, 22, 6, 0)}" fill="none" stroke="#71717a" stroke-width="1.5"/>
+        <path d="M34 42 L44 46 M66 42 L56 46" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+        <path d="M32 60 Q50 76 68 60 Z" fill="#111"/><path d="M34 61 L38 66 L42 62 L46 68 L50 62 L54 68 L58 62 L62 66 L66 61" fill="#fafaf9"/>
+        <circle cx="16" cy="22" r="5" fill="#facc15" stroke="#a16207"/><circle cx="86" cy="26" r="4" fill="#facc15" stroke="#a16207"/><circle cx="84" cy="84" r="5" fill="#facc15" stroke="#a16207"/>`,
+      sloth: `<ellipse cx="50" cy="62" rx="37" ry="32" fill="#9ca3af" stroke="#4b5563" stroke-width="2.5"/>
+        <path d="M32 50 Q38 54 44 50 M56 50 Q62 54 68 50" fill="none" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round"/>
+        <ellipse cx="50" cy="70" rx="9" ry="7" fill="#374151"/>
+        <text x="72" y="26" font-size="12" font-family="serif" font-weight="700" fill="#64748b">z</text><text x="80" y="16" font-size="9" font-family="serif" font-weight="700" fill="#94a3b8">z</text>`,
       izumi: `<path d="M14 34 Q32 26 50 34 Q68 26 86 34 V78 Q68 70 50 78 Q32 70 14 78 Z" fill="#fef3c7" stroke="#6b3d7a" stroke-width="3" stroke-linejoin="round"/><path d="M50 34 V78" stroke="#6b3d7a" stroke-width="2"/>
         <circle cx="32" cy="54" r="10" fill="none" stroke="#6b3d7a" stroke-width="1.6"/><polygon points="${ART.polygon(32, 54, 9, 3)}" fill="none" stroke="#6b3d7a" stroke-width="1.2"/>
         <path d="M58 46 H78 M58 54 H76 M58 62 H78" stroke="#6b3d7a" stroke-width="2" stroke-linecap="round"/>`,
@@ -1424,7 +1555,7 @@ const ART = {
     return s + '</svg>';
   },
   /* 原創剪影：披風鍊金術師合掌（唔係任何原作角色樣貌） */
-  alchemist(color) {
+  alchemist(color, girl) {
     return `<svg viewBox="0 0 220 300" xmlns="http://www.w3.org/2000/svg"><defs>
 <radialGradient id="hg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#bfeaff"/><stop offset="1" stop-color="#4fb8ff" stop-opacity="0"/></radialGradient>
 <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e120a"/><stop offset="1" stop-color="#0b0603"/></linearGradient></defs>
@@ -1437,6 +1568,7 @@ const ART = {
 <path d="M156 124 Q170 160 128 168 L110 156" fill="none" stroke-width="16" stroke="#120a05"/>
 <path d="M64 124 Q50 160 92 168 L110 156 M156 124 Q170 160 128 168 L110 156" fill="none" stroke-width="2.5"/>
 </g>
+${girl ? '<path d="M78 92 Q66 150 74 196 Q84 160 90 104 Z M142 92 Q154 150 146 196 Q136 160 130 104 Z" fill="#1c1917" stroke="' + color + '" stroke-width="2"/>' : ''}
 <circle cx="110" cy="156" r="40" fill="url(#hg)"/>
 <g fill="none" stroke="#dff6ff" stroke-width="1.5" opacity=".9"><circle cx="110" cy="156" r="22"/><polygon points="${ART.polygon(110, 156, 22, 3)}"/><polygon points="${ART.polygon(110, 156, 22, 3, Math.PI / 2)}"/></g>
 </svg>`;
@@ -1553,7 +1685,7 @@ const SAVE_KEY = 'factor-alchemy-v1';
 const state = {
   bells:0, badges:{ common:false, group:false, diffSq:false, perfSq:false },
   best:{ common:0, group:0, diffSq:0, perfSq:0 }, tries:{}, notebook:[], fixed:0, fixedIds:{}, won:false, lang:'', tutorial:false,
-  partners:{}, shiny:{}, dex:{}                      // 夥伴使用次數、閃卡、合成獸圖鑑
+  partners:{}, shiny:{}, dex:{}, avatar:''                      // 夥伴使用次數、閃卡、合成獸圖鑑
 };
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} hubSync(); }
 function hubSync(){   // progress summary that a future hub page can read to show every game's stamps
@@ -1947,7 +2079,7 @@ class View {
     const P = (o, at) => { const a = { ...at, ry: 0 }; this.setNow(o.obj, a); };
     P(this.pileDraw, this.L.drawPile); P(this.pileTarget, this.L.targetDeck); P(this.discardSlot, this.L.discard);
     this.plates = players.map((p, i) => {
-      const pl = this.makePlain('plate3d', `<div class="emb">${ART.emblem(p.char)}</div><div><div class="nm">${charNameHTML(p.char)}</div><div class="sub">${p.isHuman ? t('you') : t(p.difficulty)}</div></div>
+      const pl = this.makePlain('plate3d', `<div class="emb">${ART.symbol(p.char)}</div><div><div class="nm">${charNameHTML(p.char)}</div><div class="sub">${p.isHuman ? t('you') : '★'.repeat(['apprentice', 'national', 'flame'].indexOf(p.difficulty) + 1)}</div></div>
         <svg class="think" viewBox="0 0 64 64">${ART.circle(32, 32, 28, '#ffd77a', 6, 2.5)}</svg><div class="sc">0</div>`);
       this.setNow(pl.obj, this.L.seats[i].plate);
       if (p.isHuman) pl.obj.visible = false;   // 真人用左上角計分板
@@ -2243,6 +2375,110 @@ class View {
 }
 
 /* =====================================================================
+   3D 鍊金術師（原創 Q 版男／女角色）：封面同揀角色畫面用
+   ===================================================================== */
+function buildChibi(kind) {
+  const girl = kind === 'girl';
+  const M = (c) => new THREE.MeshToonMaterial({ color: c });
+  const skin = M(0xf6d7b8), hairC = M(girl ? 0x1c1917 : 0x4a2c17), coat = M(girl ? 0x7f1d3a : 0x1e3a8a), trim = M(0xd4a548), dark = M(0x1f2937), shoe = M(0x3b2416);
+  const g = new THREE.Group(), add = (geo, mat, x, y, z, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
+  // 腳同鞋
+  [-0.12, 0.12].forEach(x => { add(new THREE.CapsuleGeometry(0.085, 0.22, 4, 10), dark, x, 0.27, 0); const s = add(new THREE.SphereGeometry(0.11, 14, 10), shoe, x, 0.07, 0.04); s.scale.set(1, 0.6, 1.4); });
+  // 長外套 + 腰帶 + 金邊
+  add(new THREE.CylinderGeometry(0.27, girl ? 0.46 : 0.4, 0.72, 24), coat, 0, 0.72, 0);
+  add(new THREE.TorusGeometry(0.29, 0.03, 8, 24), trim, 0, 0.66, 0).rotation.x = Math.PI / 2;
+  add(new THREE.TorusGeometry(0.22, 0.035, 8, 24), trim, 0, 1.06, 0).rotation.x = Math.PI / 2;
+  add(new THREE.CircleGeometry(0.06, 16), trim, 0, 0.86, 0.29);
+  // 手臂（右手會揮）
+  const arm = (side) => {
+    const pivot = new THREE.Group(); pivot.position.set(side * 0.3, 1.0, 0); g.add(pivot);
+    add(new THREE.CapsuleGeometry(0.075, 0.3, 4, 10), coat, 0, -0.2, 0, pivot);
+    add(new THREE.SphereGeometry(0.08, 12, 10), M(0xf8fafc), 0, -0.42, 0, pivot);       // 白手套
+    pivot.rotation.z = side * 0.35;
+    return pivot;
+  };
+  const armL = arm(-1), armR = arm(1);
+  // 頭
+  const head = new THREE.Group(); head.position.y = 1.42; g.add(head);
+  add(new THREE.SphereGeometry(0.4, 28, 22), skin, 0, 0, 0, head);
+  [-0.14, 0.14].forEach(x => {
+    add(new THREE.SphereGeometry(0.055, 12, 10), dark, x, -0.02, 0.36, head);
+    add(new THREE.SphereGeometry(0.018, 8, 6), M(0xffffff), x + 0.02, 0.0, 0.405, head);
+    const b = add(new THREE.SphereGeometry(0.05, 10, 8), M(0xf9a8a8), x * 1.55, -0.12, 0.31, head); b.scale.set(1, 0.55, 0.4);
+  });
+  const mouth = add(new THREE.TorusGeometry(0.04, 0.012, 6, 12, Math.PI), M(0x7a2e2e), 0, -0.13, 0.38, head); mouth.rotation.z = Math.PI;
+  // 頭髮
+  const cap = add(new THREE.SphereGeometry(0.43, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hairC, 0, 0.03, -0.02, head);
+  cap.rotation.x = -0.25;
+  if (girl) {
+    const tail = add(new THREE.CapsuleGeometry(0.11, 0.45, 4, 10), hairC, 0, -0.1, -0.42, head); tail.rotation.x = 0.35;
+    [-1, 1].forEach(s => { const lock = add(new THREE.CapsuleGeometry(0.07, 0.42, 4, 8), hairC, s * 0.36, -0.2, 0.02, head); lock.rotation.z = s * 0.12; });
+    add(new THREE.SphereGeometry(0.07, 10, 8), M(0xe11d48), 0.18, 0.22, -0.34, head);       // 髮夾
+  } else {
+    for (let i = 0; i < 6; i++) {
+      const sp = add(new THREE.ConeGeometry(0.09, 0.26, 8), hairC, -0.25 + i * 0.1, 0.3, 0.2 - Math.abs(i - 2.5) * 0.04, head);
+      sp.rotation.x = 0.9; sp.rotation.z = (i - 2.5) * 0.15;
+    }
+  }
+  // 腳下鍊成陣
+  const circle = new THREE.Mesh(new THREE.CircleGeometry(0.62, 48),
+    new THREE.MeshBasicMaterial({ map: view.circleCanvas('rgba(170,230,255,1)', true), transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+  circle.rotation.x = -Math.PI / 2; circle.position.y = 0.01; g.add(circle);
+  g.userData = { armL, armR, head, circle, phase: girl ? 1.7 : 0 };
+  return g;
+}
+class AvatarStage {
+  init() {
+    try { this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' }); }
+    catch (e) { this.ok = false; return; }
+    this.ok = true;
+    this.renderer.setClearColor(0x000000, 0);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+    this.scene.add(new THREE.HemisphereLight(0xfff3dc, 0x2a1a0a, 1.2));
+    const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(2, 4, 4); this.scene.add(key);
+    const rim = new THREE.DirectionalLight(0x8fd8ff, 0.9); rim.position.set(-3, 2, -3); this.scene.add(rim);
+    this.avatars = { boy: buildChibi('boy'), girl: buildChibi('girl') };
+    this.avatars.boy.position.x = -0.95; this.avatars.girl.position.x = 0.95;
+    Object.values(this.avatars).forEach(a => this.scene.add(a));
+    this.selected = null; this.jumpT = 9; this.clock = new THREE.Clock();
+    window.addEventListener('resize', () => this.el && this.resize());
+  }
+  mount(el) {
+    if (!this.ok) return;
+    this.el = el; el.appendChild(this.renderer.domElement); this.resize();
+    if (!this.running) { this.running = true; this.renderer.setAnimationLoop(() => this.frame()); }
+  }
+  stop() { if (this.ok && this.running) { this.running = false; this.renderer.setAnimationLoop(null); } }
+  resize() {
+    const w = Math.max(10, this.el.clientWidth), h = Math.max(10, this.el.clientHeight);
+    this.renderer.setSize(w, h); this.camera.aspect = w / h;
+    const d = 6.1 * Math.max(1, 1.5 / this.camera.aspect);
+    this.camera.position.set(0, 1.45, d); this.camera.lookAt(0, 1.0, 0); this.camera.updateProjectionMatrix();
+  }
+  select(k) { this.selected = k; this.jumpT = 0; }
+  frame() {
+    const dt = Math.min(this.clock.getDelta(), 0.05), time = this.clock.elapsedTime;
+    this.jumpT += dt;
+    for (const [k, a] of Object.entries(this.avatars)) {
+      const u = a.userData, sel = this.selected === k, other = this.selected && !sel;
+      const jump = sel && this.jumpT < 0.7 ? Math.sin(Math.PI * this.jumpT / 0.7) * 0.3 : 0;
+      a.position.y = Math.sin(time * 2.2 + u.phase) * 0.03 + jump;
+      a.rotation.y = sel && this.jumpT < 0.7 ? (this.jumpT / 0.7) * Math.PI * 2 : Math.sin(time * 0.8 + u.phase) * 0.28 + (k === 'boy' ? 0.15 : -0.15);
+      const s = sel ? 1.12 : other ? 0.88 : 1; a.scale.setScalar(a.scale.x + (s - a.scale.x) * Math.min(1, dt * 8));
+      u.armR.rotation.z = (sel || !this.selected) ? -2.4 + Math.sin(time * 6 + u.phase) * 0.35 : 0.35;
+      u.armL.rotation.z = -0.35 + Math.sin(time * 2 + u.phase) * 0.05;
+      u.head.rotation.z = Math.sin(time * 1.6 + u.phase) * 0.06;
+      u.circle.material.opacity = sel ? 0.9 + Math.sin(time * 8) * 0.1 : other ? 0.15 : 0.45;
+      u.circle.rotation.z += dt * (sel ? 1.2 : 0.3);
+    }
+    this.renderer.render(this.scene, this.camera);
+  }
+}
+const avatarStage = new AvatarStage();
+
+/* =====================================================================
    UI / CONTROLLER：畫面、回合流程、反應窗口、教學、記錄
    ===================================================================== */
 const $ = (id) => document.getElementById(id);
@@ -2267,7 +2503,7 @@ function abortable(p) {
   return Promise.race([p, session.abortP]);
 }
 const wait = (ms) => abortable(sleep(ms));
-const nameOf = (pi) => (game.player(pi).isHuman ? `${charName(game.player(pi).char)}（${tp('you')}）` : charName(game.player(pi).char));
+const nameOf = (pi) => (game.player(pi).isHuman ? `${student.name ? escapeHTML(student.name) : charName(game.player(pi).char)}（${tp('you')}）` : charName(game.player(pi).char));
 const cardText = (c) => c.kind === 'factor' ? (c.poly.isMonomial() ? c.poly.toString() : `(${c.poly})`) : (c.func === 'stone' ? '賢者之石' : c.func);
 function relayout(dur) { return abortable(view.layout(game, ui, dur)); }
 function monoGcd(p) {
@@ -2288,6 +2524,7 @@ function boot() {
   try { buildDeck(CFG); LEVELS.forEach(lv => buildDeck({ ...CFG, onlyLevel: lv })); }   // 啟動驗證：答案展開一致、因式 primitive、牌組足夠（包括每個關卡）
   catch (e) { $('fatal').hidden = false; $('fatal').textContent = '⚠ CONFIG 驗證失敗 Config validation failed\n\n' + e.message; throw e; }
   try { view.init(); } catch (e) { $('fatal').hidden = false; $('fatal').textContent = '⚠ 呢部裝置唔支援 WebGL：' + e.message; throw e; }
+  avatarStage.init();
   view.onCardClick = onCardClick;
   view.onHover = () => { if (game && ui.interactive) view.layout(game, ui, 140); };
   bindStatic();
@@ -2295,7 +2532,7 @@ function boot() {
   ['pointerdown', 'keydown'].forEach(tp => window.addEventListener(tp, () => { lastActive = Date.now(); }, true));
   hubSync();
   // 已經有 mathverse-student（班別＋學號）就唔使再輸入
-  if (student.cls && student.no) showSetup(); else showLogin();
+  showCover();                         // 封面 → （未有資料先登入）→ 揀角色 → 揀關卡
 }
 /* 開始遊戲時傳一次 start，之後每 60 秒 heartbeat（頁面可見而且 2 分鐘內有操作） */
 let logStarted = false;
@@ -2305,40 +2542,136 @@ function startLogging() {
   setInterval(() => { if (document.visibilityState === 'visible' && Date.now() - lastActive < 120000) logEvent('heartbeat'); }, 60000);
 }
 
-/* ---------- 登入（學生資料沿用 mathverse-student） ---------- */
+/* ---------- 封面：遊戲名稱 → 揀語言 → 開始 ---------- */
+function showCover() {
+  applyLang();
+  hideAllScreens(); $('screenCover').hidden = false; $('hud').hidden = true;
+  $('coverSins').innerHTML = AI_CHARS.map(k => ART.symbol(k)).join('');
+  $('coverSub').innerHTML = t('coverSub');
+  setSeg('coverLang', LANG);
+  $('btnCoverStart').innerHTML = '▶ ' + t('startBtn');
+  avatarStage.mount($('coverStage')); avatarStage.select(null);
+}
+
+/* ---------- 登入（學生資料沿用 mathverse-student；語言已喺封面揀） ---------- */
 function showLogin() {
-  LANG = 'bi';
+  applyLang();
   hideAllScreens(); $('screenLogin').hidden = false; $('hud').hidden = true;
+  $('loginTitle').innerHTML = t('loginTitle');
+  $('lblClass').innerHTML = t('lblClass'); $('lblNo').innerHTML = t('lblNo'); $('lblName').innerHTML = t('lblName');
+  $('btnLogin').innerHTML = t('next'); $('btnLoginBack').innerHTML = t('back'); $('loginNote').innerHTML = t('loginNote');
   const sel = $('inClass');
   const classes = CFG.classes.includes(student.cls) || !student.cls ? CFG.classes : CFG.classes.concat([student.cls]);
-  sel.innerHTML = `<option value="">— 請揀 Choose —</option>` + classes.map(c => `<option>${escapeHTML(c)}</option>`).join('');
+  sel.innerHTML = `<option value="">— ${tp('choose')} —</option>` + classes.map(c => `<option>${escapeHTML(c)}</option>`).join('');
   $('inNo').min = CFG.studentNoMin; $('inNo').max = CFG.studentNoMax; $('inName').maxLength = CFG.nameMaxLength;
   sel.value = student.cls || ''; $('inNo').value = student.no || ''; $('inName').value = student.name || '';
-  setSeg('segLang', state.lang || null);
-  ['errClass', 'errNo', 'errName', 'errLang'].forEach(k => $(k).textContent = '');
+  ['errClass', 'errNo', 'errName'].forEach(k => $(k).textContent = '');
 }
 function setSeg(id, v) { $(id).querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === String(v))); }
 function segVal(id) { const b = $(id).querySelector('button.on'); return b ? b.dataset.v : null; }
 function doLogin() {
-  const cls = $('inClass').value.trim().toUpperCase(), noStr = String($('inNo').value).trim(), name = $('inName').value.trim(), lang = segVal('segLang');
+  const cls = $('inClass').value.trim().toUpperCase(), noStr = String($('inNo').value).trim(), name = $('inName').value.trim();
   const no = Number(noStr);
   let ok = true;
-  const err = (k, key, p) => { $(k).innerHTML = key ? tl(fmt(STR[key][0], p), fmt(STR[key][1], p)) : ''; if (key) ok = false; };
+  const err = (k, key, p) => { $(k).innerHTML = key ? t(key, p) : ''; if (key) ok = false; };
   err('errClass', cls ? null : 'errClass');
   err('errNo', /^\d+$/.test(noStr) && no >= CFG.studentNoMin && no <= CFG.studentNoMax ? null : 'errNo', { a: CFG.studentNoMin, b: CFG.studentNoMax });
   err('errName', [...name].length <= CFG.nameMaxLength ? null : 'errName', { n: CFG.nameMaxLength });
-  err('errLang', lang ? null : 'errLang');
   if (!ok) { Sound.play('fail'); return; }
   student.cls = cls; student.no = String(no); student.name = name;
   try { localStorage.setItem(STU_KEY, JSON.stringify(student)); } catch (e) {}
-  state.lang = lang; save();
   Sound.play('success');
-  showSetup();
+  showAvatar();
 }
 function notMe() {
   student = { cls: '', no: '', name: '' };
   try { localStorage.removeItem(STU_KEY); } catch (e) {}
+  $('modalSettings').hidden = true;
   showLogin();
+}
+
+/* ---------- 揀角色：3D 男／女鍊金術師 ---------- */
+function showAvatar() {
+  applyLang();
+  hideAllScreens(); $('screenAvatar').hidden = false; $('hud').hidden = true;
+  $('avTitle').innerHTML = t('pickAvatar');
+  $('avCards').querySelectorAll('.av-card').forEach(b => { b.innerHTML = t('avatar_' + b.dataset.v); b.classList.toggle('on', b.dataset.v === state.avatar); });
+  $('btnAvBack').innerHTML = t('back'); $('btnAvNext').innerHTML = t('next');
+  $('btnAvNext').disabled = !state.avatar;
+  avatarStage.mount($('avatarStage')); avatarStage.select(state.avatar || null);
+}
+function pickAvatar(k) {
+  state.avatar = k; save();
+  Sound.play('select'); avatarStage.select(k);
+  $('avCards').querySelectorAll('.av-card').forEach(b => b.classList.toggle('on', b.dataset.v === k));
+  $('btnAvNext').disabled = false;
+}
+
+/* ---------- 揀關卡：大卡片 + 夥伴 + 錯題本 + 圖鑑 + 開始；其餘收埋喺 ⚙ ---------- */
+const LEVEL_BOSS = { common: 'gluttony', group: 'envy', diffSq: 'lust', perfSq: 'pride', mixed: 'wrath' };
+function showSetup() {
+  applyLang();
+  hideAllScreens(); $('screenSetup').hidden = false; $('hud').hidden = true;
+  setupSel = { ...setupSel, ...(store.get(KEYS.setup) || {}) };
+  if (!PLAYER_CHARS.includes(setupSel.char) || !partnerUnlocked(setupSel.char)) setupSel.char = 'armstrong';
+  if (!setupSel.mode || !(LEVELS.includes(setupSel.mode) || setupSel.mode === 'mixed')) setupSel.mode = LEVELS.find(lv => !state.badges[lv]) || 'mixed';
+  if (!state.avatar) state.avatar = 'boy';
+  $('setupWho').innerHTML = `${ART.symbol(state.avatar)}<span>${escapeHTML(student.cls)} · ${escapeHTML(student.no)} ${escapeHTML(student.name)}<br>💰 ${state.bells} · 🏅 ${badgeCount()}/${GAME.total}</span>`;
+  $('setupTitle').innerHTML = t('pickStage');
+  const card = (lv, stars, name) => {
+    const boss = LEVEL_BOSS[lv], best = state.best[lv];
+    const badge = lv === 'mixed' ? '⚔️' : state.badges[lv] ? '🏅' : best ? `<small>${tp('bestShort', { s: best })}</small>` : '';
+    return `<div class="stage-card" data-v="${lv}">${ART.symbol(boss)}<div class="st-stars">${stars}</div><div class="st-name">${name}</div>
+      <div class="st-vs">VS ${charName(boss)}</div><div class="st-badge">${badge}</div></div>`;
+  };
+  $('chMode').innerHTML = LEVELS.map((lv, n) => card(lv, ['★', '★★', '★★★', '★★★'][n], t(lv))).join('') + card('mixed', '★ ~ ★★★', t('mixed'));
+  $('btnNotebook').innerHTML = t('notebookBtn', { n: state.notebook.length });
+  $('btnNotebook').disabled = !state.notebook.length;
+  $('btnDex').innerHTML = t('dexBtn');
+  $('btnStart').innerHTML = '▶ ' + t('start');
+  $('btnAvChange').innerHTML = t('changeAvatar');
+  $('setupRec').innerHTML = t(recordingOn() ? 'recOnShort' : 'recOff');
+  renderPartnerChip();
+  const mark = () => $('chMode').querySelectorAll('.stage-card').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.mode));
+  $('chMode').onclick = (e) => { const c = e.target.closest('.stage-card'); if (c) { setupSel.mode = c.dataset.v; store.set(KEYS.setup, setupSel); Sound.play('select'); mark(); } };
+  mark();
+}
+function renderPartnerChip() {
+  const k = setupSel.char, p = PARTNERS[k];
+  $('btnPartner').innerHTML = `${ART.symbol(k)}<span><small>${tp('partnerLbl')} · Lv${partnerLevel(k)}${state.shiny[k] ? ' ✨' : ''}</small><br><b>${charName(k)}</b> · ⚡ ${tp('skill_' + p.skill)}</span><span style="margin-left:6px">⇄</span>`;
+}
+function openPartner() {
+  $('chChar').innerHTML = PLAYER_CHARS.map(c => {
+    const ok = partnerUnlocked(c), p = PARTNERS[c];
+    return `<div class="choice ${ok ? '' : 'locked'}" data-v="${c}">${ART.symbol(c)}<b>${charNameHTML(c)}${ok && state.shiny[c] ? ' ✨' : ''}</b>
+      <div class="d">${ok ? `Lv${partnerLevel(c)} · ${tp(p.type)}<br>⚡ ${tp('skill_' + p.skill)}：${tp('skill_' + p.skill + 'D')}` : unlockText(c)}</div></div>`;
+  }).join('');
+  const mark = () => $('chChar').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.char));
+  $('chChar').onclick = (e) => {
+    const c = e.target.closest('.choice'); if (!c) return;
+    if (!partnerUnlocked(c.dataset.v)) { Sound.play('fail'); toast(unlockText(c.dataset.v), 'bad'); return; }
+    setupSel.char = c.dataset.v; store.set(KEYS.setup, setupSel); Sound.play('select'); mark(); renderPartnerChip();
+  };
+  $('btnPartnerOk').innerHTML = t('done');
+  mark(); $('modalPartner').hidden = false;
+}
+function openSettings() {
+  setSeg('segPlayers', setupSel.players);
+  $('chDiff').innerHTML = ['apprentice', 'national', 'flame'].map(d => `<div class="choice" data-v="${d}"><b>${t(d)}</b><div class="d">${t(d + 'D')}</div></div>`).join('');
+  const mark = () => {
+    $('chDiff').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.difficulty));
+    setSeg('segPlayers', setupSel.players);
+    const r = rulesChoice();
+    setSeg('segRules', r); $('rulesDesc').innerHTML = t(r + 'D');
+    $('rulesBox').hidden = !CFG.allowRuleChoice;
+    $('setupInfo').innerHTML = t('levelInfo', { p: CFG.badgePass, hints: CFG.hintsPerGame }) + `<br>${t(recordingOn() ? 'recOn' : 'recOff')}`;
+    store.set(KEYS.setup, setupSel);
+  };
+  $('segRules').onclick = (e) => { const b = e.target.closest('button'); if (b) { setupSel.rules = b.dataset.v; Sound.play('select'); mark(); } };
+  $('segPlayers').onclick = (e) => { const b = e.target.closest('button'); if (b) { setupSel.players = Number(b.dataset.v); Sound.play('select'); mark(); } };
+  $('chDiff').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.difficulty = c.dataset.v; Sound.play('select'); mark(); } };
+  $('btnSettingsOk').innerHTML = t('done');
+  mark(); $('modalSettings').hidden = false;
 }
 
 /* ---------- 對局設定 ---------- */
@@ -2354,53 +2687,8 @@ function applyLang() {
   $('segPlayers').children[0].innerHTML = t('p2'); $('segPlayers').children[1].innerHTML = t('p4');
   $('segRules').children[0].innerHTML = t('simple'); $('segRules').children[1].innerHTML = t('full');
 }
-function showSetup() {
-  applyLang();
-  hideAllScreens(); $('screenSetup').hidden = false; $('hud').hidden = true;
-  setupSel = { ...setupSel, ...(store.get(KEYS.setup) || {}) };
-  if (!PLAYER_CHARS.includes(setupSel.char) || !partnerUnlocked(setupSel.char)) setupSel.char = 'armstrong';
-  if (!setupSel.mode || !(LEVELS.includes(setupSel.mode) || setupSel.mode === 'mixed')) setupSel.mode = LEVELS.find(lv => !state.badges[lv]) || 'mixed';
-  $('setupTitle').innerHTML = t('setupTitle');
-  $('setupWho').innerHTML = t('whoLine', { cls: escapeHTML(student.cls), no: escapeHTML(student.no), name: escapeHTML(student.name) })
-    + ` · 💰 ${state.bells} · 🏅 ${badgeCount()}/${GAME.total}`;
-  const lvCount = (lv) => CFG.targets.filter((tg, n) => levelOf({ stars: tg.stars, answer: parseFactorList(tg.answer), src: tg, index: n }) === lv).length;
-  $('chMode').innerHTML = LEVELS.map((lv, n) => `<div class="choice" data-v="${lv}"><b>${['★', '★★', '★★★', '★★★'][n]} ${t(lv)}</b>
-      <div class="d">${state.badges[lv] ? t('badgeGot') : t('levelD', { p: CFG.badgePass })}${state.best[lv] ? ' · ' + tp('bestScore', { s: state.best[lv], n: lvCount(lv) }) : ''}</div></div>`).join('')
-    + `<div class="choice" data-v="mixed"><b>${t('mixed')}</b><div class="d">${t('mixedD')}</div></div>`;
-  $('btnNotebook').innerHTML = t('notebookBtn', { n: state.notebook.length });
-  $('btnNotebook').disabled = !state.notebook.length;
-  setSeg('segPlayers', setupSel.players);
-  $('chDiff').innerHTML = ['apprentice', 'national', 'flame'].map(d => `<div class="choice" data-v="${d}"><b>${t(d)}</b><div class="d">${t(d + 'D')}</div></div>`).join('');
-  $('chChar').innerHTML = PLAYER_CHARS.map(c => {
-    const ok = partnerUnlocked(c), p = PARTNERS[c];
-    return `<div class="choice ${ok ? '' : 'locked'}" data-v="${c}">${ART.symbol(c)}<b>${charNameHTML(c)}${ok && state.shiny[c] ? ' ✨' : ''}</b>
-      <div class="d">${ok ? `Lv${partnerLevel(c)} · ${tp(p.type)}<br>⚡ ${tp('skill_' + p.skill)}` : unlockText(c)}</div></div>`;
-  }).join('');
-  $('btnDex').innerHTML = t('dexBtn');
-  const mark = () => {
-    $('chDiff').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.difficulty));
-    $('chChar').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.char));
-    $('chMode').querySelectorAll('.choice').forEach(e => e.classList.toggle('on', e.dataset.v === setupSel.mode));
-    setSeg('segPlayers', setupSel.players);
-    const r = rulesChoice();
-    setSeg('segRules', r); $('rulesDesc').innerHTML = t(r + 'D');
-    $('rulesBox').hidden = !CFG.allowRuleChoice;
-    const stars = (CFG.starsIncluded || [1, 2, 3]).map(n => '★'.repeat(n)).join(' ');
-    $('setupInfo').innerHTML = (setupSel.mode === 'mixed' ? t('setupInfo', { win: winFor(r), stars, hints: CFG.hintsPerGame }) : t('levelInfo', { p: CFG.badgePass, hints: CFG.hintsPerGame }))
-      + `<br>${t(recordingOn() ? 'recOn' : 'recOff')}`;
-  };
-  $('chMode').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.mode = c.dataset.v; Sound.play('select'); mark(); } };
-  $('segRules').onclick = (e) => { const b = e.target.closest('button'); if (b) { setupSel.rules = b.dataset.v; Sound.play('select'); mark(); } };
-  $('chDiff').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.difficulty = c.dataset.v; Sound.play('select'); mark(); } };
-  $('chChar').onclick = (e) => {
-    const c = e.target.closest('.choice'); if (!c) return;
-    if (!partnerUnlocked(c.dataset.v)) { Sound.play('fail'); toast(unlockText(c.dataset.v), 'bad'); return; }
-    setupSel.char = c.dataset.v; Sound.play('select'); mark();
-  };
-  mark();
-}
 function escapeHTML(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-function hideAllScreens() { ['screenLogin', 'screenSetup', 'screenDex', 'evolve', 'screenReview', 'modalVerify', 'modalRules', 'modalConfirm', 'tipPanel'].forEach(id => $(id).hidden = true); $('reaction').hidden = true; }
+function hideAllScreens() { avatarStage.stop(); ['screenCover', 'screenAvatar', 'modalSettings', 'modalPartner', 'screenLogin', 'screenSetup', 'screenDex', 'evolve', 'screenReview', 'modalVerify', 'modalRules', 'modalConfirm', 'tipPanel'].forEach(id => $(id).hidden = true); $('reaction').hidden = true; }
 
 /* ---------- 開局 ---------- */
 async function startGame() {
@@ -2410,8 +2698,9 @@ async function startGame() {
   if (session) endSession();
   startLogging();
   const mode = setupSel.mode || 'mixed', level = LEVELS.includes(mode);
-  const opps = shuffle(AI_CHARS.slice()).slice(0, setupSel.players - 1);
-  const defs = [{ char: setupSel.char, isHuman: true }].concat(opps.map(c => ({ char: c, isHuman: false, difficulty: setupSel.difficulty })));
+  const boss = LEVEL_BOSS[setupSel.mode || 'mixed'] || 'wrath';    // 每個關卡有一隻七宗罪頭目
+  const opps = [boss].concat(shuffle(AI_CHARS.filter(k => k !== boss))).slice(0, setupSel.players - 1);
+  const defs = [{ char: state.avatar || 'boy', isHuman: true }].concat(opps.map(c => ({ char: c, isHuman: false, difficulty: setupSel.difficulty })));
   const rules = rulesChoice();
   // 簡易玩法：唔放功能卡入牌組，勝利分數用 winScoreSimple
   const base = rules === 'simple' ? { ...CFG, winScore: CFG.winScoreSimple, handStart: CFG.handStartSimple, handLimit: CFG.handLimitSimple, functionCards: {} } : CFG;
@@ -3069,16 +3358,17 @@ function reactionWindow(kind, synthPi, targetId, ev) {
 
 /* ---------- 成功鍊成 cut-in（原創剪影 + 角色徽章 + 原創對白） ---------- */
 function cutIn(pi, target, ans) {
-  const p = game.player(pi), c = CHARACTERS[p.char], el = $('cutin');
+  const p = game.player(pi), el = $('cutin');
+  const c = p.isHuman && session.partner ? CHARACTERS[session.partner] : CHARACTERS[p.char];
   const pts = CFG.points[target.stars];
   const line = LANG === 'en' ? `“${c.win[1]}”` : LANG === 'bi' ? `「${c.win[0]}」<span class="bi-en">${c.win[1]}</span>` : `「${c.win[0]}」`;
   el.style.setProperty('--c', c.color);
   el.style.setProperty('--cc', c.color + 'ee');
   el.innerHTML = `<div class="band"></div>
     <div class="circ"><svg viewBox="0 0 200 200">${ART.circle(100, 100, 92, '#bfeaff', c.sides < 4 ? 6 : c.sides, 2)}</svg></div>
-    <div class="fig">${ART.alchemist(c.color)}</div>
+    ${p.isHuman ? `<div class="fig">${ART.alchemist(c.color, p.char === 'girl')}</div>` : `<div class="fig mon">${ART.symbol(p.char)}</div>`}
     <div class="txt"><div class="big">${t('cutinTitle')}</div>
-      <div class="who">${ART.symbol(p.char)}<b>${charNameHTML(p.char)}</b></div>
+      <div class="who">${ART.symbol(p.char)}<b>${p.isHuman ? nameOf(pi) : charNameHTML(p.char)}</b>${p.isHuman && session.partner ? ` ＋ ${ART.symbol(session.partner)}<b>${charName(session.partner)}</b>` : ''}</div>
       <div class="ln">${line}</div>
       <div class="pts">${ans && (session.mode === 'notebook' || ans.attempt >= 3) ? '' : `${'★'.repeat(target.stars)} +${pts}`}${ans && ans.bells ? ` · 💰 +${ans.bells}` : ''}</div>${ans && ans.bonus ? `<div class="ln super">${t('superEff', { b: ans.bonus })}</div>` : ''}
       ${ans && ans.attempt === 2 ? `<div class="ln">${t('retryNote')}</div>` : ''}${ans && ans.attempt >= 3 ? `<div class="ln">${t('thirdNote')}</div>` : ''}${ans && ans.fixed ? `<div class="ln">${t('fixedNote')}</div>` : ''}</div>
@@ -3184,7 +3474,7 @@ function showVerify(pi, target, factors, stoneValue, isModel = false) {
 /* ---------- 計分板 ---------- */
 function renderScoreboard() {
   if (!game) return;
-  $('scoreboard').innerHTML = game.players.map((p, i) => `<div class="row ${game.current === i && !game.over ? 'cur' : ''}">${ART.emblem(p.char)}<span>${charName(p.char)}${p.isHuman ? ' ★' : ''}</span><span class="s">${p.score}</span></div>`).join('') +
+  $('scoreboard').innerHTML = game.players.map((p, i) => `<div class="row ${game.current === i && !game.over ? 'cur' : ''}">${ART.symbol(p.char)}<span>${charName(p.char)}${p.isHuman ? ' ★' : ''}</span><span class="s">${p.score}</span></div>`).join('') +
     `<div class="goal">${session && session.mode === 'notebook' ? tp('practiceTitle') : LEVELS.includes(session && session.mode) ? `${tp(session.mode)} · ${tp('firstOk', { s: session.firstCount })}` : tp('goal', { n: game.cfg.winScore })}</div>`
     + `<div class="goal">💰 ${state.bells} · 🏅 ${badgeCount()}/${GAME.total}</div>`;
 }
@@ -3243,7 +3533,7 @@ function showReview(result, lvRes) {
   $('reviewSheet').innerHTML = `
     <h1>${t('review')}</h1>
     ${head}
-    <div class="rank-list">${order.map(i => `<div class="r ${i === 0 ? 'me' : ''}">${ART.emblem(game.player(i).char)}<div><b>${tp('rankN', { n: ranks[i] })}</b> ${charName(game.player(i).char)}<br>${game.player(i).score} ★</div></div>`).join('')}</div>
+    <div class="rank-list">${order.map(i => `<div class="r ${i === 0 ? 'me' : ''}">${ART.symbol(game.player(i).char)}<div><b>${tp('rankN', { n: ranks[i] })}</b> ${charName(game.player(i).char)}<br>${game.player(i).score} ★</div></div>`).join('')}</div>
     <p class="sync">💰 ${tp('bellsEarned', { b: session.bellsEarned })} · 🏅 ${badgeCount()}/${GAME.total} · 📒 ${state.notebook.length} · ${t(recordingOn() ? 'recOnShort' : 'recOff')}</p>
     <h2>${t('stats')}</h2>
     <table class="review"><tr><td>${t('stSucc')}</td><td>${st.succ[1]} / ${st.succ[2]} / ${st.succ[3]}</td><td>${t('stWrong')}</td><td>${st.wrong}</td><td>${t('stInc')}</td><td>${st.incomplete}</td></tr>
@@ -3269,7 +3559,7 @@ async function startPractice() {
   if (session) endSession();
   startLogging();
   game = new Game({ ...CFG, onlyIds: ids, starsIncluded: [1, 2, 3], functionCards: {}, tableSize: 1, handStart: 0, handLimit: 99, winScore: Infinity },
-    [{ char: setupSel.char, isHuman: true }]);
+    [{ char: state.avatar || 'boy', isHuman: true }]);
   let abort; const abortP = new Promise((_, rej) => { abort = () => rej(new AbortGame()); });
   abortP.catch(() => {});
   session = {
@@ -3382,11 +3672,20 @@ function rulesHTML() {
   return LANG === 'zh' ? zh : LANG === 'en' ? en : zh + '<hr>' + en;
 }
 function bindStatic() {
-  $('segLang').onclick = (e) => { const b = e.target.closest('button'); if (b) { setSeg('segLang', b.dataset.v); Sound.ensure(); Sound.play('select'); } };
-  $('segPlayers').onclick = (e) => { const b = e.target.closest('button'); if (b) { setupSel.players = Number(b.dataset.v); setSeg('segPlayers', b.dataset.v); Sound.play('select'); } };
+  $('coverLang').onclick = (e) => { const b = e.target.closest('button'); if (b) { Sound.ensure(); Sound.play('select'); state.lang = b.dataset.v; save(); showCover(); } };
+  $('btnCoverStart').onclick = () => { Sound.ensure(); Sound.play('clap'); if (!state.lang) { state.lang = LANG; save(); } if (student.cls && student.no) showAvatar(); else showLogin(); };
   $('btnLogin').onclick = () => { Sound.ensure(); doLogin(); };
+  $('btnLoginBack').onclick = () => { Sound.play('select'); showCover(); };
   $('inName').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
-  $('btnNotMe').onclick = notMe;
+  $('avCards').onclick = (e) => { const b = e.target.closest('.av-card'); if (b) pickAvatar(b.dataset.v); };
+  $('avatarStage').addEventListener('click', (e) => { const r = $('avatarStage').getBoundingClientRect(); pickAvatar(e.clientX < r.left + r.width / 2 ? 'boy' : 'girl'); });
+  $('btnAvBack').onclick = () => { Sound.play('select'); showCover(); };
+  $('btnAvNext').onclick = () => { if (!state.avatar) return; Sound.play('success'); showSetup(); };
+  $('btnAvChange').onclick = () => { Sound.play('select'); showAvatar(); };
+  $('btnSettings').onclick = () => { Sound.play('select'); openSettings(); };
+  $('btnSettingsOk').onclick = () => { Sound.play('select'); $('modalSettings').hidden = true; };
+  $('btnPartner').onclick = () => { Sound.play('select'); openPartner(); };
+  $('btnPartnerOk').onclick = () => { Sound.play('select'); $('modalPartner').hidden = true; };
   $('btnNotMe2').onclick = notMe;
   $('btnStart').onclick = () => { Sound.play('clap'); startGame(); };
   $('btnNotebook').onclick = () => { Sound.play('select'); startPractice(); };
