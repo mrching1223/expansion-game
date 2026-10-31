@@ -35,10 +35,10 @@ window.CONFIG = {
   handLimitSimple: 10,                // 簡易玩法：手牌上限（最多 10，再多畫面會太擠）
   hintsPerGame: 3,                    // 每局提示卡
   badgePass: 3,
-  // 夥伴（角色卡）：升級所需成功鍊成次數、每局技能次數、用擅長屬性夥伴答對嘅額外鈴錢（按 Lv1/Lv2/Lv3）
-  partnerLevels: [0, 5, 15],
-  partnerSkillUses: [1, 2, 2],
-  partnerTypeBonus: [50, 50, 100],                       // 闖關：第一次就答對（鍊成）呢個數量或以上就得到該方法嘅徽章
+  // 夥伴（Pokémon 式：收集、夥伴、成長）
+  partnerLevelUses: [5, 15],          // 成功鍊成 5 次升 Lv2「國家鍊金術師」；15 次＋該屬性徽章升 Lv3（二つ名）
+  partnerTypeBonus: [50, 50, 100],    // 用擅長屬性嘅夥伴答對（第一、二次）嘅額外鈴錢（Lv1/Lv2/Lv3）
+  notebookUnlock: 3,                  // 錯題本改正幾多題解鎖伊兹密                       // 闖關：第一次就答對（鍊成）呢個數量或以上就得到該方法嘅徽章
   rewards: { first: 300, second: 150, fixed: 150 },   // 鈴錢：第一次答對／第二次答對／錯題本改正；第三次先答對冇獎勵
   reactionMs: { hand: 3000, snipe: 5000 },
   aiThinkMs: [1000, 2000],
@@ -266,28 +266,50 @@ body.lowfx #cutin .fig { filter: none; }
 #tipPanel .tb .bi-en { font-size: .85em; }
 #tipPanel .tr { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: .85em; opacity: .95; }
 #tipPanel .tr .btn { font-size: 1.1em; }
-/* ---------- 夥伴卡 / 圖鑑 ---------- */
+/* ---------- 夥伴 / 圖鑑 / 進化 ---------- */
 #btnSkill { background: linear-gradient(180deg, #2f5d7c, #173247); border-color: #8fd8ff; }
 #btnSkill:not(:disabled) { box-shadow: 0 0 12px rgba(120,210,255,.45); }
-.choice.locked { opacity: .55; filter: grayscale(.8); cursor: not-allowed; }
-.dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
-.pcard { position: relative; border-radius: 12px; padding: 8px; text-align: center; color: var(--ink); line-height: 1.25;
-  background: radial-gradient(ellipse at 50% 30%, #fff8e6, #ead6a8 70%); border: 3px solid var(--pc); box-shadow: 0 3px 8px rgba(0,0,0,.25); }
+.choice.locked { opacity: .5; filter: grayscale(.85); cursor: not-allowed; }
+.dex-tabs { margin: 6px 0 10px; }
+.dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 9px; }
+.pcard, .ccard { position: relative; border-radius: 12px; padding: 8px; text-align: center; color: var(--ink); line-height: 1.25;
+  background: radial-gradient(ellipse at 50% 30%, #fff8e6, #ead6a8 70%); border: 3px solid var(--pc, #8d7a5c); box-shadow: 0 3px 8px rgba(0,0,0,.25); overflow: hidden; }
 .pcard .pc-top { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; }
 .pcard .pc-lv { color: #6f1d10; font-size: .85em; }
-.pcard .pc-art svg { width: 86px; height: 86px; display: block; margin: 2px auto; }
+.pcard .pc-art svg, .ccard .cc-art svg { width: 88px; height: 88px; display: block; margin: 2px auto; }
 .pcard .pc-rank { font-weight: 700; color: var(--pc); font-size: .9em; }
-.pcard .pc-type, .pcard .pc-skill, .pcard .pc-xpt { font-size: .78em; margin-top: 3px; }
-.pcard .pc-skill { background: rgba(255,255,255,.5); border-radius: 6px; padding: 3px 4px; }
+.pcard .pc-type, .pcard .pc-skill, .pcard .pc-xpt, .ccard .cc-type, .ccard .cc-no { font-size: .78em; margin-top: 3px; }
+.pcard .pc-skill, .ccard .cc-know { background: rgba(255,255,255,.55); border-radius: 6px; padding: 3px 5px; }
+.ccard .cc-know { font-size: .74em; margin-top: 4px; text-align: left; }
+.ccard .cc-know .katex { font-size: 1em; }
+.ccard .cc-name { font-weight: 700; color: var(--pc); }
+.ccard.unseen .cc-art svg { filter: brightness(0) opacity(.3); }
+.ccard.unseen .cc-name { color: #8d7a5c; }
 .pcard .pc-xp { height: 6px; border-radius: 3px; background: rgba(0,0,0,.15); margin-top: 5px; overflow: hidden; }
 .pcard .pc-xp div { height: 100%; background: linear-gradient(90deg, #d4a548, #ffd77a); }
+.pcard.lv2 { border-color: #9ca3af; box-shadow: 0 0 0 2px #e5e7eb inset, 0 3px 8px rgba(0,0,0,.25); }
+.pcard.lv3 { border-color: #d4a548; box-shadow: 0 0 0 2px #ffe7a0 inset, 0 0 14px rgba(255,200,90,.6); background: radial-gradient(ellipse at 50% 30%, #fffdf3, #f3dc9e 70%); }
+.pcard.shiny::before { content: ""; position: absolute; inset: -40%; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.75) 45%, rgba(160,220,255,.5) 50%, rgba(255,180,240,.45) 55%, transparent 65%); animation: holo 3.2s linear infinite; pointer-events: none; }
+.pcard.shiny .pc-top::after { content: " ✨"; }
+@keyframes holo { from { transform: translateX(-60%); } to { transform: translateX(60%); } }
 .pcard.locked { filter: grayscale(.9); opacity: .6; }
 .pcard .pc-lock { position: absolute; inset: auto 6px 6px 6px; background: rgba(30,18,8,.85); color: #ffe7b0; border-radius: 6px; font-size: .75em; padding: 3px; }
-.pcard.shiny { border-color: #ffd77a; box-shadow: 0 0 0 2px #b8862b, 0 0 18px rgba(255,200,90,.85); background: radial-gradient(ellipse at 50% 30%, #fffdf3, #f5dc9a 70%); }
-.pcard.shiny::after { content: "✦"; position: absolute; right: 8px; top: 30px; color: #d4a548; font-size: 1.2em; }
-.pcard .pc-line { font-size: .75em; font-style: italic; margin-top: 4px; }
-.pcard.unseen .pc-art svg { filter: brightness(0) opacity(.35); }
+#evolve { position: fixed; inset: 0; z-index: 33; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(30,40,60,.75), rgba(5,5,10,.9)); cursor: pointer; }
+.evo-box { text-align: center; color: #fff4dc; }
+.evo-title { font-size: clamp(18px, 4vh, 30px); font-weight: 700; color: var(--gold-hi); min-height: 1.4em; margin-bottom: 14px; text-shadow: 0 0 12px rgba(255,200,90,.7); }
+.evo-card { margin: 0 auto; min-width: min(420px, 70vw); min-height: 22vh; padding: 20px 26px; display: flex; align-items: center; justify-content: center; border-radius: 16px;
+  background: radial-gradient(ellipse at 50% 35%, #fbf1d8, #e6d2a4); color: var(--ink); border: 3px solid #d4a548; box-shadow: 0 0 40px rgba(160,220,255,.6); transition: filter .3s, transform .3s; }
+.evo-card .katex { font-size: clamp(22px, 5vh, 40px); }
+.evo-card.flash { filter: brightness(6) saturate(0); transform: scale(1.06); }
+.evo-card.reveal { animation: popIn .6s cubic-bezier(.2,.9,.25,1.2); }
+.evo-chimera svg { width: min(30vh, 220px); height: min(30vh, 220px); }
+@keyframes popIn { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.evo-sub { margin-top: 12px; font-size: 1.05em; min-height: 1.4em; }
+.evo-sub .katex { font-size: 1.2em; }
+.evo-skip { margin-top: 10px; font-size: .8em; opacity: .6; }
+#chChar { grid-template-columns: repeat(4, 1fr) !important; }
 #cutin .who svg { width: 2.4em; height: 2.4em; }
+.super { color: #8fe0ff !important; font-weight: 700; font-style: normal !important; }
 #chMode { margin-bottom: 4px; grid-template-columns: repeat(5, 1fr); }
 #chMode .choice, #chDiff .choice { padding: 5px 6px; }
 #chChar { grid-template-columns: repeat(3, 1fr); }
@@ -357,9 +379,6 @@ table.review th { color: #5b1d10; }
 .rules-body li { margin: .2em 0; }
 .lang-en .zh-only, .lang-zh .en-only { display: none; }
 @media (max-height: 520px) {
-  #actions .btn { padding: .3em .5em; font-size: .92em; }
-  #actions .btn .bi-en { display: none; }
-  #selPreview { font-size: .8em; }
   .form { gap: 6px 10px; margin-top: 8px; }
   .setup-grid { gap: 0 14px; }
   .choice { padding: 5px; }
@@ -401,6 +420,7 @@ table.review th { color: #5b1d10; }
 <div id="toast" class="panel"></div>
 <div id="speech" class="panel"></div>
 <div id="cutin" hidden></div>
+<div id="evolve" hidden></div>
 <div id="tipPanel" class="panel" hidden>
   <div class="tt" id="tipTitle"></div>
   <div class="tb" id="tipBody"></div>
@@ -1091,26 +1111,38 @@ const STR = {
   bellsEarned: ['今局鈴錢 +{b}', 'Bells this game +{b}'],
   recOn: ['📊 成績記錄：開啟（班別及學號必填，答題紀錄會傳送給老師）', '📊 Score log: on (class and number required; results are sent to your teacher)'],
   recOnShort: ['📊 成績記錄：開啟', '📊 Score log: on'], recOff: ['成績記錄：關閉（預覽模式）', 'Score log: off (preview)'],
-  rank1: ['見習', 'Novice'], rank2: ['國家級', 'State-level'],
-  typeLbl: ['屬性', 'Type'],
-  skill_swap: ['合掌鍊成', 'Clap Transmute'], skill_swapD: ['揀 1 張手牌換走，回合唔會結束', 'Swap 1 selected hand card; your turn continues'],
-  skill_flip: ['機械鎧調整', 'Automail Tune-up'], skill_flipD: ['將揀咗嘅一次因式卡 +/− 互換', 'Flip +/− of the selected linear factor card'],
-  skill_peek: ['靈魂感應', 'Soul Sense'], skill_peekD: ['睇抽牌堆頂 2 張，揀 1 張加入手牌', 'Look at the top 2 cards and keep 1'],
+  rank1: ['見習', 'Novice'], rank2: ['國家鍊金術師', 'State Alchemist'], typeLbl: ['屬性', 'Type'],
+  partnerLbl: ['夥伴', 'Partner'], starter: ['初始夥伴', 'Starter'],
+  skill_swap: ['合掌鍊成', 'Clap Transmute'], skill_swapD: ['揀 1 張手牌換走（回合唔會結束）', 'Swap 1 selected hand card (turn continues)'],
+  skill_peek: ['靈魂感應', 'Soul Sense'], skill_peekD: ['偷看抽牌堆頂 2 張，揀 1 張加入手牌', 'Look at the top 2 cards and keep 1'],
+  skill_burn: ['彈指', 'Snap'], skill_burnD: ['燒掉 1 張陷阱卡（仲有公因數嘅一次式），再抽 1 張', 'Burn 1 trap card (a linear card with a common factor) and draw 1'],
   skill_eye: ['鷹眼', 'Hawkeye'], skill_eyeD: ['免費睇揀咗嘅目標卡用咩方法', 'See which method the selected target needs (free)'],
-  skill_burn: ['彈指', 'Snap'], skill_burnD: ['燒掉揀咗嘅 1 張手牌，再抽 2 張', 'Burn 1 selected hand card and draw 2'],
-  skill_draw2: ['肌肉鍊成', 'Muscle Transmute'], skill_draw2D: ['即刻抽 2 張牌', 'Draw 2 cards now'],
-  skillBtn: ['⚡ {s}（{n}）', '⚡ {s} ({n})'], skillUsed: ['{name} 使出「{s}」！', '{name} used {s}!'],
+  skill_flip: ['機械鎧調整', 'Automail Tune-up'], skill_flipD: ['將揀咗嘅一次因式卡 +/− 互換（逆鍊成）', 'Flip +/− of the selected linear factor card'],
+  skill_muscle: ['肌肉鍊成', 'Muscle Transmute'], skill_muscleD: ['多抽 1 張，再揀 1 張棄掉', 'Draw 1 more card, then discard 1'],
+  skill_step: ['師父教誨', "Master's Lesson"], skill_stepD: ['睇揀咗嘅目標卡分解嘅第一步', 'See the first step for the selected target'],
+  skillBtn: ['⚡ {s}', '⚡ {s}'], skillDone: ['⚡ 技能已用', '⚡ Skill used'], skillUsed: ['{name} 使出「{s}」！', '{name} used {s}!'],
   needOneCard: ['先揀 1 張手牌，再按技能', 'Select 1 hand card first'], needLinear: ['先揀 1 張一次因式卡（例如 x − 2）', 'Select 1 linear factor card first (e.g. x − 2)'],
   needTarget: ['先揀 1 張目標卡，再按技能', 'Select a target first'], skillNoCards: ['抽牌堆冇牌喇', 'The deck is empty'],
-  peekTitle: ['靈魂感應：揀 1 張加入手牌', 'Soul Sense: choose 1 card to keep'],
-  typeBonus: ['屬性加成 +{b}', 'Type bonus +{b}'],
+  notTrap: ['呢張唔係陷阱卡：佢嘅係數已經冇公因數。揀一張仲可以抽公因數嘅一次式。', 'Not a trap: its coefficients have no common factor. Pick a linear card that still has one.'],
+  peekTitle: ['靈魂感應：揀 1 張加入手牌', 'Soul Sense: choose 1 card to keep'], muscleDiscard: ['肌肉鍊成：揀 1 張手牌棄掉', 'Muscle Transmute: choose 1 card to discard'],
+  stepText: ['師父教誨：第一步係 {s}', "Master's lesson: the first step is {s}"],
+  superEff: ['效果拔群！屬性加成 +{b}', "It's super effective! Type bonus +{b}"],
   levelUp: ['🎉 {name} 升級到 Lv{n}「{r}」！', '🎉 {name} reached Lv{n}: {r}!'],
-  unlockNew: ['🔓 解鎖新夥伴：{name}！', '🔓 New partner unlocked: {name}!'],
-  lockedBy: ['🔒 取得「{m}」徽章解鎖', '🔒 Earn the "{m}" badge to unlock'],
-  dexBtn: ['📖 角色圖鑑', '📖 Card Album'], dexTitle: ['角色圖鑑', 'Card Album'],
-  dexPartners: ['夥伴卡（{n}/6 已解鎖）', 'Partner cards ({n}/6 unlocked)'], dexRivals: ['對手卡（{n}/5 已遇見）', 'Rival cards ({n}/5 met)'],
-  dexUnseen: ['未遇見', 'Not met yet'], xpLine: ['成功鍊成 {x} 次', '{x} transmutations'], nextLv: ['再 {n} 次升級', '{n} more to level up'], maxLv: ['已達最高等級', 'Max level'],
-  dexNote: ['角色美術全部係原創象徵圖案，唔係原作角色樣貌。', 'All character art is original symbolic artwork, not the original character designs.'],
+  unlockNew: ['🔓 新夥伴加入：{name}！', '🔓 New partner: {name}!'], shinyNew: ['✨ 完美通過！{name} 變成閃卡！', '✨ Perfect clear! {name} is now a shiny card!'],
+  lockedBy: ['🔒 取得「{m}」徽章解鎖', '🔒 Earn the "{m}" badge to unlock'], unlockNb: ['🔒 喺錯題本改正 {n} 題解鎖', '🔒 Fix {n} notebook mistakes to unlock'],
+  lvNeed2: ['再成功 {n} 次升 Lv2', '{n} more to reach Lv2'], lvNeed3: ['再成功 {n} 次，並取得「{m}」徽章升 Lv3', '{n} more and the "{m}" badge for Lv3'], lvNeed3b: ['取得「{m}」徽章升 Lv3', 'Earn the "{m}" badge for Lv3'], lvMax: ['最高等級', 'Max level'],
+  usesLine: ['成功鍊成 {n} 次', '{n} transmutations'],
+  dexBtn: ['📖 圖鑑', '📖 Album'], dexTitle: ['圖鑑', 'Album'],
+  tabPartners: ['夥伴卡（{n}/7）', 'Partners ({n}/7)'], tabChimera: ['合成獸圖鑑（{n}/40）', 'Chimera Dex ({n}/40)'],
+  chimeraHow: ['每完成一條目標式，就會收錄一隻合成獸同一張知識卡。外形同方法有關：角嘅數目＝星級，眼嘅數目＝要用幾多張因式卡。', 'Each target you complete adds a chimera and a knowledge card. Its shape matches the method: horns = stars, eyes = number of factor cards.'],
+  dexNote: ['角色同合成獸美術全部係原創象徵圖案，唔係原作角色樣貌。', 'All character and chimera art is original symbolic artwork, not the original designs.'],
+  knowCard: ['知識卡', 'Knowledge card'], unknown: ['？？？', '???'],
+  know_common: ['提取公因式：搵出每項都有嘅數字同字母，抽出嚟；括號入面要冇公因式。', 'Common factor: take out the number and letters shared by every term; nothing common may be left in the bracket.'],
+  know_group: ['分組分解：四項分兩組，各自抽公因式，兩個括號一樣先可以再抽出嚟。', 'Grouping: split into two pairs, factor each pair; the brackets must match before you take them out.'],
+  know_diffSq: ['平方差恆等式：a² − b² = (a + b)(a − b)；有公因式要先抽。', 'Difference of two squares: a² − b² = (a + b)(a − b); take out any common factor first.'],
+  know_perfSq: ['完全平方恆等式：a² ± 2ab + b² = (a ± b)²；中間項係 2ab，要出兩張一樣嘅卡。', 'Perfect square: a² ± 2ab + b² = (a ± b)²; the middle term is 2ab and you need two identical cards.'],
+  evoStart: ['咦？{t} 嘅樣子起變化…', 'What? {t} is evolving…'], evoStage: ['第 {i} 階段', 'Stage {i}'], evoDone: ['進化完成！', 'Evolution complete!'],
+  newDex: ['📖 新收錄：{name}', '📖 New entry: {name}'], tapSkip: ['（撳一下跳過）', '(tap to skip)'],
   tutStart: ['明白，開始！', "Got it, let's go!"],
   players: ['人數', 'Players'], p2: ['2 人', '2 players'], p4: ['4 人', '4 players'],
   difficulty: ['電腦難度', 'AI difficulty'], character: ['你嘅夥伴', 'Your partner'],
@@ -1235,21 +1267,27 @@ const CHARACTERS = {
   scar:      { zh: '史卡',   en: 'Scar',      color: '#8f2f2f', sides: 3, line: ['分解……正正係我最擅長嘅事。', 'Decomposition... is what I do best.'], win: ['構造已經分解完畢。', 'The structure has been broken down.'] },
   hohenheim: { zh: '霍恩海姆', en: 'Hohenheim', color: '#5b4a2f', sides: 9, line: ['我見過無數條式，答案永遠藏喺結構入面。', 'I have seen countless expressions; the answer always hides in the structure.'], win: ['結構早已寫喺式入面，只係等你睇穿。', 'The structure was always in the expression, waiting to be seen.'] },
 };
-const PLAYER_CHARS = ['ed', 'winry', 'al', 'riza', 'roy', 'armstrong'];
-/* 夥伴（角色卡）：屬性＝擅長嘅方法；unlock＝要邊個關卡徽章先解鎖；skill＝每局可用嘅技能 */
+/* 夥伴：一開始有一男一女（阿姆斯特朗、溫莉），其餘靠闖關／錯題本解鎖 */
+const PLAYER_CHARS = ['armstrong', 'winry', 'ed', 'al', 'riza', 'roy', 'izumi'];
+const AI_CHARS = ['hughes', 'olivier', 'scar', 'hohenheim'];
 const PARTNERS = {
-  ed:        { type: 'common', unlock: null,     skill: 'swap',  title: ['鋼之鍊金術師', 'Fullmetal Alchemist'] },
-  winry:     { type: 'group',  unlock: null,     skill: 'flip',  title: ['天才機械鎧技師', 'Automail Prodigy'] },
-  al:        { type: 'group',  unlock: 'common', skill: 'peek',  title: ['鎧之魂', 'Soul of Steel'] },
-  riza:      { type: 'diffSq', unlock: 'group',  skill: 'eye',   title: ['鷹眼', 'The Hawkeye'] },
-  roy:       { type: 'perfSq', unlock: 'diffSq', skill: 'burn',  title: ['焰之鍊金術師', 'Flame Alchemist'] },
-  armstrong: { type: 'common', unlock: 'perfSq', skill: 'draw2', title: ['剛腕之鍊金術師', 'Strong Arm Alchemist'] },
+  armstrong: { type: 'common', unlock: 'start',    skill: 'muscle', title: ['剛腕之鍊金術師', 'Strong Arm Alchemist'] },
+  winry:     { type: 'group',  unlock: 'start',    skill: 'flip',   title: ['天才機械鎧技師', 'Automail Prodigy'], rank2: ['機械鎧技師', 'Automail Engineer'] },
+  ed:        { type: 'common', unlock: 'common',   skill: 'swap',   title: ['鋼之鍊金術師', 'Fullmetal Alchemist'] },
+  al:        { type: 'group',  unlock: 'group',    skill: 'peek',   title: ['鎧之魂', 'Soul of Steel'] },
+  riza:      { type: 'diffSq', unlock: 'diffSq',   skill: 'eye',    title: ['鷹眼', 'The Hawkeye'], rank2: ['神槍手', 'Sharpshooter'] },
+  roy:       { type: 'perfSq', unlock: 'perfSq',   skill: 'burn',   title: ['焰之鍊金術師', 'Flame Alchemist'] },
+  izumi:     { type: 'perfSq', unlock: 'notebook', skill: 'step',   title: ['鍊金術師父', 'Master Alchemist'] },
 };
-const partnerUnlocked = (k) => !PARTNERS[k].unlock || !!state.badges[PARTNERS[k].unlock];
-const partnerXp = (k) => (state.partners[k] && state.partners[k].xp) || 0;
-function partnerLevel(k) { const xp = partnerXp(k); let lv = 1; CFG.partnerLevels.forEach((need, i) => { if (xp >= need) lv = i + 1; }); return lv; }
-function partnerRank(k) { const lv = partnerLevel(k); return lv >= 3 ? tl(...PARTNERS[k].title) : t('rank' + lv); }
-const AI_CHARS = ['izumi', 'hughes', 'olivier', 'scar', 'hohenheim'];
+function partnerUnlocked(k) { const u = PARTNERS[k].unlock; return u === 'start' || (u === 'notebook' ? state.fixed >= CFG.notebookUnlock : !!state.badges[u]); }
+const partnerUses = (k) => (state.partners[k] && state.partners[k].uses) || 0;
+function partnerLevel(k) { const u = partnerUses(k), [l2, l3] = CFG.partnerLevelUses; return u >= l3 && state.badges[PARTNERS[k].type] ? 3 : u >= l2 ? 2 : 1; }
+function partnerRank(k) { const lv = partnerLevel(k), p = PARTNERS[k]; return lv === 3 ? tl(...p.title) : lv === 2 ? tl(...(p.rank2 || STR.rank2)) : t('rank1'); }
+function unlockText(k) { const u = PARTNERS[k].unlock; return u === 'notebook' ? tp('unlockNb', { n: CFG.notebookUnlock }) : tp('lockedBy', { m: tp(u) }); }
+/* 合成獸名：每種方法一種獸，加 10 個形容詞 */
+const CHIMERA_ADJ = [['焰', 'Blaze'], ['霜', 'Frost'], ['鐵', 'Iron'], ['岩', 'Rock'], ['雷', 'Thunder'], ['影', 'Shadow'], ['翠', 'Jade'], ['金', 'Golden'], ['砂', 'Sand'], ['霧', 'Mist']];
+const CHIMERA_KIND = { common: ['鬃獅', 'Lion'], group: ['翼鷲', 'Griffin'], diffSq: ['鏡蛇', 'Serpent'], perfSq: ['雙頭熊', 'Twin Bear'] };
+function chimeraName(tg) { const a = CHIMERA_ADJ[tg.index % 10], k = CHIMERA_KIND[levelOf(tg)]; return tl(`${a[0]}${k[0]}合成獸`, `${a[1]} ${k[1]} Chimera`); }
 const charName = (k) => LANG === 'en' ? CHARACTERS[k].en : LANG === 'bi' ? `${CHARACTERS[k].zh} ${CHARACTERS[k].en}` : CHARACTERS[k].zh;
 const charNameHTML = (k) => LANG === 'bi' ? `${CHARACTERS[k].zh} <i>${CHARACTERS[k].en}</i>` : charName(k);
 
@@ -1347,13 +1385,43 @@ const ART = {
         ${spark(30, 18, 7, '#f97316')}${spark(76, 14, 9, '#fb923c')}${spark(84, 34, 5, '#fdba74')}`,
       armstrong: `<path d="M18 74 Q20 44 42 40 Q50 22 66 28 Q80 34 72 48 Q64 58 52 54 Q46 68 30 76 Z" fill="#e8b98a" stroke="#8a5a2b" stroke-width="2.5"/>
         <path d="M54 34 Q60 40 66 36" fill="none" stroke="#8a5a2b" stroke-width="1.8"/>${spark(22, 26, 8, '#f9a8d4')}${spark(80, 64, 7, '#f472b6')}${spark(70, 16, 5, '#fbcfe8')}`,
-      izumi: `<circle cx="42" cy="56" r="22" fill="#374151" stroke="#111827" stroke-width="3"/><circle cx="42" cy="56" r="15" fill="#4b5563"/><rect x="60" y="30" width="30" height="8" rx="4" transform="rotate(-35 62 52)" fill="#7c2d12"/>`,
+      izumi: `<path d="M14 34 Q32 26 50 34 Q68 26 86 34 V78 Q68 70 50 78 Q32 70 14 78 Z" fill="#fef3c7" stroke="#6b3d7a" stroke-width="3" stroke-linejoin="round"/><path d="M50 34 V78" stroke="#6b3d7a" stroke-width="2"/>
+        <circle cx="32" cy="54" r="10" fill="none" stroke="#6b3d7a" stroke-width="1.6"/><polygon points="${ART.polygon(32, 54, 9, 3)}" fill="none" stroke="#6b3d7a" stroke-width="1.2"/>
+        <path d="M58 46 H78 M58 54 H76 M58 62 H78" stroke="#6b3d7a" stroke-width="2" stroke-linecap="round"/>`,
       hughes: `<rect x="24" y="24" width="52" height="52" rx="3" fill="#fef3c7" stroke="#78350f" stroke-width="4"/><path d="M50 64 C30 50 36 36 46 40 C48 41 49 43 50 45 C51 43 52 41 54 40 C64 36 70 50 50 64 Z" fill="#e11d48"/>`,
       olivier: `<path d="M24 82 L70 20 Q76 14 80 18 Q82 24 74 28 L30 86 Z" fill="#e5e7eb" stroke="#6b7280" stroke-width="2"/><rect x="16" y="72" width="22" height="7" rx="3" transform="rotate(-53 27 76)" fill="#1e3a8a"/><circle cx="24" cy="84" r="5" fill="#d4a548"/>`,
       scar: `<circle cx="50" cy="50" r="28" fill="#1c1917" opacity=".6"/><path d="M30 30 L70 70 M70 30 L30 70" stroke="#7f1d1d" stroke-width="9" stroke-linecap="round"/>`,
       hohenheim: `<path d="M38 18 h24 v6 h-4 v14 l16 34 q4 10 -8 10 h-32 q-12 0 -8 -10 l16 -34 v-14 h-4 z" fill="#e0f2fe" stroke="#475569" stroke-width="2.5" stroke-linejoin="round"/><path d="M30 70 l10 -20 h20 l10 20 q3 8 -6 8 h-28 q-9 0 -6 -8 z" fill="#dc2626" opacity=".85"/>`,
     }[key] || '';
     return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${bg}${art}</svg>`;
+  },
+  /* 合成獸（原創程式生成）：外形由方法決定，角數＝星級，眼數＝因式卡數 */
+  chimera(target) {
+    const lv = levelOf(target), n = target.index;
+    const [c1, c2] = { common: ['#c2410c', '#fdba74'], group: ['#1d4ed8', '#93c5fd'], diffSq: ['#047857', '#6ee7b7'], perfSq: ['#7c3aed', '#c4b5fd'] }[lv];
+    const rnd = (k) => (((n + 1) * 9301 + k * 49297) % 233280) / 233280;
+    let s = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="52" r="46" fill="${c2}" opacity=".28"/>`;
+    if (lv === 'group') s += `<path d="M32 52 Q4 30 10 66 Q20 58 34 62 Z" fill="${c2}" stroke="${c1}" stroke-width="2"/><path d="M68 52 Q96 30 90 66 Q80 58 66 62 Z" fill="${c2}" stroke="${c1}" stroke-width="2"/>`;
+    if (lv === 'diffSq') s += `<path d="M64 74 Q88 82 86 60 Q84 46 94 38" fill="none" stroke="${c1}" stroke-width="7" stroke-linecap="round"/><path d="M36 74 Q12 82 14 60 Q16 46 6 38" fill="none" stroke="${c1}" stroke-width="7" stroke-linecap="round" opacity=".55"/>`;
+    s += `<ellipse cx="50" cy="66" rx="24" ry="18" fill="${c1}"/>`;
+    if (lv === 'common') for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2, p = (r, d) => `${(50 + Math.cos(a + d) * r).toFixed(1)} ${(38 + Math.sin(a + d) * r).toFixed(1)}`;
+      s += `<path d="M${p(15, 0)} L${p(26, 0.26)} L${p(15, 0.52)} Z" fill="${c2}" stroke="${c1}" stroke-width="1"/>`;
+    }
+    const heads = lv === 'perfSq' ? [[37, 38], [63, 38]] : [[50, 38]], hr = lv === 'perfSq' ? 12 : 15;
+    heads.forEach(([x, y]) => {
+      for (let h = 0; h < target.stars; h++) {
+        const dx = (h - (target.stars - 1) / 2) * 8;
+        s += `<path d="M${x + dx - 3} ${y - hr + 4} L${x + dx} ${(y - hr - 9 - rnd(h) * 5).toFixed(1)} L${x + dx + 3} ${y - hr + 4} Z" fill="#f5f5f4" stroke="#57534e" stroke-width="1"/>`;
+      }
+      s += `<circle cx="${x}" cy="${y}" r="${hr}" fill="${c1}" stroke="#1f2937" stroke-width="1.5"/>`;
+      const eyes = Math.min(3, target.answer.length);
+      for (let e = 0; e < eyes; e++) { const ex = x + (e - (eyes - 1) / 2) * 7; s += `<circle cx="${ex}" cy="${y - 1}" r="3" fill="#fff"/><circle cx="${ex}" cy="${y - 1}" r="1.5" fill="#111"/>`; }
+      s += `<path d="M${x - 5} ${y + 6} Q${x} ${y + 9} ${x + 5} ${y + 6}" fill="none" stroke="#111" stroke-width="1.5"/>`;
+    });
+    s += `<rect x="34" y="78" width="8" height="12" rx="3" fill="${c1}"/><rect x="58" y="78" width="8" height="12" rx="3" fill="${c1}"/>`;
+    s += `<g opacity=".75">${ART.circle(50, 68, 9, c2, 3, 1)}</g>`;
+    return s + '</svg>';
   },
   /* 原創剪影：披風鍊金術師合掌（唔係任何原作角色樣貌） */
   alchemist(color) {
@@ -1485,7 +1553,7 @@ const SAVE_KEY = 'factor-alchemy-v1';
 const state = {
   bells:0, badges:{ common:false, group:false, diffSq:false, perfSq:false },
   best:{ common:0, group:0, diffSq:0, perfSq:0 }, tries:{}, notebook:[], fixed:0, fixedIds:{}, won:false, lang:'', tutorial:false,
-  partners:{}, seen:{}                               // 夥伴經驗值、圖鑑見過嘅對手
+  partners:{}, shiny:{}, dex:{}                      // 夥伴使用次數、閃卡、合成獸圖鑑
 };
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} hubSync(); }
 function hubSync(){   // progress summary that a future hub page can read to show every game's stamps
@@ -2290,7 +2358,7 @@ function showSetup() {
   applyLang();
   hideAllScreens(); $('screenSetup').hidden = false; $('hud').hidden = true;
   setupSel = { ...setupSel, ...(store.get(KEYS.setup) || {}) };
-  if (!PLAYER_CHARS.includes(setupSel.char) || !partnerUnlocked(setupSel.char)) setupSel.char = 'ed';
+  if (!PLAYER_CHARS.includes(setupSel.char) || !partnerUnlocked(setupSel.char)) setupSel.char = 'armstrong';
   if (!setupSel.mode || !(LEVELS.includes(setupSel.mode) || setupSel.mode === 'mixed')) setupSel.mode = LEVELS.find(lv => !state.badges[lv]) || 'mixed';
   $('setupTitle').innerHTML = t('setupTitle');
   $('setupWho').innerHTML = t('whoLine', { cls: escapeHTML(student.cls), no: escapeHTML(student.no), name: escapeHTML(student.name) })
@@ -2304,9 +2372,9 @@ function showSetup() {
   setSeg('segPlayers', setupSel.players);
   $('chDiff').innerHTML = ['apprentice', 'national', 'flame'].map(d => `<div class="choice" data-v="${d}"><b>${t(d)}</b><div class="d">${t(d + 'D')}</div></div>`).join('');
   $('chChar').innerHTML = PLAYER_CHARS.map(c => {
-    const ok = partnerUnlocked(c);
-    return `<div class="choice ${ok ? '' : 'locked'}" data-v="${c}">${ART.symbol(c)}<b>${charNameHTML(c)}</b>
-      <div class="d">${ok ? `Lv${partnerLevel(c)} · ${tp(PARTNERS[c].type)}<br>⚡ ${tp('skill_' + PARTNERS[c].skill)}` : tp('lockedBy', { m: tp(PARTNERS[c].unlock) })}</div></div>`;
+    const ok = partnerUnlocked(c), p = PARTNERS[c];
+    return `<div class="choice ${ok ? '' : 'locked'}" data-v="${c}">${ART.symbol(c)}<b>${charNameHTML(c)}${ok && state.shiny[c] ? ' ✨' : ''}</b>
+      <div class="d">${ok ? `Lv${partnerLevel(c)} · ${tp(p.type)}<br>⚡ ${tp('skill_' + p.skill)}` : unlockText(c)}</div></div>`;
   }).join('');
   $('btnDex').innerHTML = t('dexBtn');
   const mark = () => {
@@ -2326,13 +2394,13 @@ function showSetup() {
   $('chDiff').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.difficulty = c.dataset.v; Sound.play('select'); mark(); } };
   $('chChar').onclick = (e) => {
     const c = e.target.closest('.choice'); if (!c) return;
-    if (!partnerUnlocked(c.dataset.v)) { Sound.play('fail'); toast(t('lockedBy', { m: tp(PARTNERS[c.dataset.v].unlock) }), 'bad'); return; }
+    if (!partnerUnlocked(c.dataset.v)) { Sound.play('fail'); toast(unlockText(c.dataset.v), 'bad'); return; }
     setupSel.char = c.dataset.v; Sound.play('select'); mark();
   };
   mark();
 }
 function escapeHTML(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-function hideAllScreens() { ['screenLogin', 'screenSetup', 'screenDex', 'screenReview', 'modalVerify', 'modalRules', 'modalConfirm', 'tipPanel'].forEach(id => $(id).hidden = true); $('reaction').hidden = true; }
+function hideAllScreens() { ['screenLogin', 'screenSetup', 'screenDex', 'evolve', 'screenReview', 'modalVerify', 'modalRules', 'modalConfirm', 'tipPanel'].forEach(id => $(id).hidden = true); $('reaction').hidden = true; }
 
 /* ---------- 開局 ---------- */
 async function startGame() {
@@ -2343,7 +2411,6 @@ async function startGame() {
   startLogging();
   const mode = setupSel.mode || 'mixed', level = LEVELS.includes(mode);
   const opps = shuffle(AI_CHARS.slice()).slice(0, setupSel.players - 1);
-  opps.forEach(c => { state.seen[c] = true; }); save();
   const defs = [{ char: setupSel.char, isHuman: true }].concat(opps.map(c => ({ char: c, isHuman: false, difficulty: setupSel.difficulty })));
   const rules = rulesChoice();
   // 簡易玩法：唔放功能卡入牌組，勝利分數用 winScoreSimple
@@ -2356,8 +2423,7 @@ async function startGame() {
     gameId: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
     settings: { ...setupSel }, rules, mode, place: mode, start: new Date(), active: true, finished: false, abort, abortP,
     tries: new Map(), t0: new Map(), hinted: new Set(), wasNb: new Map(), firstCount: 0, bellsEarned: 0, fixedCount: 0,
-    hintsLeft: CFG.hintsPerGame, lowfxChecked: false,
-    partner: setupSel.char, skillLeft: CFG.partnerSkillUses[partnerLevel(setupSel.char) - 1] || 1,
+    hintsLeft: CFG.hintsPerGame, lowfxChecked: false, partner: setupSel.char, skillUsed: false,
     stats: { succ: { 1: 0, 2: 0, 3: 0 }, wrong: 0, incomplete: 0, snipe: 0, snipeMissed: 0, destroyed: 0, hints: 0 },
     attempts: [], mistakes: [], claimed: new Map(), endReason: '',
   };
@@ -2555,12 +2621,12 @@ function updateButtons() {
   const disc = ui.mode === 'discard';
   $('btnConfirm').hidden = !disc; $('btnConfirm').disabled = !ui.pick;
   ['btnSynth', 'btnSwap', 'btnEnd', 'btnHint'].forEach(b => $(b).hidden = disc);
-  const sk = session && session.mode !== 'notebook' && session.partner && PARTNERS[session.partner];
-  $('btnSkill').hidden = !sk || disc;
-  if (sk) {
-    $('btnSkill').innerHTML = t('skillBtn', { s: tp('skill_' + sk.skill), n: session.skillLeft });
-    $('btnSkill').title = tp('skill_' + sk.skill + 'D');
-    $('btnSkill').disabled = !(main && session.skillLeft > 0);
+  const pk = session && session.mode !== 'notebook' && session.partner && PARTNERS[session.partner];
+  $('btnSkill').hidden = !pk || disc;
+  if (pk) {
+    $('btnSkill').innerHTML = session.skillUsed ? t('skillDone') : t('skillBtn', { s: tp('skill_' + pk.skill) });
+    $('btnSkill').title = tp('skill_' + pk.skill + 'D');
+    $('btnSkill').disabled = !(main && !session.skillUsed);
   }
   if (isSimple()) $('btnSwap').hidden = true;
 }
@@ -2576,38 +2642,51 @@ function renderPreview() {
   el.innerHTML = `${left}<br>⟸ ${right}`;
 }
 
-/* ---------- 夥伴技能（每局有限次數） ---------- */
+/* ---------- 夥伴技能（每局用一次；唔會直接俾答案） ---------- */
 async function useSkill() {
   const k = session.partner, sk = PARTNERS[k].skill, me = game.player(0), sel = [...ui.selected];
-  const full = () => isSimple() && me.hand.length >= game.cfg.handLimit;
-  const used = () => { session.skillLeft--; Sound.play('clap'); banner(t('skillUsed', { name: charName(k), s: tp('skill_' + sk) })); };
-  if (sk === 'eye') {
-    if (!ui.selectedTarget) { toast(t('needTarget')); return; }
-    const tg = game.card(ui.selectedTarget);
+  const used = () => { session.skillUsed = true; Sound.play('clap'); banner(t('skillUsed', { name: charName(k), s: tp('skill_' + sk) })); };
+  const pickTarget = () => { if (!ui.selectedTarget) { toast(t('needTarget')); return null; } return game.card(ui.selectedTarget); };
+  if (sk === 'eye' || sk === 'step') {                  // 學習支援類：等於多一張提示（會記錄為 hint）
+    const tg = pickTarget(); if (!tg) return;
     used(); session.hinted.add(tg.id);
     logEvent('hint', { qid: qidOf(tg), topic: topicOf(tg) });
-    toast(t('hintText', { m: t(methodOf(tg)) }), 'good', 3800);
+    if (sk === 'eye') toast(t('hintText', { m: t(methodOf(tg)) }), 'good', 4000);
+    else toast(t('stepText', { s: tex(`${tg.poly.toTeX()} = ${buildProof(tg, tg.answer).fac[1]}`) }), 'good', 5500);
     return;
   }
-  if (sk === 'swap' || sk === 'burn') {
+  if (sk === 'swap') {
     if (sel.length !== 1) { toast(t('needOneCard')); return; }
     used(); ui.selected.clear(); game.discard(0, sel);
-    await relayout(320);
-    await drawCards(0, sk === 'swap' ? 1 : 2);
+    await relayout(320); await drawCards(0, 1);
+    return;
+  }
+  if (sk === 'burn') {                                  // 要自己認出邊張係陷阱卡
+    const c = sel.length === 1 ? game.card(sel[0]) : null;
+    if (!c) { toast(t('needOneCard')); return; }
+    if (!(c.kind === 'factor' && !c.poly.isConstant() && !c.poly.isPrimitive())) { toast(t('notTrap'), 'bad', 3500); return; }
+    used(); ui.selected.clear(); game.discard(0, sel);
+    view.sparks(view.worldOf(c.id), 0xff9a3c, 40);
+    await relayout(320); await drawCards(0, 1);
     return;
   }
   if (sk === 'flip') {
     const c = sel.length === 1 ? game.card(sel[0]) : null;
     if (!c || !game.canReverse(c)) { toast(t('needLinear')); return; }
     used(); const before = c.poly; c.poly = c.poly.flipSigns(); ui.selected.clear();
-    await relayout(250);
-    await abortable(view.flip(c.id));
+    await relayout(250); await abortable(view.flip(c.id));
     toast(t('reverseDone', { a: tex(par(before)), b: tex(par(c.poly)) }), 'good');
     return;
   }
-  if (full()) { toast(t('handFull', { n: game.cfg.handLimit })); return; }
-  if (sk === 'draw2') { used(); await drawCards(0, 2); return; }
+  if (sk === 'muscle') {                                // 多抽一張再棄一張（手牌數目不變）
+    const r = game.draw(0, 1); if (!r.got.length) { toast(t('skillNoCards')); return; }
+    used(); await relayout(420);
+    const id = await chooseDiscard(t('muscleDiscard'));
+    ui.mode = 'main'; game.discard(0, [id]); await relayout(360);
+    return;
+  }
   if (sk === 'peek') {
+    if (isSimple() && me.hand.length >= game.cfg.handLimit) { toast(t('handFull', { n: game.cfg.handLimit })); return; }
     const top = [];
     for (let i = 0; i < 2; i++) {
       if (!game.drawPile.length && game.discardPile.length) game.drawPile = shuffle(game.discardPile.splice(0));
@@ -2632,38 +2711,87 @@ function chooseCard(a, b) {
   }));
 }
 
-/* ---------- 角色圖鑑：夥伴卡（解鎖、等級、技能）＋ 對手卡（遇見過先顯示） ---------- */
-function showDex() {
+/* ---------- 進化：目標式一步步變成最簡因式，再收錄合成獸 ---------- */
+function evolveAndCollect(target, factors, isNew) {
+  const stages = buildProof(target, factors).fac;
+  if (stages.length < 3 && !isNew) return Promise.resolve();
+  return abortable(new Promise(res => {
+    const el = $('evolve'), fast = view.lowfx;
+    const name = chimeraName(target);
+    el.innerHTML = `<div class="evo-box"><div class="evo-title" id="evoTitle">${stages.length >= 3 ? t('evoStart', { t: tex(target.poly.toTeX()) }) : ''}</div>
+      <div class="evo-card" id="evoCard"></div><div class="evo-sub" id="evoSub"></div><div class="evo-skip">${tp('tapSkip')}</div></div>`;
+    el.hidden = false;
+    const card = $('evoCard'), sub = $('evoSub');
+    let done = false, timers = [];
+    const end = () => { if (done) return; done = true; timers.forEach(clearTimeout); el.hidden = true; el.innerHTML = ''; el.onclick = null; res(); };
+    const at = (ms, fn) => timers.push(setTimeout(() => { if (!done) fn(); }, ms));
+    const showStage = (i) => {
+      card.classList.add('flash'); Sound.play('zap');
+      at(fast ? 120 : 380, () => { card.classList.remove('flash'); card.innerHTML = tex(stages[i]); sub.innerHTML = `${t('evoStage', { i: i + 1 })} / ${stages.length}`; });
+    };
+    let tm = 0;
+    if (stages.length >= 3) {
+      card.innerHTML = tex(stages[0]); sub.innerHTML = `${t('evoStage', { i: 1 })} / ${stages.length}`;
+      for (let i = 1; i < stages.length; i++) { tm += fast ? 700 : 1050; at(tm, () => showStage(i)); }
+      tm += fast ? 600 : 1000;
+      at(tm, () => { $('evoTitle').innerHTML = t('evoDone'); Sound.play('success'); });
+    }
+    if (isNew) {
+      tm += stages.length >= 3 ? 700 : 0;
+      at(tm, () => {
+        card.classList.add('reveal'); card.innerHTML = `<div class="evo-chimera">${ART.chimera(target)}</div>`;
+        $('evoTitle').innerHTML = t('newDex', { name }); sub.innerHTML = tex(factorsToTeX(target.answer)); Sound.play('cutin');
+      });
+      tm += 1700;
+    }
+    at(tm + 400, end);
+    setTimeout(() => { el.onclick = end; }, 300);
+    session.abortP.catch(end);
+  }));
+}
+
+/* ---------- 圖鑑：夥伴卡 ＋ 合成獸圖鑑（附知識卡） ---------- */
+let dexTab = 'partners';
+function showDex(tab) {
+  if (tab) dexTab = tab;
   applyLang();
   hideAllScreens(); $('screenDex').hidden = false; $('hud').hidden = true;
-  const L = CFG.partnerLevels;
+  const [l2, l3] = CFG.partnerLevelUses;
   const partnerCard = (k) => {
-    const c = CHARACTERS[k], p = PARTNERS[k], ok = partnerUnlocked(k), lv = partnerLevel(k), xp = partnerXp(k);
-    const next = L[lv], pct = next ? Math.round(100 * (xp - L[lv - 1]) / (next - L[lv - 1])) : 100;
-    return `<div class="pcard ${ok ? '' : 'locked'} ${ok && lv >= 3 ? 'shiny' : ''}" style="--pc:${c.color}">
+    const c = CHARACTERS[k], p = PARTNERS[k], ok = partnerUnlocked(k), lv = partnerLevel(k), u = partnerUses(k);
+    const need = lv === 1 ? tp('lvNeed2', { n: l2 - u }) : lv === 2 ? (u >= l3 ? tp('lvNeed3b', { m: tp(p.type) }) : tp('lvNeed3', { n: l3 - u, m: tp(p.type) })) : tp('lvMax');
+    const pct = lv === 1 ? 100 * u / l2 : lv === 2 ? 100 * Math.min(1, (u - l2) / (l3 - l2)) : 100;
+    return `<div class="pcard lv${lv} ${ok ? '' : 'locked'} ${ok && state.shiny[k] ? 'shiny' : ''}" style="--pc:${c.color}">
       <div class="pc-top"><span>${charName(k)}</span><span class="pc-lv">Lv${lv}</span></div>
       <div class="pc-art">${ART.symbol(k)}</div>
       <div class="pc-rank">${partnerRank(k)}</div>
-      <div class="pc-type">${tp('typeLbl')}：${tp(p.type)}</div>
+      <div class="pc-type">${tp('typeLbl')}：${tp(p.type)}${p.unlock === 'start' ? ` · ${tp('starter')}` : ''}</div>
       <div class="pc-skill"><b>⚡ ${tp('skill_' + p.skill)}</b><br>${tp('skill_' + p.skill + 'D')}</div>
-      <div class="pc-xp"><div style="width:${pct}%"></div></div>
-      <div class="pc-xpt">${tp('xpLine', { x: xp })} · ${next ? tp('nextLv', { n: next - xp }) : tp('maxLv')}</div>
-      ${ok ? '' : `<div class="pc-lock">${tp('lockedBy', { m: tp(p.unlock) })}</div>`}</div>`;
+      <div class="pc-xp"><div style="width:${Math.round(pct)}%"></div></div>
+      <div class="pc-xpt">${tp('usesLine', { n: u })} · ${need}</div>
+      ${ok ? '' : `<div class="pc-lock">${unlockText(k)}</div>`}</div>`;
   };
-  const rivalCard = (k) => {
-    const c = CHARACTERS[k], seen = !!state.seen[k];
-    return `<div class="pcard ${seen ? '' : 'unseen'}" style="--pc:${seen ? c.color : '#8d7a5c'}">
-      <div class="pc-top"><span>${seen ? charName(k) : '？？？'}</span></div>
-      <div class="pc-art">${ART.symbol(k)}</div>
-      <div class="pc-line">${seen ? (LANG === 'en' ? `“${c.line[1]}”` : `「${c.line[0]}」`) : tp('dexUnseen')}</div></div>`;
+  const targets = CFG.targets.map((tg, n) => ({ kind: 'target', stars: tg.stars, poly: parseExpr(tg.expr), answer: parseFactorList(tg.answer), src: tg, index: n }));
+  const chimeraCard = (tg) => {
+    const got = !!state.dex[qidOf(tg)], lv = levelOf(tg);
+    if (!got) return `<div class="ccard unseen"><div class="cc-no">#${qidOf(tg)}</div><div class="cc-art">${ART.chimera(tg)}</div><div class="cc-name">${tp('unknown')}</div></div>`;
+    const chain = buildProof(tg, tg.answer).fac.map((x, i) => (i ? '= ' : '') + x).join(' ');
+    return `<div class="ccard" style="--pc:${{ common: '#c2410c', group: '#1d4ed8', diffSq: '#047857', perfSq: '#7c3aed' }[lv]}">
+      <div class="cc-no">#${qidOf(tg)} · ${'★'.repeat(tg.stars)}</div><div class="cc-art">${ART.chimera(tg)}</div>
+      <div class="cc-name">${chimeraName(tg)}</div><div class="cc-type">${tp('typeLbl')}：${tp(lv)}</div>
+      <div class="cc-know"><b>${tp('knowCard')}</b><br>${tex(chain)}<br>${tp('know_' + lv)}</div></div>`;
   };
-  const nUnlocked = PLAYER_CHARS.filter(partnerUnlocked).length, nSeen = AI_CHARS.filter(k => state.seen[k]).length;
+  const nP = PLAYER_CHARS.filter(partnerUnlocked).length, nC = targets.filter(tg => state.dex[qidOf(tg)]).length;
+  const body = dexTab === 'partners'
+    ? `<div class="dex-grid">${PLAYER_CHARS.map(partnerCard).join('')}</div>`
+    : `<p class="notice" style="margin-top:0">${t('chimeraHow')}</p>` + LEVELS.map(lv => `<h2>${t(lv)}</h2><div class="dex-grid">${targets.filter(tg => levelOf(tg) === lv).map(chimeraCard).join('')}</div>`).join('');
   $('dexSheet').innerHTML = `<h1>${t('dexTitle')}</h1>
-    <p class="who-line">💰 ${state.bells} · 🏅 ${badgeCount()}/${GAME.total}</p>
-    <h2>${t('dexPartners', { n: nUnlocked })}</h2><div class="dex-grid">${PLAYER_CHARS.map(partnerCard).join('')}</div>
-    <h2>${t('dexRivals', { n: nSeen })}</h2><div class="dex-grid">${AI_CHARS.map(rivalCard).join('')}</div>
+    <p class="who-line">💰 ${state.bells} · 🏅 ${badgeCount()}/${GAME.total} · ✏️ ${state.fixed}</p>
+    <div class="seg dex-tabs"><button data-v="partners" class="${dexTab === 'partners' ? 'on' : ''}">${t('tabPartners', { n: nP })}</button><button data-v="chimera" class="${dexTab === 'chimera' ? 'on' : ''}">${t('tabChimera', { n: nC })}</button></div>
+    ${body}
     <p class="notice">${t('dexNote')}</p>
     <div class="row-btns"><button class="btn primary" id="btnDexBack">${t('backSetup')}</button></div>`;
+  $('dexSheet').querySelector('.dex-tabs').onclick = (e) => { const b = e.target.closest('button'); if (b) { Sound.play('select'); showDex(b.dataset.v); } };
   $('btnDexBack').onclick = () => { Sound.play('select'); showSetup(); };
 }
 
@@ -2703,7 +2831,7 @@ function humanAnswer(target, ev) {
   // review = 錯題本重做：錯題本練習，或者呢題喺今局第一次出手之前已經喺錯題本
   if (!session.wasNb.has(target.id)) session.wasNb.set(target.id, inNotebook(qid));
   const review = session.mode === 'notebook' || session.wasNb.get(target.id);
-  let fixed = false, bells = 0, bonus = 0, levelUp = 0;
+  let fixed = false, bells = 0, bonus = 0, levelUp = 0, isNew = false;
   if (ok) {
     // 錯題本練習只有「改正」獎勵；對戰入面第一次 300、第二次 150、第三次或以後冇獎勵
     bells = session.mode === 'notebook' ? 0 : attempt === 1 ? CFG.rewards.first : attempt === 2 ? CFG.rewards.second : 0;
@@ -2711,14 +2839,14 @@ function humanAnswer(target, ev) {
       state.notebook = state.notebook.filter(n => n.id !== qid);
       if (!state.fixedIds[qid]) { state.fixedIds[qid] = true; state.fixed++; fixed = true; bells += CFG.rewards.fixed; session.fixedCount++; }
     }
-    // 夥伴：第一或第二次答對加經驗值；擅長屬性嘅題目有額外鈴錢
+    // 夥伴成長：第一或第二次答對算一次；擅長屬性 → 效果拔群（額外鈴錢）
     if (attempt <= 2 && session.mode !== 'notebook' && session.partner) {
       const k = session.partner, before = partnerLevel(k);
-      state.partners[k] = { xp: partnerXp(k) + 1 };
-      const after = partnerLevel(k);
-      if (after > before) { levelUp = after; session.skillLeft += Math.max(0, (CFG.partnerSkillUses[after - 1] || 0) - (CFG.partnerSkillUses[before - 1] || 0)); }
+      state.partners[k] = { uses: partnerUses(k) + 1 };
+      if (partnerLevel(k) > before) levelUp = partnerLevel(k);
       if (PARTNERS[k].type === levelOf(target)) { bonus = CFG.partnerTypeBonus[before - 1] || 0; bells += bonus; }
     }
+    if (!state.dex[qid]) { state.dex[qid] = true; isNew = true; }     // 每完成一條目標式就收錄合成獸
     if (first) session.firstCount++;
     state.bells += bells; session.bellsEarned += bells; save();
   } else {
@@ -2729,7 +2857,7 @@ function humanAnswer(target, ev) {
   logEvent('answer', { place: session.place, qid, topic: topicOf(target), ok, attempt, first, hint: session.hinted.has(target.id),
     secs: Math.min(600, Math.round((Date.now() - t0) / 1000)),   // 由揀目標卡（或者按「我明白了」）計起
     review, fixed });
-  return { attempt, first, bells, fixed, bonus, levelUp };
+  return { attempt, first, bells, fixed, bonus, levelUp, isNew };
 }
 /* 答錯：先讀提示，按「我明白了」先可以再揀 */
 function showTip(html) {
@@ -2804,6 +2932,7 @@ async function resolveSynthesis(pi, targetId, cardIds) {
       renderScoreboard();
       await cutIn(pi, target, ans);
       await lay;
+      await evolveAndCollect(target, proof, ans.isNew);
       await showVerify(pi, target, proof, stoneShown);
       return 'done';
     }
@@ -2834,7 +2963,7 @@ async function resolveSynthesis(pi, targetId, cardIds) {
     renderScoreboard();
     await cutIn(pi, target, ans);
     await lay;
-    if (human) session.stats.succ[target.stars]++;
+    if (human) { session.stats.succ[target.stars]++; await evolveAndCollect(target, proof, ans.isNew); }
     await showVerify(pi, target, proof, stoneShown);
     return 'done';
   }
@@ -2951,7 +3080,7 @@ function cutIn(pi, target, ans) {
     <div class="txt"><div class="big">${t('cutinTitle')}</div>
       <div class="who">${ART.symbol(p.char)}<b>${charNameHTML(p.char)}</b></div>
       <div class="ln">${line}</div>
-      <div class="pts">${ans && (session.mode === 'notebook' || ans.attempt >= 3) ? '' : `${'★'.repeat(target.stars)} +${pts}`}${ans && ans.bells ? ` · 💰 +${ans.bells}` : ''}</div>${ans && ans.bonus ? `<div class="ln">${t('typeBonus', { b: ans.bonus })}</div>` : ''}
+      <div class="pts">${ans && (session.mode === 'notebook' || ans.attempt >= 3) ? '' : `${'★'.repeat(target.stars)} +${pts}`}${ans && ans.bells ? ` · 💰 +${ans.bells}` : ''}</div>${ans && ans.bonus ? `<div class="ln super">${t('superEff', { b: ans.bonus })}</div>` : ''}
       ${ans && ans.attempt === 2 ? `<div class="ln">${t('retryNote')}</div>` : ''}${ans && ans.attempt >= 3 ? `<div class="ln">${t('thirdNote')}</div>` : ''}${ans && ans.fixed ? `<div class="ln">${t('fixedNote')}</div>` : ''}</div>
     <div class="flash"></div>`;
   el.hidden = false;
@@ -3080,7 +3209,10 @@ async function finishGame() {
     const newBadge = !wasBadge && !!state.badges[lv];
     save();
     logEvent('house_result', { place: lv, topic: STR[lv][0], score, total, badge: !!state.badges[lv], newBadge });
-    lvRes = { lv, score, total, newBadge, badge: !!state.badges[lv], unlocked: lockedBefore.filter(partnerUnlocked) };
+    // 稀有度：唔靠抽卡，全部第一次答對（冇答錯）通過關卡 → 夥伴變閃卡
+    let shiny = null;
+    if (score >= CFG.badgePass && !session.stats.wrong && !session.stats.incomplete && !state.shiny[session.partner]) { state.shiny[session.partner] = true; shiny = session.partner; save(); }
+    lvRes = { lv, score, total, newBadge, badge: !!state.badges[lv], unlocked: lockedBefore.filter(partnerUnlocked), shiny };
     if (newBadge && badgeCount() >= GAME.total && !state.won) { state.won = true; save(); logEvent('win'); lvRes.win = true; }
   }
   Sound.play(lvRes ? (lvRes.newBadge ? 'win' : lvRes.badge ? 'success' : 'lose') : result === 'win' ? 'win' : result === 'draw' ? 'success' : 'lose');
@@ -3104,7 +3236,8 @@ function showReview(result, lvRes) {
   const head = lvRes
     ? `<div class="big-result">${lvRes.newBadge || lvRes.badge ? '🏅' : '📚'} ${t('levelResult', { s: lvRes.score, n: lvRes.total })}</div>
        <p class="sync" style="font-size:1em">${lvRes.newBadge ? t('newBadge', { m: STR[lvRes.lv][0] + ' / ' + STR[lvRes.lv][1] }) : lvRes.badge ? t('haveBadge') : t('noBadge', { p: CFG.badgePass })}</p>
-       ${lvRes.unlocked.map(k => `<div class="big-result" style="font-size:1.2em">${ART.symbol(k).replace('<svg ', '<svg style="width:1.8em;height:1.8em;vertical-align:middle" ')} ${t('unlockNew', { name: charName(k) })}</div>`).join('')}
+       ${lvRes.unlocked.map(k => `<div class="big-result" style="font-size:1.15em">${ART.symbol(k).replace('<svg ', '<svg style="width:1.8em;height:1.8em;vertical-align:middle" ')} ${t('unlockNew', { name: charName(k) })}</div>`).join('')}
+       ${lvRes.shiny ? `<div class="big-result" style="font-size:1.15em">${t('shinyNew', { name: charName(lvRes.shiny) })}</div>` : ''}
        ${lvRes.win ? `<div class="big-result">${t('allBadges')}</div>` : ''}`
     : `<div class="big-result">${t(result)}</div>`;
   $('reviewSheet').innerHTML = `
@@ -3131,6 +3264,7 @@ function showReview(result, lvRes) {
 /* ---------- 錯題本練習：每題派返啱用嘅卡加幾張干擾卡，再砌一次 ---------- */
 async function startPractice() {
   const ids = state.notebook.map(n => n.id).filter(id => CFG.targets.some((tg, n) => (tg.id || 't' + (n + 1)) === id));
+  const izumiBefore = partnerUnlocked('izumi');
   if (!ids.length) { toast(t('notebookEmpty')); return; }
   if (session) endSession();
   startLogging();
@@ -3141,7 +3275,7 @@ async function startPractice() {
   session = {
     settings: { ...setupSel }, rules: 'simple', mode: 'notebook', place: 'notebook', start: new Date(), active: true, finished: false, abort, abortP,
     tries: new Map(), t0: new Map(), hinted: new Set(), wasNb: new Map(), firstCount: 0, bellsEarned: 0, fixedCount: 0,
-    hintsLeft: CFG.hintsPerGame, lowfxChecked: true, partner: setupSel.char, skillLeft: 0,
+    hintsLeft: CFG.hintsPerGame, lowfxChecked: true, partner: setupSel.char, skillUsed: true,
     stats: { succ: { 1: 0, 2: 0, 3: 0 }, wrong: 0, incomplete: 0, snipe: 0, snipeMissed: 0, destroyed: 0, hints: 0 },
     mistakes: [], claimed: new Map(),
   };
@@ -3185,7 +3319,7 @@ async function startPractice() {
       ui.selected.clear(); ui.selectedTarget = null; ui.mode = 'idle';
     }
     session.active = false;
-    toast(t('practiceDone', { f: session.fixedCount }), 'good', 3500);
+    toast(t('practiceDone', { f: session.fixedCount }) + (izumiBefore !== partnerUnlocked('izumi') ? `<br>${t('unlockNew', { name: charName('izumi') })}` : ''), 'good', 4500);
     showSetup();
   } catch (e) {
     if (!(e instanceof AbortGame)) { console.error(e); toast('⚠ ' + e.message, 'bad', 6000); }
@@ -3218,14 +3352,14 @@ function simpleRulesHTML() {
   <h2>結果</h2><ul><li>✓ <b>正確</b>：攞走目標卡（★ 1 分、★★ 2 分、★★★ 3 分），再睇一次驗算。</li><li>✗ <b>乘積錯</b>：卡退返手上，回合結束。</li><li>⚠ <b>唔夠簡</b>：例如用咗 ${tex('(2x + 4)')}，佢仲可以抽出 2，嗰張卡會被棄掉。應該出 ${tex('2')} 同 ${tex('(x + 2)')}。</li></ul>
   <h2>例子同小貼士</h2><ul><li>${ex} → 撳 ${ab}。</li><li>${tex('(x + 3)^2')} 要出兩張 ${tex('(x + 3)')}；常數可以拆，${tex('6 = 2 \\times 3')}。</li><li>唔知用咩方法？揀目標卡再按「提示」（每局 ${CFG.hintsPerGame} 次）。</li></ul>
   <h2>四種方法</h2><p>★ 提取公因式　★★ 分組分解　★★★ 平方差恆等式 ${tex('a^2-b^2=(a+b)(a-b)')}、完全平方恆等式 ${tex('a^2\\pm 2ab+b^2=(a\\pm b)^2')}</p>
-  <h2>夥伴卡</h2><ul><li>開局揀一位夥伴，每局可以用佢嘅技能（按「⚡」掣），例如愛德華「合掌鍊成」換走一張手牌。</li><li>夥伴有擅長嘅方法（屬性），用佢完成嗰類題目有額外鈴錢。</li><li>答對次數越多，夥伴會升級（Lv3 有閃卡同稱號）。完成關卡會解鎖新夥伴，喺「📖 角色圖鑑」睇晒。</li></ul>`;
+  <h2>夥伴同圖鑑</h2><ul><li>開局揀一位夥伴（一開始有阿姆斯特朗同溫莉），每局可以用一次佢嘅技能（按「⚡」）。</li><li>夥伴擅長某種方法：用佢完成嗰類題目會「效果拔群」，有額外鈴錢。</li><li>完成關卡、改正錯題會解鎖新夥伴；夥伴用得多會升級，完美通過關卡會變閃卡。</li><li>每完成一條目標式，會睇到佢「進化」成最簡因式，並收錄一隻合成獸入「📖 圖鑑」。</li></ul>`;
   const en = `<h1 style="font-size:1.6em">How to play (Simple)</h1>
   <h2>Goal</h2><p>There are 4 <b>target cards</b> (polynomials) on the table. Build their factorizations with your <b>factor cards</b>. First to <b>${W}</b> points wins.</p>
   <h2>Your turn</h2><ol><li>You draw 1 card automatically (start with ${CFG.handStartSimple}, hold up to ${CFG.handLimitSimple}).</li><li>Tap a <b>target</b>, then tap <b>hand cards</b> that multiply to it.</li><li>Press <b>Transmute!</b></li><li>Can't make one? Tap 1 unwanted card and press <b>Swap it</b>, or just end your turn.</li></ol>
   <h2>Results</h2><ul><li>✓ <b>Correct</b>: you win the target (★ 1, ★★ 2, ★★★ 3 points) and see the check.</li><li>✗ <b>Wrong product</b>: cards return to your hand; turn over.</li><li>⚠ <b>Not fully factorized</b>: e.g. ${tex('(2x + 4)')} still has a factor 2, so that card is discarded. Use ${tex('2')} and ${tex('(x + 2)')}.</li></ul>
   <h2>Example and tips</h2><ul><li>${ex} → tap ${ab}.</li><li>${tex('(x + 3)^2')} needs two ${tex('(x + 3)')} cards; constants can be split, ${tex('6 = 2 \\times 3')}.</li><li>Not sure which method? Select a target and press Hint (${CFG.hintsPerGame} per game).</li></ul>
   <h2>Four methods</h2><p>★ common factor · ★★ grouping · ★★★ difference of two squares ${tex('a^2-b^2=(a+b)(a-b)')} and perfect square ${tex('a^2\\pm 2ab+b^2=(a\\pm b)^2')}</p>
-  <h2>Partner cards</h2><ul><li>Pick a partner before each game and use its skill (the ⚡ button), e.g. Edward's Clap Transmute swaps a hand card.</li><li>Each partner has a favourite method (type): solving that kind of target earns bonus Bells.</li><li>Partners level up as you succeed (Lv3 gets a shiny card and a title). Clearing stages unlocks new partners; see them all in the 📖 Card Album.</li></ul>`;
+  <h2>Partners and the Album</h2><ul><li>Pick a partner (Armstrong and Winry are available from the start) and use its skill once per game (the ⚡ button).</li><li>Each partner has a favourite method: solving that kind of target is "super effective" and earns bonus Bells.</li><li>Clearing stages and fixing mistakes unlocks partners; partners level up with use, and a perfect clear makes a shiny card.</li><li>Each target you complete "evolves" into its full factorization and adds a chimera to the 📖 Album.</li></ul>`;
   return LANG === 'zh' ? zh : LANG === 'en' ? en : zh + '<hr>' + en;
 }
 function rulesHTML() {
@@ -3257,7 +3391,11 @@ function bindStatic() {
   $('btnStart').onclick = () => { Sound.play('clap'); startGame(); };
   $('btnNotebook').onclick = () => { Sound.play('select'); startPractice(); };
   $('btnDex').onclick = () => { Sound.play('select'); showDex(); };
-  $('btnSkill').onclick = () => { if (!$('btnSkill').disabled) act({ type: 'skill' }); };
+  $('btnSkill').onclick = () => {
+    if ($('btnSkill').disabled) return;
+    toast(tp('skill_' + PARTNERS[session.partner].skill + 'D'), '', 1800);
+    act({ type: 'skill' });
+  };
   $('btnRules').onclick = () => showRules(false); $('btnRules2').onclick = () => showRules(false);
   $('btnMute').onclick = () => { Sound.ensure(); Sound.setMuted(!Sound.muted); updateMuteBtn(); };
   $('btnFx').onclick = () => { view.setLowFx(!view.lowfx); updateFxBtn(); toast(t(view.lowfx ? 'lowfxOn' : 'lowfxOff')); };
