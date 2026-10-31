@@ -1,7 +1,7 @@
 # 因式鍊金術 Factor Alchemy
 
 俾香港中二學生溫習因式分解嘅 3D 卡牌網頁遊戲，以《鋼之鍊金術師》做主題（等價交換、鍊成陣、賢者之石、真理之門）。
-支援 Chromebook、iPad 同手機瀏覽器（橫向）。純靜態網站，唔需要 build step，可以直接部署去 Netlify。
+支援 Chromebook、iPad 同手機瀏覽器（橫向同直向都得，轉機會自動重新排版）。純靜態網站，唔需要 build step，可以直接部署去 Netlify。
 學生記錄沿用「數學小島物語」同一套方式（同一個 Apps Script、同一個 Google Sheet、同一份學生資料 `mathverse-student`）。
 
 > 美術全部係原創（程式畫嘅鍊成陣、齒輪、機械鎧紋理），冇用原作角色樣貌、官方 logo 或截圖；角色只用名字同原創出場對白。
@@ -13,6 +13,8 @@
 | `index.html` | 遊戲本身（所有程式碼都喺入面）。頂部嘅 `window.CONFIG` 係老師設定同牌組。 |
 | `netlify.toml` | Netlify 設定（publish 根目錄，冇 build command）。 |
 | `2ab-bomb-squad/index.html` | 之前放喺根目錄嘅《2ab 拆彈小隊》，搬咗入子資料夾，網址係 `/2ab-bomb-squad/`。 |
+
+背景音樂同音效都係 WebAudio 即場合成（A 小調神秘鍊金曲，右上角 🎵 可以單獨關音樂，🔊 係全部靜音；iPhone 靜音掣開咗都照播，Safari 17+）。
 
 外部資源只用 CDN：Three.js 0.160.0（WebGL + `CSS3DRenderer`）、KaTeX 0.16.11、Google Fonts（Noto Serif TC、EB Garamond）。冇用 Firebase，冇外部音檔（音效全部用 WebAudio 即場合成）。
 
