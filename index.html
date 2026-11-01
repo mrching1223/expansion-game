@@ -153,9 +153,14 @@ button { font-family: inherit; font-size: inherit; color: inherit; }
 .card3d .label small { display: block; font-size: 16px; font-weight: 400; letter-spacing: .02em; opacity: .75; }
 .card3d .math { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 10px; overflow: hidden; }
 .card3d .math .katex { font-size: 26px; }
-body.portrait .card3d .math .katex { font-size: 42px; }
-body.portrait .card3d .label, body.portrait .card3d .label small, body.portrait .card3d .foot { font-size: 21px; }
-body.portrait .card3d .math { padding: 0 6px; }
+body.portrait .card3d .math .katex, body.compact .card3d .math .katex { font-size: 42px; }
+body.portrait .card3d .label, body.portrait .card3d .label small, body.portrait .card3d .foot,
+body.compact .card3d .label, body.compact .card3d .label small, body.compact .card3d .foot { font-size: 21px; }
+body.portrait .card3d .math, body.compact .card3d .math { padding: 0 6px; }
+body.compact #scoreboard { font-size: .74em; padding: 3px 7px; top: 6px; }
+body.compact #topbtns { top: 6px; }
+body.compact #topbtns .iconbtn { width: 2.2em; height: 2.2em; }
+body.compact #banner { top: 6px; font-size: .78em; padding: 4px 10px; max-width: 46vw; }
 .card3d .math .katex-display { margin: 0; }
 .card3d .foot { width: 100%; text-align: center; font-size: 16px; padding: 0 12px 14px; line-height: 1.25; }
 .card3d .stars { color: #9b2c16; letter-spacing: .1em; }
@@ -1876,6 +1881,7 @@ const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const CIRCLE = { x: 0, y: 40, r: 300 };
 const isPortrait = () => window.innerHeight > window.innerWidth * 1.05;
+const isCompact = () => !isPortrait() && window.innerHeight <= 520;     // 手機橫向（矮身畫面）
 /* 畫面方向：自動（跟手機）／直向／橫向。網頁轉唔到部手機：Android 會試鎖定方向，iPhone 就提示學生轉機 */
 const Orient = {
   pref: store.get('fa_orient_v1', 'auto'),
@@ -1964,8 +1970,14 @@ class View {
     this.fxRenderer.setPixelRatio(Math.min(pr, 1.25)); this.fxRenderer.setSize(w, h);
     this.css.setSize(w, h);
     this.camera.aspect = aspect;
-    const portrait = isPortrait();
-    if (portrait) {
+    const portrait = isPortrait(), compact = isCompact();
+    if (compact) {
+      // 手機橫向：鏡頭較垂直，裝得落約 2300 × 1040 單位（右邊留位畀按鈕）
+      const tan = Math.tan(THREE.MathUtils.degToRad(20));
+      const d = Math.max(1250 / (tan * aspect), 540 / tan);
+      this.camera.position.set(0, -d * 0.2, d * 0.98);
+      this.camera.lookAt(0, 0, 0);
+    } else if (portrait) {
       // 直向：鏡頭較垂直，按寬度（約 1060 單位）計距離
       const tan = Math.tan(THREE.MathUtils.degToRad(20));
       const d = Math.max(530 / (tan * aspect), 1170 / tan);        // 闊度同高度都要裝得落（矮身手機都唔會切頂）
@@ -1980,9 +1992,10 @@ class View {
     }
     this.camera.updateProjectionMatrix();
     this.cssDirty = true;
-    if (this.portrait !== portrait) {
-      this.portrait = portrait;
+    if (this.portrait !== portrait || this.compact !== compact) {
+      this.portrait = portrait; this.compact = compact;
       document.body.classList.toggle('portrait', portrait);
+      document.body.classList.toggle('compact', compact);
       if (this.objs.size) this.refreshAllFaces();     // 直向字體大咗，長式要重新斷行
       this.placeCircle();
       if (this.L && this.onOrientation) this.onOrientation();
@@ -2093,9 +2106,10 @@ class View {
     this.scene.add(this.circleLight);
   }
   placeCircle() {                     // 直向時鍊成陣移去兩行目標卡中間
-    CIRCLE.y = this.portrait ? 510 : 40;
+    CIRCLE.y = this.portrait ? 510 : this.compact ? 20 : 40;
+    CIRCLE.x = this.compact ? -150 : 0;
     if (!this.circleBase) return;
-    this.circleBase.position.y = CIRCLE.y; this.circleGlow.position.y = CIRCLE.y; this.circleLight.position.y = CIRCLE.y;
+    for (const o of [this.circleBase, this.circleGlow, this.circleLight]) { o.position.x = CIRCLE.x; o.position.y = CIRCLE.y; }
   }
   buildCandles() {
     const flameTex = this.canvasTex(64, 128, (g, w, h) => {
@@ -2237,7 +2251,7 @@ class View {
       const src = card.kind === 'target' ? card.poly.toTeX() : cardTeX(card);
       m.innerHTML = tex(src);
       // 太長就喺中間嘅 +/− 斷行（字體大小保持統一）
-      if (card.kind === 'target' && card.poly.t.size >= (this.portrait ? 3 : 4)) {
+      if (card.kind === 'target' && card.poly.t.size >= (this.portrait || this.compact ? 3 : 4)) {
         const ts = card.poly.terms(); const half = Math.ceil(ts.length / 2);
         const a = new Poly(ts.slice(0, half).map(x => [x.i + ',' + x.j, x.c])).toTeX();
         const bTerms = ts.slice(half); const b = new Poly(bTerms.map(x => [x.i + ',' + x.j, x.c])).toTeX();
@@ -2260,6 +2274,7 @@ class View {
   buildLayout(nPlayers) {
     this.nPlayers = nPlayers;
     if (this.portrait) return this.buildPortraitLayout(nPlayers);
+    if (this.compact) return this.buildCompactLayout(nPlayers);
     const four = nPlayers === 4;
     const L = {
       table: (i, n) => ({ x: (i - (n - 1) / 2) * 250, y: 215, z: 4, rx: 0.12, s: 1.1 }),
@@ -2279,6 +2294,22 @@ class View {
       L.seats.push({ plate: { x: -420, y: 660, z: 30, rx: 0.5 }, scored: { x: 420, y: 650, z: 8 }, hand: { x: 0, y: 640, dir: 'h' } });
       L.seats.push({ plate: { x: 940, y: 150, z: 30, rx: 0.5 }, scored: { x: 900, y: 10, z: 8 }, hand: { x: 930, y: 430, dir: 'v', side: 1 } });
     }
+    this.L = L;
+  }
+  /* 手機橫向：目標卡一行、手牌一行（大張啲），牌堆放左邊，對手細細放右上 */
+  buildCompactLayout(nPlayers) {
+    const L = {
+      compact: true,
+      table: (i, n) => ({ x: -150 + (i - (n - 1) / 2) * 232, y: 225, z: 4, rx: 0.06, s: 1.0 }),
+      targetDeck: { x: -770, y: 225, z: 6, ry: Math.PI, rx: 0.05, s: 0.55 },
+      drawPile: { x: 420, y: 225, z: 6, ry: Math.PI, rx: 0.05, s: 0.55 },
+      discard: { x: 560, y: 225, z: 6, rx: 0.05, s: 0.55 },
+      handCenter: { x: -225, y: -300, z: 90 },
+      stageTarget: { x: -150, y: 170, z: 190, rx: 0.15, s: 1.12 },
+      seats: [{ plate: { x: 0, y: -3000, z: 0 }, scored: { x: -1010, y: 100, z: 8, s: 0.3 }, hand: null }],
+    };
+    const xs = nPlayers === 4 ? [-520, -150, 220] : [-150];          // 對手背面卡放喺最頂（計分板已經顯示分數）
+    xs.forEach(x => L.seats.push({ plate: { x: 0, y: -3000, z: 0 }, scored: { x: x + 200, y: 500, z: 8, s: 0.22 }, hand: { x, y: 500, dir: 'h', gap: 18, s: 0.24 } }));
     this.L = L;
   }
   /* 直向（手機）：目標卡 2×2、手牌兩行、對手喺頂 */
@@ -2320,7 +2351,7 @@ class View {
     P(this.pileDraw, this.L.drawPile); P(this.pileTarget, this.L.targetDeck); P(this.discardSlot, this.L.discard);
     (this.plates || []).forEach((pl, i) => {
       this.setNow(pl.obj, this.L.seats[i].plate);
-      pl.obj.visible = !this.players[i].isHuman && !this.L.portrait;   // 真人同直向都用左上角計分板
+      pl.obj.visible = !this.players[i].isHuman && !this.L.portrait && !this.L.compact;   // 真人同直向都用左上角計分板
     });
   }
   updatePlates(game) {
@@ -2354,6 +2385,11 @@ class View {
       const off = i - (n - 1) / 2;
       const sel = ui.selected.has(id) || ui.pick === id;
       const hov = this.hoverId === id && ui.interactive;
+      if (L.compact) {
+        const sp = Math.min(200, 1600 / Math.max(n, 1));
+        want.set(id, { x: L.handCenter.x + off * sp, y: L.handCenter.y + (sel ? 55 : 0) + (hov ? 20 : 0), z: L.handCenter.z + i * 0.6 + (sel ? 90 : 0) + (hov ? 40 : 0), rx: 0.2, rz: -off * 0.01, s: 0.92 * (sel ? 1.08 : 1), up: true });
+        return;
+      }
       if (L.portrait) {
         const row = i < perRow ? 0 : 1, k = row ? n - perRow : perRow, j = row ? i - perRow : i, o2 = j - (k - 1) / 2, sp = Math.min(220, 880 / Math.max(perRow, 1));
         want.set(id, { x: o2 * sp, y: (n > 5 ? (row ? -560 : -240) : -360) + (sel ? 50 : 0), z: L.handCenter.z + row * 30 + j * 0.6 + (sel ? 80 : 0), rx: 0.3, rz: -o2 * 0.015, s: (row ? 0.98 : 1.02) * (sel ? 1.08 : 1), up: true });
@@ -2393,7 +2429,9 @@ class View {
       const m = staged.cardIds.length;
       staged.cardIds.forEach((id, i) => {
         const off = i - (m - 1) / 2;
-        want.set(id, L.portrait
+        want.set(id, L.compact
+          ? { x: -150 + off * 185, y: -170, z: 150 + i, rx: 0.15, rz: -off * 0.04, s: 0.85, up: true }
+          : L.portrait
           ? { x: off * Math.min(160, 900 / m), y: 230 - Math.abs(off) * 10, z: 150 + i, rx: 0.25, rz: -off * 0.05, s: 0.72, up: true }
           : { x: CIRCLE.x + off * 175, y: CIRCLE.y - 150 - Math.abs(off) * 14, z: 150 + i, rx: 0.45, rz: -off * 0.06, s: 0.8, up: true });
       });
@@ -3033,7 +3071,7 @@ function openSettings() {
 let setupSel = { players: 2, difficulty: 'national', char: 'ed', rules: null };
 function applyLang() {
   LANG = state.lang || 'bi';
-  document.body.className = 'lang-' + LANG + (view.lowfx ? ' lowfx' : '') + (view.portrait ? ' portrait' : '');
+  document.body.className = 'lang-' + LANG + (view.lowfx ? ' lowfx' : '') + (view.portrait ? ' portrait' : '') + (view.compact ? ' compact' : '');
   document.documentElement.lang = LANG === 'en' ? 'en' : 'zh-Hant-HK';
   document.querySelectorAll('[data-t]').forEach(el => el.innerHTML = t(el.dataset.t));
   $('btnSynth').innerHTML = t('synth'); $('btnSwap').innerHTML = t('swap'); $('btnEnd').innerHTML = t('end'); $('btnConfirm').innerHTML = t('confirmDiscard');
