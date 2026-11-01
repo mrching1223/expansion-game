@@ -248,7 +248,7 @@ body.lowfx .card3d.pick .front { box-shadow: 0 0 0 4px #8fe0ff; }
 #cutin .circ svg { width: 100%; height: 100%; animation: spin 6s linear infinite; filter: drop-shadow(0 0 10px #9fe0ff); }
 #cutin .fig { position: absolute; left: 9%; bottom: 14%; height: 72vh; transform: translateX(-60vw); animation: ciFig 2.3s cubic-bezier(.2,.9,.25,1) forwards; filter: drop-shadow(0 0 14px var(--c)); }
 #cutin .fig svg { height: 100%; width: auto; }
-#cutin .txt { position: absolute; right: 7%; top: 50%; transform: translate(60vw, -50%); text-align: right; color: #fff4dc; animation: ciTxt 2.3s cubic-bezier(.2,.9,.25,1) forwards; max-width: 52vw; }
+#cutin .txt { position: absolute; right: 7%; top: 45%; transform: translate(60vw, -50%); text-align: right; color: #fff4dc; animation: ciTxt 2.3s cubic-bezier(.2,.9,.25,1) forwards; max-width: 52vw; }
 #cutin .big { font-size: clamp(30px, 8.5vh, 72px); font-weight: 700; letter-spacing: .12em; color: var(--gold-hi); text-shadow: 0 0 18px rgba(255,190,80,.9), 0 3px 0 #5a1d0a; line-height: 1.1; }
 #cutin .big .bi-en { font-size: .42em; letter-spacing: .2em; }
 #cutin .who { font-size: clamp(16px, 3.6vh, 28px); margin-top: .3em; display: flex; gap: .4em; align-items: center; justify-content: flex-end; }
@@ -260,6 +260,9 @@ body.lowfx .card3d.pick .front { box-shadow: 0 0 0 4px #8fe0ff; }
 @keyframes ciFig { 0% { transform: translateX(-60vw) scale(1.1); } 18% { transform: translateX(0) scale(1); } 84% { transform: translateX(2vw) scale(1); opacity: 1; } 100% { transform: translateX(-20vw); opacity: 0; } }
 @keyframes ciTxt { 0% { transform: translate(60vw, -50%); } 22% { transform: translate(0, -50%); } 84% { transform: translate(-1vw, -50%); opacity: 1; } 100% { transform: translate(20vw, -50%); opacity: 0; } }
 @keyframes ciCirc { 0% { opacity: 0; transform: translateY(-50%) scale(.3); } 20% { opacity: .9; transform: translateY(-50%) scale(1); } 84% { opacity: .9; } 100% { opacity: 0; transform: translateY(-50%) scale(1.4); } }
+#cutin .who b { white-space: nowrap; }
+.lang-bi #cutin .who { font-size: clamp(14px, 3vh, 24px); }
+.lang-bi #cutin .ln, .lang-bi #cutin .ln .bi-en { line-height: 1.25; }
 body.lowfx #cutin .circ svg { animation: none; filter: none; }
 body.lowfx #cutin .fig { filter: none; }
 
@@ -472,10 +475,18 @@ table.review th { color: #5b1d10; }
   .cover-sins svg { width: 10vw; height: 10vw; }
   .cover-title h1 { font-size: 15vw; }
   .btn-start { font-size: 7vw; }
-  #cutin .fig { height: 40vh; left: 2%; bottom: 40%; }
-  #cutin .fig.mon svg { height: 36vh; width: 36vh; }
-  #cutin .txt { right: 4%; max-width: 92vw; top: 64%; }
-  #cutin .band { top: 20%; height: 64%; }
+  /* 成功 cut-in：上面角色、下面置中文字，字體跟畫面闊度 */
+  #cutin .band { top: 14%; height: 72%; }
+  #cutin .circ { left: 50%; top: 30%; width: 62vw; height: 62vw; margin-left: -31vw; }
+  #cutin .fig { left: 50%; bottom: auto; top: 17%; height: auto; margin-left: -24vw; }
+  #cutin .fig.mon svg { width: 48vw; height: 48vw; }
+  #cutin .txt { left: 4%; right: 4%; top: 68%; max-width: none; text-align: center; }
+  #cutin .big { font-size: min(11.5vw, 7vh); white-space: nowrap; letter-spacing: .06em; }
+  #cutin .big .bi-en { font-size: .4em; }
+  #cutin .who { justify-content: center; flex-wrap: wrap; font-size: min(5vw, 3vh); white-space: nowrap; }
+  #cutin .who svg { width: 2em; height: 2em; }
+  #cutin .ln { font-size: min(4vw, 2.6vh); }
+  #cutin .pts { font-size: min(7.5vw, 4.5vh); white-space: nowrap; }
   .setup-grid { grid-template-columns: 1fr; }
   table.review { font-size: .8em; }
 }
@@ -3258,7 +3269,7 @@ function updateButtons() {
   const pk = session && session.mode !== 'notebook' && session.partner && PARTNERS[session.partner];
   $('btnSkill').hidden = !pk || disc;
   if (pk) {
-    $('btnSkill').innerHTML = session.skillUsed ? t('skillDone') : t('skillBtn', { s: tp('skill_' + pk.skill) });
+    $('btnSkill').innerHTML = session.skillUsed ? t('skillDone') : '⚡ ' + t('skill_' + pk.skill);
     $('btnSkill').title = tp('skill_' + pk.skill + 'D');
     $('btnSkill').disabled = !(main && !session.skillUsed);
   }
