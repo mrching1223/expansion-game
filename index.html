@@ -16,7 +16,7 @@
    ===================================================================== */
 window.CONFIG = {
   version: '1.0.0',
-  classes: ['2A', '2B', '2C', '2D', '2E'],
+  classes: ['2A', '2B', '2C', '2D'],
   studentNoMin: 1,
   studentNoMax: 40,
   nameMaxLength: 20,
@@ -153,6 +153,9 @@ button { font-family: inherit; font-size: inherit; color: inherit; }
 .card3d .label small { display: block; font-size: 16px; font-weight: 400; letter-spacing: .02em; opacity: .75; }
 .card3d .math { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 10px; overflow: hidden; }
 .card3d .math .katex { font-size: 26px; }
+body.portrait .card3d .math .katex { font-size: 42px; }
+body.portrait .card3d .label, body.portrait .card3d .label small, body.portrait .card3d .foot { font-size: 21px; }
+body.portrait .card3d .math { padding: 0 6px; }
 .card3d .math .katex-display { margin: 0; }
 .card3d .foot { width: 100%; text-align: center; font-size: 16px; padding: 0 12px 14px; line-height: 1.25; }
 .card3d .stars { color: #9b2c16; letter-spacing: .1em; }
@@ -448,7 +451,7 @@ table.review th { color: #5b1d10; }
   #scoreboard { font-size: .78em; padding: 4px 7px; min-width: 0; top: max(6px, env(safe-area-inset-top)); left: 6px; }
   #topbtns { top: max(6px, env(safe-area-inset-top)); right: 6px; gap: 4px; }
   #topbtns .iconbtn { width: 2.2em; height: 2.2em; }
-  #banner { top: auto; bottom: calc(118px + env(safe-area-inset-bottom)); max-width: 94vw; width: max-content; font-size: .82em; padding: 5px 10px; }
+  #banner { top: calc(104px + env(safe-area-inset-top)); bottom: auto; max-width: 94vw; width: max-content; font-size: .8em; padding: 4px 10px; }
   #actions { left: 6px; right: 6px; bottom: max(6px, env(safe-area-inset-bottom)); width: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
   #actions #selPreview { grid-column: 1 / -1; min-height: 0; padding: 4px 6px; font-size: .78em; }
   #actions .btn { padding: .45em .2em; font-size: .85em; }
@@ -1954,7 +1957,7 @@ class View {
     if (portrait) {
       // 直向：鏡頭較垂直，按寬度（約 1060 單位）計距離
       const tan = Math.tan(THREE.MathUtils.degToRad(20));
-      const d = Math.max(530 / (tan * aspect), 1080 / tan);
+      const d = Math.max(530 / (tan * aspect), 1170 / tan);        // 闊度同高度都要裝得落（矮身手機都唔會切頂）
       this.camera.position.set(0, 40 - d * 0.16, d * 0.987);
       this.camera.lookAt(0, 40, 0);
     } else {
@@ -1968,6 +1971,8 @@ class View {
     this.cssDirty = true;
     if (this.portrait !== portrait) {
       this.portrait = portrait;
+      document.body.classList.toggle('portrait', portrait);
+      if (this.objs.size) this.refreshAllFaces();     // 直向字體大咗，長式要重新斷行
       this.placeCircle();
       if (this.L && this.onOrientation) this.onOrientation();
     }
@@ -2077,7 +2082,7 @@ class View {
     this.scene.add(this.circleLight);
   }
   placeCircle() {                     // 直向時鍊成陣移去兩行目標卡中間
-    CIRCLE.y = this.portrait ? 470 : 40;
+    CIRCLE.y = this.portrait ? 510 : 40;
     if (!this.circleBase) return;
     this.circleBase.position.y = CIRCLE.y; this.circleGlow.position.y = CIRCLE.y; this.circleLight.position.y = CIRCLE.y;
   }
@@ -2221,7 +2226,7 @@ class View {
       const src = card.kind === 'target' ? card.poly.toTeX() : cardTeX(card);
       m.innerHTML = tex(src);
       // 太長就喺中間嘅 +/− 斷行（字體大小保持統一）
-      if (card.kind === 'target' && card.poly.t.size >= 4) {
+      if (card.kind === 'target' && card.poly.t.size >= (this.portrait ? 3 : 4)) {
         const ts = card.poly.terms(); const half = Math.ceil(ts.length / 2);
         const a = new Poly(ts.slice(0, half).map(x => [x.i + ',' + x.j, x.c])).toTeX();
         const bTerms = ts.slice(half); const b = new Poly(bTerms.map(x => [x.i + ',' + x.j, x.c])).toTeX();
@@ -2270,12 +2275,12 @@ class View {
     const four = nPlayers === 4;
     const L = {
       portrait: true,
-      table: (i) => ({ x: (i % 2 ? 1 : -1) * 108, y: i < 2 ? 640 : 330, z: 4, rx: 0.06, s: 0.95 }),
+      table: (i) => ({ x: (i % 2 ? 1 : -1) * 124, y: i < 2 ? 680 : 340, z: 4, rx: 0.06, s: 1.15 }),
       drawPile: { x: 395, y: 640, z: 6, ry: Math.PI, rx: 0.05, s: 0.55 },
       discard: { x: 395, y: 360, z: 6, rx: 0.05, s: 0.55 },
       targetDeck: { x: -395, y: 640, z: 6, ry: Math.PI, rx: 0.05, s: 0.55 },
       handCenter: { x: 0, y: -330, z: 90 },
-      stageTarget: { x: 0, y: 600, z: 190, rx: 0.2, s: 1.05 },
+      stageTarget: { x: 0, y: 640, z: 190, rx: 0.2, s: 1.2 },
       seats: [{ plate: { x: 0, y: -2000, z: 0 }, scored: { x: -395, y: 110, z: 8, s: 0.34 }, hand: null }],
     };
     const xs = four ? [-330, 0, 330] : [0];
@@ -2339,8 +2344,8 @@ class View {
       const sel = ui.selected.has(id) || ui.pick === id;
       const hov = this.hoverId === id && ui.interactive;
       if (L.portrait) {
-        const row = i < perRow ? 0 : 1, k = row ? n - perRow : perRow, j = row ? i - perRow : i, o2 = j - (k - 1) / 2, sp = Math.min(200, 1000 / Math.max(perRow, 1));
-        want.set(id, { x: o2 * sp, y: (n > 5 ? (row ? -560 : -270) : -360) + (sel ? 50 : 0), z: L.handCenter.z + row * 30 + j * 0.6 + (sel ? 80 : 0), rx: 0.3, rz: -o2 * 0.02, s: 0.92 * (sel ? 1.1 : 1), up: true });
+        const row = i < perRow ? 0 : 1, k = row ? n - perRow : perRow, j = row ? i - perRow : i, o2 = j - (k - 1) / 2, sp = Math.min(220, 880 / Math.max(perRow, 1));
+        want.set(id, { x: o2 * sp, y: (n > 5 ? (row ? -560 : -240) : -360) + (sel ? 50 : 0), z: L.handCenter.z + row * 30 + j * 0.6 + (sel ? 80 : 0), rx: 0.3, rz: -o2 * 0.015, s: (row ? 0.98 : 1.02) * (sel ? 1.08 : 1), up: true });
         return;
       }
       want.set(id, {
@@ -3017,7 +3022,7 @@ function openSettings() {
 let setupSel = { players: 2, difficulty: 'national', char: 'ed', rules: null };
 function applyLang() {
   LANG = state.lang || 'bi';
-  document.body.className = 'lang-' + LANG + (view.lowfx ? ' lowfx' : '');
+  document.body.className = 'lang-' + LANG + (view.lowfx ? ' lowfx' : '') + (view.portrait ? ' portrait' : '');
   document.documentElement.lang = LANG === 'en' ? 'en' : 'zh-Hant-HK';
   document.querySelectorAll('[data-t]').forEach(el => el.innerHTML = t(el.dataset.t));
   $('btnSynth').innerHTML = t('synth'); $('btnSwap').innerHTML = t('swap'); $('btnEnd').innerHTML = t('end'); $('btnConfirm').innerHTML = t('confirmDiscard');
