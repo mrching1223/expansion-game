@@ -435,7 +435,14 @@ table.review th { color: #5b1d10; }
 .rank-list svg { width: 1.8em; height: 1.8em; }
 .big-result { text-align: center; font-size: 1.6em; color: #6f1d10; font-weight: 700; margin: 4px 0; }
 .sync { text-align: center; font-size: .85em; color: var(--ink-soft); }
-#rotate-hint { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; text-align: center; padding: 30px; background: #120c07; color: var(--parch); font-size: 20px; line-height: 1.6; }
+#rotate-hint { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; gap: 18px; align-items: center; justify-content: center; text-align: center; padding: 30px; background: #120c07; color: var(--parch); font-size: 20px; line-height: 1.6; }
+#rotate-hint .phone { width: 64px; height: 110px; border: 4px solid var(--gold-hi); border-radius: 12px; animation: tilt 1.6s ease-in-out infinite; }
+#rotate-hint.to-landscape .phone { animation-name: tiltL; }
+@keyframes tilt { 0%, 30% { transform: rotate(90deg); } 70%, 100% { transform: rotate(0); } }
+@keyframes tiltL { 0%, 30% { transform: rotate(0); } 70%, 100% { transform: rotate(90deg); } }
+.cover-orient { display: flex; gap: 4px; background: rgba(20,12,6,.75); border: 1px solid var(--brass); border-radius: 999px; padding: 3px; font-size: .85em; }
+.cover-orient button { border: 0; background: transparent; color: var(--parch); padding: .35em .9em; border-radius: 999px; cursor: pointer; }
+.cover-orient button.on { background: rgba(212,165,72,.85); color: #23160a; font-weight: 700; }
 /* ---------- 手機直向 ---------- */
 @media (orientation: portrait) {
   #scoreboard { font-size: .78em; padding: 4px 7px; min-width: 0; top: max(6px, env(safe-area-inset-top)); left: 6px; }
@@ -529,6 +536,7 @@ table.review th { color: #5b1d10; }
   <div class="cover-title"><h1>因式鍊金術</h1><div class="en">FACTOR ALCHEMY</div><div class="cover-sub" id="coverSub"></div></div>
   <div id="coverStage" class="av-stage"></div>
   <div class="cover-lang" id="coverLang"><button data-v="zh">中文</button><button data-v="en">English</button><button data-v="bi">中英雙語</button></div>
+  <div class="cover-orient" id="coverOrient" hidden><button data-v="auto"></button><button data-v="portrait"></button><button data-v="landscape"></button></div>
   <button class="btn-start" id="btnCoverStart">▶ 開始 Start</button>
 </div>
 
@@ -592,6 +600,8 @@ table.review th { color: #5b1d10; }
     <div class="seg" id="segPlayers"><button data-v="2"></button><button data-v="4"></button></div>
     <h2 data-t="difficulty"></h2>
     <div class="choices" id="chDiff"></div>
+    <div id="orientBox"><h2 data-t="orient"></h2>
+    <div class="seg" id="segOrient"><button data-v="auto"></button><button data-v="portrait"></button><button data-v="landscape"></button></div></div>
     <h2 data-t="music"></h2>
     <div class="seg" id="segMusic"><button data-v="on"></button><button data-v="off"></button></div>
     <p class="notice" id="setupInfo"></p>
@@ -638,6 +648,7 @@ table.review th { color: #5b1d10; }
   <div class="sheet" id="reviewSheet"></div>
 </div>
 
+<div id="rotate-hint" hidden><div class="phone"></div><div id="rotateText"></div><button class="btn" id="btnOrientAuto"></button></div>
 <div id="fatal" hidden></div>
 
 <script type="module">
@@ -1267,6 +1278,10 @@ const STR = {
   next: ['下一步 ▶', 'Next ▶'], back: ['← 返回', '← Back'], done: ['完成', 'Done'], settings: ['設定', 'Settings'],
   pickAvatar: ['揀你嘅角色', 'Choose your character'], g_m: ['👦 男', '👦 Male'], g_f: ['👧 女', '👧 Female'],
   pickStage: ['揀關卡', 'Choose a stage'], bestShort: ['最佳 {s}', 'Best {s}'], changeAvatar: ['換角色', 'Change character'],
+  orient: ['畫面方向（手機／平板）', 'Screen orientation (phone / tablet)'],
+  o_auto: ['自動', 'Auto'], o_portrait: ['直向', 'Portrait'], o_landscape: ['橫向', 'Landscape'],
+  rotateToPortrait: ['請將手機打直', 'Please turn your phone upright'], rotateToLandscape: ['請將手機打橫', 'Please turn your phone sideways'],
+  rotateKeep: ['改用自動方向', 'Use auto orientation'],
   music: ['背景音樂', 'Music'], on: ['開', 'On'], off: ['關', 'Off'],
   musicOn: ['背景音樂：開', 'Music on'], musicOff: ['背景音樂：關', 'Music off'],
   tutStart: ['明白，開始！', "Got it, let's go!"],
@@ -1847,6 +1862,36 @@ const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const CIRCLE = { x: 0, y: 40, r: 300 };
 const isPortrait = () => window.innerHeight > window.innerWidth * 1.05;
+/* 畫面方向：自動（跟手機）／直向／橫向。網頁轉唔到部手機：Android 會試鎖定方向，iPhone 就提示學生轉機 */
+const Orient = {
+  pref: store.get('fa_orient_v1', 'auto'),
+  isTouch: /[?&]touch\b/.test(location.search) || (window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 1,
+  set(p) { this.pref = p; store.set('fa_orient_v1', p); this.apply(true); },
+  async apply(fromGesture) {
+    const el = document.getElementById('rotate-hint'); if (!el) return;
+    if (!this.isTouch || this.pref === 'auto') {
+      el.hidden = true;
+      try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { /* ignore */ }
+      return;
+    }
+    const want = this.pref;
+    if (fromGesture && (isPortrait() ? 'portrait' : 'landscape') !== want && screen.orientation && screen.orientation.lock) {
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+        await screen.orientation.lock(want);
+      } catch (e) { /* iPhone / 唔支援：顯示提示 */ }
+    }
+    const ok = (isPortrait() ? 'portrait' : 'landscape') === want;
+    el.hidden = ok;
+    el.classList.toggle('to-landscape', want === 'landscape');
+    document.getElementById('rotateText').innerHTML = t(want === 'portrait' ? 'rotateToPortrait' : 'rotateToLandscape');
+    document.getElementById('btnOrientAuto').innerHTML = t('rotateKeep');
+  },
+};
+const orientCheck = () => { Orient.apply(false); setTimeout(() => Orient.apply(false), 80); setTimeout(() => Orient.apply(false), 450); };
+window.addEventListener('resize', orientCheck);
+window.addEventListener('orientationchange', orientCheck);
+if (window.matchMedia) { const mq = matchMedia('(orientation: portrait)'); if (mq.addEventListener) mq.addEventListener('change', orientCheck); }
 
 class View {
   constructor() {
@@ -2781,7 +2826,7 @@ const par = (p) => (p.isMonomial() ? p.toTeX() : `(${p.toTeX()})`);
 
 /* ---------- 啟動 ---------- */
 function boot() {
-  if (/[?&]debug\b/.test(location.search)) window.__fa = { get game() { return game; }, ui, act, view, Sound, AI, snipeValid, showVerify, buildProof, resolveSynthesis, state, get student() { return student; }, get session() { return session; } };
+  if (/[?&]debug\b/.test(location.search)) window.__fa = { get game() { return game; }, ui, act, view, Sound, Orient, AI, snipeValid, showVerify, buildProof, resolveSynthesis, state, get student() { return student; }, get session() { return session; } };
   try { buildDeck(CFG); LEVELS.forEach(lv => buildDeck({ ...CFG, onlyLevel: lv })); }   // 啟動驗證：答案展開一致、因式 primitive、牌組足夠（包括每個關卡）
   catch (e) { $('fatal').hidden = false; $('fatal').textContent = '⚠ CONFIG 驗證失敗 Config validation failed\n\n' + e.message; throw e; }
   try { view.init(); } catch (e) { $('fatal').hidden = false; $('fatal').textContent = '⚠ 呢部裝置唔支援 WebGL：' + e.message; throw e; }
@@ -2800,6 +2845,7 @@ function boot() {
   ['pointerdown', 'keydown'].forEach(tp => window.addEventListener(tp, () => { lastActive = Date.now(); }, true));
   hubSync();
   // 已經有 mathverse-student（班別＋學號）就唔使再輸入
+  Orient.apply(false);
   showCover();                         // 封面 → （未有資料先登入）→ 揀角色 → 揀關卡
 }
 /* 開始遊戲時傳一次 start，之後每 60 秒 heartbeat（頁面可見而且 2 分鐘內有操作） */
@@ -2818,6 +2864,10 @@ function showCover() {
   $('coverSub').innerHTML = t('coverSub');
   setSeg('coverLang', LANG);
   $('btnCoverStart').innerHTML = '▶ ' + t('startBtn');
+  $('coverOrient').hidden = !Orient.isTouch;
+  const OI = { auto: '🔄 ', portrait: '▯ ', landscape: '▭ ' };
+  ['auto', 'portrait', 'landscape'].forEach((v, i) => { $('coverOrient').children[i].innerHTML = OI[v] + tp('o_' + v); });
+  setSeg('coverOrient', Orient.pref);
   avatarStage.setLineup(COVER_LINEUP); avatarStage.mount($('coverStage')); avatarStage.select(null);
 }
 
@@ -2956,6 +3006,9 @@ function openSettings() {
   $('segPlayers').onclick = (e) => { const b = e.target.closest('button'); if (b) { setupSel.players = Number(b.dataset.v); Sound.play('select'); mark(); } };
   $('chDiff').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.difficulty = c.dataset.v; Sound.play('select'); mark(); } };
   $('btnSettingsOk').innerHTML = t('done');
+  $('orientBox').hidden = !Orient.isTouch;
+  ['auto', 'portrait', 'landscape'].forEach((v, i) => { $('segOrient').children[i].innerHTML = ['🔄 ', '▯ ', '▭ '][i] + tp('o_' + v); });
+  setSeg('segOrient', Orient.pref);
   $('segMusic').children[0].innerHTML = t('on'); $('segMusic').children[1].innerHTML = t('off'); setSeg('segMusic', Sound.musicOn ? 'on' : 'off');
   mark(); $('modalSettings').hidden = false;
 }
@@ -3986,6 +4039,10 @@ function bindStatic() {
   };
   $('btnRules').onclick = () => showRules(false); $('btnRules2').onclick = () => showRules(false);
   $('btnMute').onclick = () => { Sound.ensure(); Sound.setMuted(!Sound.muted); updateMuteBtn(); };
+  const pickOrient = (e, segId) => { const b = e.target.closest('button'); if (!b) return; Sound.ensure(); Sound.play('select'); Orient.set(b.dataset.v); setSeg('coverOrient', Orient.pref); setSeg('segOrient', Orient.pref); };
+  $('coverOrient').onclick = (e) => pickOrient(e);
+  $('segOrient').onclick = (e) => pickOrient(e);
+  $('btnOrientAuto').onclick = () => { Orient.set('auto'); setSeg('coverOrient', 'auto'); setSeg('segOrient', 'auto'); };
   $('btnMusic').onclick = () => { Sound.ensure(); Sound.setMusic(!Sound.musicOn); updateMusicBtn(); toast(t(Sound.musicOn ? 'musicOn' : 'musicOff')); };
   $('segMusic').onclick = (e) => { const b = e.target.closest('button'); if (b) { Sound.ensure(); Sound.setMusic(b.dataset.v === 'on'); setSeg('segMusic', Sound.musicOn ? 'on' : 'off'); updateMusicBtn(); } };
   $('btnFx').onclick = () => { view.setLowFx(!view.lowfx); updateFxBtn(); toast(t(view.lowfx ? 'lowfxOn' : 'lowfxOff')); };
