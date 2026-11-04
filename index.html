@@ -387,6 +387,13 @@ body.lowfx #cutin .fig { filter: none; }
 @media (max-height: 520px) {
   .stage-card .st-vs { display: none; }
   .av-stage.big { height: 40vh; }
+  #screenCover { gap: .8vh; }
+  #screenCover .av-stage { height: 30vh; }
+  .cover-title h1 { font-size: 12vh; }
+  .cover-title .en { font-size: 2.6vh; }
+  .cover-sub, .cover-sins { display: none; }
+  .btn-start { font-size: 5.5vh; padding: .25em 2em; }
+  .cover-lang button { padding: .3em 1em; }
   #screenAvatar { gap: 1vh; }
   .av-title { font-size: 22px; }
   .av-card svg { width: 2.2em; height: 2.2em; }
@@ -452,7 +459,12 @@ table.review th { color: #5b1d10; }
 @keyframes tilt { 0%, 30% { transform: rotate(90deg); } 70%, 100% { transform: rotate(0); } }
 @keyframes tiltL { 0%, 30% { transform: rotate(0); } 70%, 100% { transform: rotate(90deg); } }
 .cover-orient { display: flex; gap: 4px; background: rgba(20,12,6,.75); border: 1px solid var(--brass); border-radius: 999px; padding: 3px; font-size: .85em; }
+.cover-orient button { white-space: nowrap; }
+@media (orientation: portrait) { .cover-orient { font-size: .76em; } .cover-orient button { padding: .35em .55em; } .ov-lbl { padding: 0 .3em 0 .5em; } }
 .cover-orient button { border: 0; background: transparent; color: var(--parch); padding: .35em .9em; border-radius: 999px; cursor: pointer; }
+.ov-lbl { align-self: center; padding: 0 .5em 0 .7em; color: var(--gold-hi); white-space: nowrap; }
+.voice-note { color: #ffcf8a; font-size: .8em; min-height: 0; text-align: center; }
+.voice-note:empty { display: none; }
 .cover-orient button.on { background: rgba(212,165,72,.85); color: #23160a; font-weight: 700; }
 /* ---------- 手機直向 ---------- */
 @media (orientation: portrait) {
@@ -555,6 +567,8 @@ table.review th { color: #5b1d10; }
   <div class="cover-title"><h1>因式鍊金術</h1><div class="en">FACTOR ALCHEMY</div><div class="cover-sub" id="coverSub"></div></div>
   <div id="coverStage" class="av-stage"></div>
   <div class="cover-lang" id="coverLang"><button data-v="zh">中文</button><button data-v="en">English</button><button data-v="bi">中英雙語</button></div>
+  <div class="cover-orient" id="coverVoice"><span class="ov-lbl"></span><button data-v="yue"></button><button data-v="cmn"></button><button data-v="en"></button><button data-v="off"></button></div>
+  <div class="voice-note" id="voiceNote"></div>
   <div class="cover-orient" id="coverOrient" hidden><button data-v="auto"></button><button data-v="portrait"></button><button data-v="landscape"></button></div>
   <button class="btn-start" id="btnCoverStart">▶ 開始 Start</button>
 </div>
@@ -619,6 +633,8 @@ table.review th { color: #5b1d10; }
     <div class="seg" id="segPlayers"><button data-v="2"></button><button data-v="4"></button></div>
     <h2 data-t="difficulty"></h2>
     <div class="choices" id="chDiff"></div>
+    <h2 data-t="voiceLbl"></h2>
+    <div class="seg" id="segVoice"><button data-v="yue"></button><button data-v="cmn"></button><button data-v="en"></button><button data-v="off"></button></div>
     <div id="orientBox"><h2 data-t="orient"></h2>
     <div class="seg" id="segOrient"><button data-v="auto"></button><button data-v="portrait"></button><button data-v="landscape"></button></div></div>
     <h2 data-t="music"></h2>
@@ -1297,6 +1313,8 @@ const STR = {
   next: ['下一步 ▶', 'Next ▶'], back: ['← 返回', '← Back'], done: ['完成', 'Done'], settings: ['設定', 'Settings'],
   pickAvatar: ['揀你嘅角色', 'Choose your character'], g_m: ['👦 男', '👦 Male'], g_f: ['👧 女', '👧 Female'],
   pickStage: ['揀關卡', 'Choose a stage'], bestShort: ['最佳 {s}', 'Best {s}'], changeAvatar: ['換角色', 'Change character'],
+  voiceLbl: ['語音', 'Voice'], v_yue: ['廣東話', 'Cantonese'], v_cmn: ['普通話', 'Mandarin'], v_en: ['English', 'English'], v_off: ['關', 'Off'],
+  voiceMissing: ['呢部裝置未有{v}語音，會用系統預設聲音讀出', 'This device has no {v} voice; the default voice will be used'],
   orient: ['畫面方向（手機／平板）', 'Screen orientation (phone / tablet)'],
   o_auto: ['自動', 'Auto'], o_portrait: ['直向', 'Portrait'], o_landscape: ['橫向', 'Landscape'],
   rotateToPortrait: ['請將手機打直', 'Please turn your phone upright'], rotateToLandscape: ['請將手機打橫', 'Please turn your phone sideways'],
@@ -1448,6 +1466,59 @@ const HERO_INFO = {
   giant:   { name: ['巨人', 'Giant'], line: ['再大嘅式，我都一手拆開！', 'No expression is too big for me to break!'], win: ['轟！拆晒！', 'BOOM! All broken down!'] },
   fighter: { name: ['格鬥家', 'Fighter'], line: ['一拳一個因式，拆到最簡為止！', 'One punch per factor until it is fully factorized!'], win: ['連續技完成！', 'Combo complete!'] },
 };
+/* 成功金句嘅普通話版本（廣東話用原文 win[0]、英文用 win[1]） */
+const WIN_MD = {
+  boy: '等價交換成立！', girl: '等價交換成立！',
+  gluttony: '嗝……還有沒有吃的？', lust: '乾淨利落，一分為二。', envy: '哈！你看不穿我的真面目！',
+  pride: '渺小的人類，終究不及我完美。', wrath: '一刀，就是答案。', greed: '又多一張！強欲永遠不會滿足！', sloth: '終於……可以睡覺了……',
+  ed: '等價交換成立！這個因式分解，完美！', al: '成功了！每個因式都在它應該在的位置。', roy: '一彈指，鍊成完畢。',
+  riza: '目標確認命中，分解完成。', armstrong: '看吧！代代相傳的完美分解術！', winry: '零件全部對上了，組裝完成！',
+  izumi: '基本功紮實，才有這個結果。', hughes: '太好了！這題我要拍下來給我女兒看！', olivier: '徹底分解，合格。',
+  scar: '構造已經分解完畢。', hohenheim: '結構早已寫在式子裏，只等你看穿。',
+  mage: '咒文完成，分解成功！', paladin: '正義一擊，分解完成！', priest: '祝福降臨，等價交換成立！',
+  archer: '正中紅心！', giant: '轟！全部拆開！', fighter: '連續技完成！',
+};
+/* 語音朗讀：用瀏覽器內置語音（廣東話／普通話／英文），唔使音檔 */
+const Voice = {
+  pref: store.get('fa_voice_v1', 'yue'),
+  LANG: { yue: ['zh-hk', 'yue'], cmn: ['zh-cn', 'zh-tw', 'cmn', 'zh'], en: ['en-gb', 'en-us', 'en'] },
+  SAMPLE: { yue: '等價交換成立！', cmn: '等價交換成立！', en: 'Equivalent Exchange complete!' },
+  ok() { return 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined'; },
+  voices() { try { return this.ok() ? speechSynthesis.getVoices() : []; } catch (e) { return []; } },
+  pick(pref) {
+    const vs = this.voices().map(v => ({ v, lang: String(v.lang || '').toLowerCase().replace('_', '-'), name: String(v.name || '') }));
+    if (pref === 'yue') {
+      const hit = vs.find(x => x.lang.startsWith('zh-hk') || x.lang.startsWith('yue') || /cantonese|粵|粤/i.test(x.name));
+      if (hit) return hit.v;
+    }
+    for (const code of this.LANG[pref] || []) { const hit = vs.find(x => x.lang.startsWith(code)); if (hit) return hit.v; }
+    return null;
+  },
+  // 裝置有冇呢種語音（語音清單未載入時當有）
+  has(pref) { const vs = this.voices(); return !vs.length || !!this.pick(pref); },
+  set(p) { this.pref = p; store.set('fa_voice_v1', p); if (p !== 'off') this.say(null, this.SAMPLE[p]); else this.stop(); },
+  stop() { try { if (this.ok()) speechSynthesis.cancel(); } catch (e) { /* ignore */ } },
+  unlock() { try { if (this.ok() && !this.unlocked) { this.unlocked = true; speechSynthesis.speak(new SpeechSynthesisUtterance('')); } } catch (e) { /* ignore */ } },
+  textFor(key) {
+    const c = CHARACTERS[key]; if (!c || !c.win) return '';
+    const mdKey = key === 'hero' ? (state.avatar ? state.avatar.cls : 'mage') : key;
+    return this.pref === 'en' ? c.win[1] : this.pref === 'cmn' ? (WIN_MD[mdKey] || c.win[0]) : c.win[0];
+  },
+  say(key, text) {
+    if (!this.ok() || this.pref === 'off' || Sound.muted) return;
+    const words = text || this.textFor(key); if (!words) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(words.replace(/[「」…]/g, ' '));
+      u.lang = { yue: 'zh-HK', cmn: 'zh-CN', en: 'en-GB' }[this.pref];
+      const v = this.pick(this.pref);
+      if (v) { try { u.voice = v; u.lang = v.lang; } catch (e) { /* 用 lang 就夠 */ } }
+      u.rate = this.pref === 'en' ? 1 : 0.95; u.pitch = 1.05; u.volume = 1;
+      speechSynthesis.speak(u);
+    } catch (e) { /* ignore */ }
+  },
+};
+if (Voice.ok()) try { speechSynthesis.onvoiceschanged = () => { if (typeof updateVoiceNote === 'function') updateVoiceNote(); }; } catch (e) { /* ignore */ }
 function setHero() {             // 將揀咗嘅職業登記做玩家角色 'hero'
   const a = state.avatar || { cls: 'mage', g: 'm' }, h = HERO_INFO[a.cls], st = HERO_STYLE[a.cls];
   CHARACTERS.hero = { zh: h.name[0], en: h.name[1], color: '#' + st.coat.toString(16).padStart(6, '0'), sides: 6, line: h.line, win: h.win };
@@ -1751,7 +1822,7 @@ const Sound = {
   tickMusic() {
     const ctx = this.ctx; if (!ctx || ctx.state !== 'running' || !this.musicOn) return;
     if (this.mNext < ctx.currentTime - 0.2) this.mNext = ctx.currentTime + 0.05;   // 分頁返嚟：唔好一次過補晒
-    while (this.mNext < ctx.currentTime + 0.5) { this.musicStep(this.mStep, this.mNext); this.mNext += 0.42; this.mStep++; }
+    while (this.mNext < ctx.currentTime + 0.5) { this.musicStep(this.mStep, this.mNext); this.mNext += 0.21; this.mStep++; }
   },
   mNote(semi, t, dur, { type = 'triangle', vol = 0.03, attack = 0.02, cutoff = 2400 } = {}) {
     const ctx = this.ctx, o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
@@ -1760,14 +1831,29 @@ const Sound = {
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(f); f.connect(g); g.connect(this.musicGain); o.start(t); o.stop(t + dur + 0.05);
   },
+  /* 緊張氣氛：約 143 BPM，低音持續音型 + 定音鼓心跳 + 高音顫音（A 小調：Am → B♭ → Am → E） */
   musicStep(step, t) {
-    const CH = [[0, 3, 7], [-4, 0, 3], [5, 8, 12], [7, 11, 14]];     // Am、F、Dm、E（E 大三和弦帶出 G#，有神秘感）
-    const bar = Math.floor(step / 8), chord = CH[Math.floor(bar / 2) % 4], pos = step % 8;
-    if (step % 16 === 0) chord.forEach(n => { this.mNote(n + 12, t, 6.9, { vol: 0.022, attack: 1.4, cutoff: 900 }); this.mNote(n + 12.08, t, 6.9, { type: 'sawtooth', vol: 0.006, attack: 1.6, cutoff: 700 }); });
-    if (pos === 0) this.mNote(chord[0] - 12, t, 3.2, { type: 'sine', vol: 0.07, attack: 0.05 });
-    const pat = [0, 1, 2, 1, 3, 2, 1, 2], idx = pat[pos], semi = idx === 3 ? chord[0] + 12 : chord[idx];
-    this.mNote(semi + 24, t, 0.9, { type: 'sine', vol: pos % 2 ? 0.02 : 0.03, attack: 0.01 });
-    if (pos === 6 && bar % 4 === 3) this.mNote(chord[2] + 36, t, 2.2, { type: 'sine', vol: 0.012, attack: 0.02 });   // 小鐘聲
+    const CH = [[0, 3, 7], [1, 5, 8], [0, 3, 7], [7, 11, 14]];
+    const bar = Math.floor(step / 16), chord = CH[bar % 4], pos = step % 16, root = chord[0];
+    if (pos === 0) chord.forEach(n => this.mNote(n + 12, t, 3.3, { type: 'sawtooth', vol: 0.009, attack: 0.6, cutoff: 650 }));   // 暗沉和弦墊底
+    const bass = [0, 0, 12, 0, 0, 0, 10, 0, 0, 0, 12, 0, 13, 0, 12, 7][pos];                                                  // 急速低音持續音型
+    this.mNote(root + bass - 12, t, 0.16, { type: 'square', vol: pos % 4 === 0 ? 0.05 : 0.032, attack: 0.005, cutoff: 520 });
+    if (pos === 0 || pos === 6 || pos === 8 || pos === 14) this.mKick(t, pos === 0 ? 0.16 : 0.11);                             // 定音鼓／心跳
+    if (pos === 4 || pos === 12) this.mHit(t, 0.05);                                                                            // 小鼓
+    if (pos % 2 === 1) this.mNote(chord[(pos >> 1) % 3] + 36, t, 0.12, { type: 'triangle', vol: 0.011, attack: 0.004 });       // 高音顫音
+    if (bar % 4 === 3 && pos === 0) this.mNote(root + 12, t, 3.3, { type: 'sawtooth', vol: 0.012, attack: 3.0, cutoff: 1800 }); // 每四小節一下推高張力
+  },
+  mKick(t, vol) {
+    const ctx = this.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.25);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    o.connect(g); g.connect(this.musicGain); o.start(t); o.stop(t + 0.4);
+  },
+  mHit(t, vol) {
+    const ctx = this.ctx, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = this.noiseBuf; f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 0.8;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    src.connect(f); f.connect(g); g.connect(this.musicGain); src.start(t, Math.random() * 0.5); src.stop(t + 0.15);
   },
   tone(f, dur, { type = 'sine', vol = 0.3, at = 0, to = null, attack = 0.01 } = {}) {
     if (!this.ctx || this.muted) return;
@@ -2880,7 +2966,7 @@ const par = (p) => (p.isMonomial() ? p.toTeX() : `(${p.toTeX()})`);
 
 /* ---------- 啟動 ---------- */
 function boot() {
-  if (/[?&]debug\b/.test(location.search)) window.__fa = { get game() { return game; }, ui, act, view, Sound, Orient, AI, snipeValid, showVerify, buildProof, resolveSynthesis, state, get student() { return student; }, get session() { return session; } };
+  if (/[?&]debug\b/.test(location.search)) window.__fa = { get game() { return game; }, ui, act, view, Sound, Orient, Voice, AI, snipeValid, showVerify, buildProof, resolveSynthesis, state, get student() { return student; }, get session() { return session; } };
   try { buildDeck(CFG); LEVELS.forEach(lv => buildDeck({ ...CFG, onlyLevel: lv })); }   // 啟動驗證：答案展開一致、因式 primitive、牌組足夠（包括每個關卡）
   catch (e) { $('fatal').hidden = false; $('fatal').textContent = '⚠ CONFIG 驗證失敗 Config validation failed\n\n' + e.message; throw e; }
   try { view.init(); } catch (e) { $('fatal').hidden = false; $('fatal').textContent = '⚠ 呢部裝置唔支援 WebGL：' + e.message; throw e; }
@@ -2890,7 +2976,7 @@ function boot() {
   view.onHover = () => { if (game && ui.interactive) view.layout(game, ui, 140); };
   bindStatic();
   // 第一次撳畫面就開聲（iOS 要 touchend / click）
-  const unlock = () => { Sound.ensure(); if (Sound.ctx && Sound.ctx.state === 'running') ['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => window.removeEventListener(ev, unlock, true)); };
+  const unlock = () => { Sound.ensure(); Voice.unlock(); if (Sound.ctx && Sound.ctx.state === 'running') ['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => window.removeEventListener(ev, unlock, true)); };
   ['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => window.addEventListener(ev, unlock, true));
   document.addEventListener('visibilitychange', () => {
     if (!Sound.ctx) return;
@@ -2918,6 +3004,7 @@ function showCover() {
   $('coverSub').innerHTML = t('coverSub');
   setSeg('coverLang', LANG);
   $('btnCoverStart').innerHTML = '▶ ' + t('startBtn');
+  renderVoiceSeg('coverVoice'); updateVoiceNote();
   $('coverOrient').hidden = !Orient.isTouch;
   const OI = { auto: '🔄 ', portrait: '▯ ', landscape: '▭ ' };
   ['auto', 'portrait', 'landscape'].forEach((v, i) => { $('coverOrient').children[i].innerHTML = OI[v] + tp('o_' + v); });
@@ -3060,6 +3147,7 @@ function openSettings() {
   $('segPlayers').onclick = (e) => { const b = e.target.closest('button'); if (b) { setupSel.players = Number(b.dataset.v); Sound.play('select'); mark(); } };
   $('chDiff').onclick = (e) => { const c = e.target.closest('.choice'); if (c) { setupSel.difficulty = c.dataset.v; Sound.play('select'); mark(); } };
   $('btnSettingsOk').innerHTML = t('done');
+  renderVoiceSeg('segVoice');
   $('orientBox').hidden = !Orient.isTouch;
   ['auto', 'portrait', 'landscape'].forEach((v, i) => { $('segOrient').children[i].innerHTML = ['🔄 ', '▯ ', '▭ '][i] + tp('o_' + v); });
   setSeg('segOrient', Orient.pref);
@@ -3611,7 +3699,7 @@ async function resolveSynthesis(pi, targetId, cardIds) {
       ui.staged = null; undim(); view.setGlow(0);
       Sound.play('success'); view.successFx();
       banner(ans.attempt >= 3 ? t('thirdNote') : ans.fixed ? t('fixedNote') : t('correctPractice'));
-      const lay = relayout(620);
+      const lay = relayout(620); lay.catch(() => {});
       renderScoreboard();
       await cutIn(pi, target, ans);
       await lay;
@@ -3642,7 +3730,7 @@ async function resolveSynthesis(pi, targetId, cardIds) {
     ui.staged = null; undim(); view.setGlow(0);
     Sound.play('success'); view.successFx();
     banner(t('scored', { name: nameOf(pi), p: CFG.points[target.stars] }));
-    const lay = relayout(620);
+    const lay = relayout(620); lay.catch(() => {});
     renderScoreboard();
     await cutIn(pi, target, ans);
     await lay;
@@ -3675,7 +3763,7 @@ async function resolveSynthesis(pi, targetId, cardIds) {
     if (react.pi === 0) session.stats.snipe++;
     Sound.play('snipe'); view.successFx(0xffc46b);
     banner(t('snipedBy', { name: nameOf(react.pi) }));
-    const lay = relayout(620);
+    const lay = relayout(620); lay.catch(() => {});
     renderScoreboard();
     await cutIn(react.pi, target);
     await lay;
@@ -3769,6 +3857,7 @@ function cutIn(pi, target, ans) {
     <div class="flash"></div>`;
   el.hidden = false;
   Sound.play('cutin');
+  Voice.say(p.isHuman && session.partner ? session.partner : p.char);      // 朗讀成功金句
   return abortable(new Promise(res => {
     let done = false;
     const end = () => {
@@ -4019,6 +4108,16 @@ function confirmBox(html) {
 }
 
 /* ---------- 靜態按鈕 ---------- */
+function renderVoiceSeg(id) {
+  const lbl = { yue: '廣東話', cmn: '普通話', en: 'English', off: '🔇 ' + tp('v_off') };
+  $(id).querySelectorAll('button').forEach(b => { b.innerHTML = lbl[b.dataset.v]; });
+  const head = $(id).querySelector('.ov-lbl'); if (head) head.innerHTML = '🗣 ' + tp('voiceLbl');
+  setSeg(id, Voice.pref);
+}
+function updateVoiceNote() {
+  const el = $('voiceNote'); if (!el) return;
+  el.innerHTML = Voice.pref !== 'off' && Voice.ok() && !Voice.has(Voice.pref) ? t('voiceMissing', { v: tp('v_' + Voice.pref) }) : '';
+}
 function updateMusicBtn() { $('btnMusic').classList.toggle('off', !Sound.musicOn); $('btnMusic').querySelector('.x').style.display = Sound.musicOn ? 'none' : ''; }
 function updateMuteBtn() { $('btnMute').classList.toggle('off', Sound.muted); $('btnMute').querySelector('.x').style.display = Sound.muted ? '' : 'none'; $('btnMute').querySelectorAll('.w1,.w2').forEach(p => p.style.display = Sound.muted ? 'none' : ''); }
 function updateFxBtn() { $('btnFx').classList.toggle('on', view.lowfx); $('btnFx').title = view.lowfx ? 'Simplified FX: ON' : 'Simplified FX: OFF'; }
@@ -4092,8 +4191,11 @@ function bindStatic() {
     act({ type: 'skill' });
   };
   $('btnRules').onclick = () => showRules(false); $('btnRules2').onclick = () => showRules(false);
-  $('btnMute').onclick = () => { Sound.ensure(); Sound.setMuted(!Sound.muted); updateMuteBtn(); };
+  $('btnMute').onclick = () => { Sound.ensure(); Sound.setMuted(!Sound.muted); if (Sound.muted) Voice.stop(); updateMuteBtn(); };
   const pickOrient = (e, segId) => { const b = e.target.closest('button'); if (!b) return; Sound.ensure(); Sound.play('select'); Orient.set(b.dataset.v); setSeg('coverOrient', Orient.pref); setSeg('segOrient', Orient.pref); };
+  const pickVoice = (e) => { const b = e.target.closest('button'); if (!b) return; Sound.ensure(); Voice.set(b.dataset.v); setSeg('coverVoice', Voice.pref); setSeg('segVoice', Voice.pref); updateVoiceNote(); };
+  $('coverVoice').onclick = pickVoice;
+  $('segVoice').onclick = pickVoice;
   $('coverOrient').onclick = (e) => pickOrient(e);
   $('segOrient').onclick = (e) => pickOrient(e);
   $('btnOrientAuto').onclick = () => { Orient.set('auto'); setSeg('coverOrient', 'auto'); setSeg('segOrient', 'auto'); };

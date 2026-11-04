@@ -14,7 +14,7 @@
 | `netlify.toml` | Netlify 設定（publish 根目錄，冇 build command）。 |
 | `2ab-bomb-squad/index.html` | 之前放喺根目錄嘅《2ab 拆彈小隊》，搬咗入子資料夾，網址係 `/2ab-bomb-squad/`。 |
 
-背景音樂同音效都係 WebAudio 即場合成（A 小調神秘鍊金曲，右上角 🎵 可以單獨關音樂，🔊 係全部靜音；iPhone 靜音掣開咗都照播，Safari 17+）。
+背景音樂同音效都係 WebAudio 即場合成（緊張氣氛戰鬥曲，右上角 🎵 可以單獨關音樂，🔊 係全部靜音；iPhone 靜音掣開咗都照播，Safari 17+）。
 
 外部資源只用 CDN：Three.js 0.160.0（WebGL + `CSS3DRenderer`）、KaTeX 0.16.11、Google Fonts（Noto Serif TC、EB Garamond）。冇用 Firebase，冇外部音檔（音效全部用 WebAudio 即場合成）。
 
@@ -142,6 +142,10 @@
 | （4 人局額外對手） | 強欲、懶惰 | 六角硬殼利齒怪、瞓唔醒嘅巨人 |
 
 每隻頭目都有原創出場同勝利對白。
+
+## 語音朗讀
+
+封面同「⚙ 設定」可以揀語音：廣東話／普通話／English／關（預設廣東話）。每次成功鍊成，會用瀏覽器內置語音朗讀角色嘅成功金句（廣東話讀原文、普通話讀書面語版本、英文讀英文版）。冇音檔；如果部裝置冇該語言嘅語音，封面會提示，並用系統預設聲音。🔊 靜音時唔會朗讀。
 
 ## 夥伴、合成獸圖鑑同進化（參考 Pokémon：收集、夥伴、成長）
 
