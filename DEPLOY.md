@@ -9,7 +9,7 @@
 
 ## 第 0 步：學生記錄（已經設定好）
 
-成績記錄沿用「數學小島物語」嘅 Apps Script 同 Google Sheet，唔使另外設定。部署前可以順手檢查 `CONFIG` 嘅 `classes`（班別）、`defaultRules`（預設玩法）、`badgePass`（得徽章要第一次答對幾多題）。
+成績記錄寫入因式鍊金術專用嘅 Google Sheet（Apps Script：`factor-alchemy-logger.gs`，網址已填入 `index.html` 嘅 `SHEET_ENDPOINT`）。部署前可以順手檢查 `CONFIG` 嘅 `classes`（班別）、`defaultRules`（預設玩法）、`badgePass`（得徽章要第一次答對幾多題）。
 
 ---
 
@@ -54,6 +54,6 @@
 | 情況 | 原因 / 解決 |
 | --- | --- |
 | 一片黑 / 卡住 | 學校網絡封鎖 `cdn.jsdelivr.net` 或 `fonts.googleapis.com`，請 IT 開放。 |
-| Google Sheet 冇記錄 | 確認學生填咗班別同學號；喺 claude.ai 預覽入面唔會傳送，要用 Netlify 網址測試。 |
+| Google Sheet 冇記錄 | 打開 `SHEET_ENDPOINT` 網址，確認見到「Factor Alchemy logger is running」；確認學生填咗班別同學號；喺 claude.ai 預覽入面唔會傳送，要用 Netlify 網址測試。 |
 | 改咗 `CONFIG` 學生見唔到 | 重新部署；`netlify.toml` 已設定 `index.html` 唔快取，學生重新載入就得。 |
 | 畫面報「CONFIG 驗證失敗」 | 新加嘅目標卡標準答案錯，或者因式唔係 primitive，按畫面提示改返。 |
