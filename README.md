@@ -166,6 +166,10 @@
 - **進化**：答對之後，目標式會一步步「進化」成最簡因式，例如 5x² − 20 → 5(x² − 4) → 5[x² − 2²] → 5(x + 2)(x − 2)，再收錄入圖鑑。撳一下可以跳過。
 - 設定喺 `CONFIG.partnerLevelUses / partnerTypeBonus / notebookUnlock`；資料存喺 `factor-alchemy-v1`（`partners`、`shiny`、`dex`），唔會改動成績記錄嘅事件同欄位。
 
+## 專用成績試算表（可選）
+
+`factor-alchemy-logger.gs` 係因式鍊金術專用嘅 Apps Script：開一份新 Google Sheet → 擴充功能 → Apps Script → 貼入 → 部署為網頁應用程式（執行身分：我；存取權：所有人），再將新 `/exec` 網址貼入 `index.html` 嘅 `SHEET_ENDPOINT`。會自動建立「學生總覽 Summary」（四個關卡最佳成績、遊玩分鐘）、「答題紀錄 Events」同「關卡結果 Stages」三個分頁。紀錄格式同數學小島物語一樣，遊戲唔使改其他嘢。
+
 ## 學生記錄（同數學小島物語一樣）
 
 - 學生資料：`localStorage['mathverse-student']`（`{cls, no, name}`），所有 mathverse 遊戲共用；已有資料會自動填好，唔使再輸入。班別同學號必填，姓名選填。
