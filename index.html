@@ -1522,19 +1522,33 @@ const Voice = {
     if (gender) { const want = gender === 'f' ? VOICE_FEMALE : VOICE_MALE, hit = list.find(x => want.test(x.name)); if (hit) return hit.v; }
     return list[0].v;
   },
-  has(pref) { const vs = this.voices(); return !vs.length || !!this.pick(pref); },
+  has(pref) { if (pref === 'cmn' && this.clips && this.clips.size) return true; const vs = this.voices(); return !vs.length || !!this.pick(pref); },
   set(p) { this.pref = p; store.set('fa_voice_v1', p); if (p !== 'off') this.say(null, this.SAMPLE[p]); else this.stop(); },
-  stop() { try { if (this.ok()) speechSynthesis.cancel(); } catch (e) { /* ignore */ } },
+  stop() { try { if (this.ok()) speechSynthesis.cancel(); } catch (e) { /* ignore */ } Sound.stopClip(); },
   unlock() { try { if (this.ok() && !this.unlocked) { this.unlocked = true; speechSynthesis.speak(new SpeechSynthesisUtterance('')); } } catch (e) { /* ignore */ } },
   textFor(key) {
     const c = CHARACTERS[key]; if (!c || !c.win) return '';
     const mdKey = key === 'hero' ? (state.avatar ? state.avatar.cls : 'mage') : key;
     return this.pref === 'en' ? c.win[1] : this.pref === 'cmn' ? (WIN_MD[mdKey] || c.win[0]) : c.win[0];
   },
+  /* 內置普通話錄音：voice/cmn/manifest.json 列出有錄音嘅角色；冇就用裝置語音 */
+  clips: null,
+  loadClips() {
+    fetch('voice/cmn/manifest.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null))
+      .then(m => { this.clips = m && Array.isArray(m.keys) ? new Set(m.keys) : null; }).catch(() => { this.clips = null; });
+  },
   say(key, text) {
-    if (!this.ok() || this.pref === 'off' || Sound.muted) return;
-    const words = text || this.textFor(key); if (!words) return;
+    if (this.pref === 'off' || Sound.muted) return;
     const st = VOICE_STYLE[key] || { pitch: 1.05, rate: 1 };
+    const clipKey = text ? (text === this.SAMPLE.cmn ? 'sample' : null) : key;
+    if (this.pref === 'cmn' && this.clips && clipKey && this.clips.has(clipKey)) {
+      this.stop(); this.token = (this.token || 0) + 1;
+      if (st.monster) Sound.play(st.monster);
+      Sound.playClip('voice/cmn/' + clipKey + '.mp3', st, st.monster ? 0.28 : 0);
+      return;
+    }
+    if (!this.ok()) return;
+    const words = text || this.textFor(key); if (!words) return;
     if (st.monster) Sound.play(st.monster);                 // 魔怪：先嚟一下咆哮／嘶聲／怪笑
     const pref = this.pref, token = (this.token = (this.token || 0) + 1);
     this.load().then(() => {
@@ -1841,6 +1855,37 @@ const Sound = {
     } catch (e) { return false; }
   },
   setMuted(m) { this.muted = m; store.set(KEYS.mute, m); if (this.master) this.master.gain.value = m ? 0 : 0.55; },
+  /* 播放內置語音：按角色調音高／語速；魔怪加低通 + 失真 + 回聲 */
+  clipCache: new Map(),
+  async playClip(url, st, delay = 0) {
+    if (!this.ensure()) return;
+    const ctx = this.ctx, my = (this.clipToken = (this.clipToken || 0) + 1);
+    try {
+      let buf = this.clipCache.get(url);
+      if (!buf) {
+        const ab = await (await fetch(url)).arrayBuffer();
+        buf = await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej));
+        this.clipCache.set(url, buf);
+      }
+      if (my !== this.clipToken) return;
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      src.playbackRate.value = Math.min(1.6, Math.max(0.55, Math.pow(st.pitch || 1, 0.45)));   // 魔怪低沉、溫莉清脆
+      const out = ctx.createGain(); out.gain.value = 1.6;
+      let node = src;
+      if (st.monster) {
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = st.monster === 'cackle' ? 5000 : 1600;
+        const ws = ctx.createWaveShaper(), curve = new Float32Array(1024);
+        for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(x * 2.2); }
+        ws.curve = curve;
+        const dl = ctx.createDelay(); dl.delayTime.value = 0.09; const fb = ctx.createGain(); fb.gain.value = 0.32;
+        node.connect(lp); lp.connect(ws); ws.connect(out); ws.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(out);
+      } else node.connect(out);
+      out.connect(this.master);
+      src.start(ctx.currentTime + delay);
+      this.clipSrc = src;
+    } catch (e) { /* 冇錄音檔就算 */ }
+  },
+  stopClip() { this.clipToken = (this.clipToken || 0) + 1; try { if (this.clipSrc) this.clipSrc.stop(); } catch (e) { /* ignore */ } this.clipSrc = null; },
   setMusic(on) {
     this.musicOn = on; store.set(KEYS.music, on);
     if (this.musicGain) this.musicGain.gain.setTargetAtTime(on ? 1 : 0, this.ctx.currentTime, 0.3);
@@ -3033,6 +3078,7 @@ function boot() {
   hubSync();
   // 已經有 mathverse-student（班別＋學號）就唔使再輸入
   Orient.apply(false);
+  Voice.loadClips();
   showCover();                         // 封面 → （未有資料先登入）→ 揀角色 → 揀關卡
 }
 /* 開始遊戲時傳一次 start，之後每 60 秒 heartbeat（頁面可見而且 2 分鐘內有操作） */
