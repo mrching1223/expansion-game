@@ -1,0 +1,2075 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>幾何陀螺對戰 Geometry Spin Battle</title>
+<!--
+  ======================================================================
+  幾何陀螺對戰 Geometry Spin Battle
+  教學主題：與直線圖形相關的角
+    (1) 三角形內角和   (2) 三角形外角   (3) 等腰三角形底角
+    (4) 多邊形內角和   (5) 多邊形外角和 （另加平行線與截線、等邊三角形、綜合題）
+  ※ 按要求：所有涉及「比 / 比例」、相似三角形的題目已全部剔除。
+  技術：HTML5 Canvas + Three.js r128（3D）、Web Speech API（語音）、
+        Web Audio API（合成音效）、Fetch API → Google Apps Script（成績記錄）
+  使用方法：把下面 CONFIG.GAS_URL 換成你部署好的 Apps Script Web App 網址即可。
+  ======================================================================
+-->
+<style>
+  /* ---------- 全局色彩與字體 ---------- */
+  :root {
+    --bg: #050b18;
+    --panel: rgba(9, 20, 42, 0.94);
+    --panel-2: rgba(16, 34, 66, 0.9);
+    --line: #26457a;
+    --cyan: #5fe3ff;
+    --gold: #ffd34d;
+    --pink: #ff6fae;
+    --green: #4dff9a;
+    --red: #ff5a6a;
+    --text: #eaf4ff;
+    --muted: #9fb6d6;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", system-ui, sans-serif;
+  }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hidden { display: none !important; }
+
+  /* ---------- 雙語顯示：.lz = 中文，.le = 英文 ---------- */
+  .le { display: block; font-size: .8em; opacity: .78; margin-top: 2px; }
+  .btn .le, .pill .le, .tag .le, .inline .le { display: inline; margin: 0 0 0 .35em; }
+
+  /* ---------- 開場畫面（語言 / 語音 / 登記） ---------- */
+  .screen {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    align-items: center; justify-content: center; padding: 16px;
+    background: radial-gradient(circle at 50% 25%, rgba(47, 140, 255, .22), transparent 60%), rgba(3, 7, 16, .82);
+    backdrop-filter: blur(5px);
+  }
+  .screen.show { display: flex; }
+  .card {
+    width: 100%; max-width: 540px; max-height: 92vh; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+    padding: 26px 24px; box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 1px rgba(255,255,255,.06);
+    animation: pop .35s cubic-bezier(.2,.9,.3,1.2) both;
+  }
+  @keyframes pop { from { transform: scale(.92) translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .logo { text-align: center; margin-bottom: 14px; }
+  .logo .spin-icon {
+    width: 74px; height: 74px; margin: 0 auto 8px; border-radius: 50%;
+    background: conic-gradient(var(--cyan), var(--pink), var(--gold), var(--green), var(--cyan));
+    animation: spin 1.2s linear infinite; position: relative;
+    box-shadow: 0 0 30px rgba(95,227,255,.5);
+  }
+  .logo .spin-icon::after {
+    content: "∠"; position: absolute; inset: 12px; border-radius: 50%; background: #0b1a33;
+    display: grid; place-items: center; font-size: 28px; font-weight: 900; color: var(--gold);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  h1 { margin: 0; font-size: 26px; letter-spacing: 1px; }
+  h2 { margin: 0 0 14px; font-size: 20px; text-align: center; }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .opt-grid { display: grid; gap: 12px; margin-top: 16px; }
+  .opt {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 14px 16px; border-radius: 14px; cursor: pointer; text-align: left;
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    font-size: 17px; font-family: inherit; transition: transform .12s, border-color .12s, background .12s;
+  }
+  .opt:hover { transform: translateY(-2px); border-color: var(--cyan); }
+  .opt.selected { border-color: var(--gold); background: rgba(255, 211, 77, .12); }
+  .opt .ico { font-size: 24px; width: 32px; text-align: center; }
+  .opt .grow { flex: 1; }
+  .mini-btn {
+    padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: transparent; color: var(--cyan); cursor: pointer; font-family: inherit; font-size: 14px;
+  }
+  .note { font-size: 13px; color: var(--gold); margin-top: 10px; line-height: 1.5; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 13px 22px; border-radius: 14px; border: 0; cursor: pointer;
+    font-size: 17px; font-weight: 700; font-family: inherit; color: #04122a;
+    background: linear-gradient(135deg, var(--cyan), #2f8cff);
+    box-shadow: 0 8px 22px rgba(47, 140, 255, .35); transition: transform .12s, filter .12s;
+  }
+  .btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+  .btn:active { transform: translateY(1px); }
+  .btn.gold { background: linear-gradient(135deg, #ffe58a, var(--gold) 50%, #f0a020); }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); box-shadow: none; }
+  .btn.block { width: 100%; margin-top: 18px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  label.field { display: block; margin-top: 14px; font-size: 15px; color: var(--muted); }
+  label.field input {
+    display: block; width: 100%; margin-top: 6px; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--line); background: #071328; color: var(--text); font-size: 18px; font-family: inherit;
+  }
+  label.field input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(95,227,255,.2); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .swatches { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+  .swatch {
+    width: 46px; height: 46px; border-radius: 50%; cursor: pointer; border: 3px solid transparent;
+    box-shadow: inset 0 0 0 4px rgba(0,0,0,.25);
+  }
+  .swatch.selected { border-color: #fff; transform: scale(1.1); }
+  .err { color: var(--red); font-size: 14px; margin-top: 10px; min-height: 1em; }
+
+  /* ---------- 遊戲 HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+  .topbar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pill {
+    pointer-events: auto; padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 700;
+    background: rgba(6, 16, 34, .78); border: 1px solid var(--line); backdrop-filter: blur(4px);
+  }
+  .pill b { color: var(--gold); }
+  .spacer { flex: 1; }
+  .icon-btn {
+    pointer-events: auto; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px;
+    background: rgba(6, 16, 34, .78); border: 1px solid var(--line); color: var(--text);
+  }
+  .icon-btn.off { opacity: .45; }
+  #rpmBars {
+    position: absolute; left: 10px; right: 10px; bottom: 12px; display: flex; gap: 10px; justify-content: space-between;
+  }
+  .rpm-card {
+    width: min(46%, 300px); padding: 10px 12px; border-radius: 14px;
+    background: rgba(6, 16, 34, .82); border: 1px solid var(--line);
+  }
+  .rpm-card .who .le { display: inline; margin-left: .3em; }
+  .rpm-card .who { font-size: 13px; font-weight: 700; display: flex; justify-content: space-between; gap: 6px; }
+  .rpm-card .bar { height: 12px; border-radius: 999px; background: #0c1d3b; margin: 7px 0 5px; overflow: hidden; }
+  .rpm-card .bar i { display: block; height: 100%; width: 0; border-radius: 999px; transition: width .1s linear; }
+  .rpm-card.me .bar i { background: linear-gradient(90deg, #2f8cff, var(--cyan)); }
+  .rpm-card.cpu .bar i { background: linear-gradient(90deg, #ff8a3d, var(--red)); }
+  .rpm-num { font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .shield-tag { font-size: 12px; color: var(--cyan); }
+  #btnDash {
+    pointer-events: auto; position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
+    width: 92px; height: 92px; border-radius: 50%; border: 3px solid #fff3; cursor: pointer;
+    font-size: 16px; font-weight: 900; color: #fff; font-family: inherit;
+    background: radial-gradient(circle at 40% 35%, #ffd34d, #ff6a3d 55%, #b0122b);
+    box-shadow: 0 0 26px rgba(255, 120, 60, .6);
+  }
+  #btnDash .le { display: block; font-size: 11px; }
+  #btnDash.cooling { filter: grayscale(.8) brightness(.7); }
+  #centerMsg {
+    position: absolute; left: 0; right: 0; top: 34%; text-align: center; font-size: 64px; font-weight: 900;
+    color: #fff; text-shadow: 0 0 24px rgba(95,227,255,.9), 0 4px 0 #0a2a55; pointer-events: none;
+  }
+  #centerMsg.small { font-size: 30px; }
+  #toast {
+    position: absolute; left: 50%; top: 64px; transform: translateX(-50%); max-width: 92%;
+    padding: 10px 16px; border-radius: 12px; background: rgba(6,16,34,.9); border: 1px solid var(--cyan);
+    font-size: 15px; text-align: center; opacity: 0; transition: opacity .3s;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ---------- 題目面板 ---------- */
+  #qPanel {
+    position: fixed; z-index: 30; right: 14px; top: 64px; width: 440px; max-height: calc(100% - 80px);
+    overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+    padding: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.55); animation: pop .3s both;
+  }
+  .q-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tag { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(95,227,255,.14); color: var(--cyan); }
+  .tag.gold { background: rgba(255,211,77,.15); color: var(--gold); }
+  .tag.pink { background: rgba(255,111,174,.15); color: var(--pink); }
+  #qBanner {
+    margin-top: 10px; padding: 12px; border-radius: 12px; line-height: 1.6; font-size: 15px;
+    background: linear-gradient(135deg, rgba(255,111,174,.16), rgba(255,211,77,.12)); border: 1px solid rgba(255,111,174,.5);
+  }
+  #qFig { margin-top: 10px; background: #061127; border-radius: 12px; border: 1px solid #16305a; }
+  #qFig svg { display: block; width: 100%; height: auto; }
+  #qText { margin-top: 10px; font-size: 17px; line-height: 1.6; }
+  .timer { height: 8px; border-radius: 999px; background: #0c1d3b; margin-top: 12px; overflow: hidden; }
+  .timer i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--green), var(--gold), var(--red)); background-size: 300% 100%; }
+  .q-power { margin-top: 6px; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+  .q-power b { color: var(--cyan); font-variant-numeric: tabular-nums; }
+  #qForm { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+  #qPrefix { font-size: 20px; font-weight: 900; font-style: italic; color: var(--gold); white-space: nowrap; }
+  #qInput {
+    flex: 1; min-width: 0; padding: 12px; border-radius: 12px; border: 1px solid var(--line);
+    background: #071328; color: var(--text); font-size: 22px; font-weight: 700; text-align: center; font-family: inherit;
+  }
+  #qInput:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255,211,77,.2); }
+  #qUnit { font-size: 18px; color: var(--muted); }
+  #qFeedback { margin-top: 12px; }
+  .fb-title { font-size: 18px; font-weight: 900; padding: 10px 12px; border-radius: 12px; }
+  .fb-title.ok { background: rgba(77,255,154,.12); color: var(--green); border: 1px solid rgba(77,255,154,.4); }
+  .fb-title.no { background: rgba(255,90,106,.12); color: var(--red); border: 1px solid rgba(255,90,106,.4); }
+  .steps { margin: 10px 0 0; padding-left: 22px; line-height: 1.7; font-size: 15px; }
+  .steps li { margin-bottom: 4px; }
+
+  /* ---------- 通用彈窗（回合結果 / 生命教育訊息 / 結算） ---------- */
+  #modal { z-index: 70; background: rgba(3, 7, 16, .55); }
+  #modal .card { max-width: 560px; text-align: center; }
+  /* 「窺看」模式：卡片置底、不模糊，讓學生看到陀螺致意 / 軌跡圖 */
+  #modal.peek { align-items: flex-end; background: linear-gradient(to top, rgba(3,7,16,.8), transparent 55%); backdrop-filter: none; }
+  #modal.peek .card { max-height: 58vh; padding: 18px 20px; background: rgba(9, 20, 42, .9); }
+  #modal.peek .life-icon { font-size: 32px; margin: 0; }
+  #modal.peek .life-msg { font-size: 16px; margin: 8px 0; }
+  .life-icon { font-size: 46px; margin-bottom: 6px; }
+  .life-msg { font-size: 18px; line-height: 1.8; margin: 12px 0; text-align: left; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,.04); border-left: 4px solid var(--gold); }
+  .big-result { font-size: 40px; font-weight: 900; margin: 4px 0; }
+  .big-result.win { color: var(--gold); text-shadow: 0 0 20px rgba(255,211,77,.6); }
+  .big-result.lose { color: var(--red); }
+  .big-result.draw { color: var(--cyan); }
+  .pts { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 16px; }
+  .pts td { padding: 8px 6px; border-bottom: 1px solid #1a3360; text-align: left; }
+  .pts td:last-child { text-align: right; font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .angle-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 8px 0; }
+  .angle-chips span { padding: 6px 12px; border-radius: 999px; font-weight: 900; border: 1px solid currentColor; }
+  .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+  .upload-status { margin-top: 10px; font-size: 14px; color: var(--muted); }
+
+  /* ---------- 手機版 ---------- */
+  @media (max-width: 760px) {
+    #qPanel { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 64%; padding: 12px; }
+    #qText { font-size: 16px; }
+    .rpm-card { width: 38%; padding: 8px; }
+    .rpm-num { font-size: 15px; }
+    #btnDash { width: 78px; height: 78px; bottom: 16px; font-size: 14px; }
+    #centerMsg { font-size: 48px; top: 26%; }
+    .pill { font-size: 12px; padding: 6px 10px; }
+    .row2 { grid-template-columns: 1fr; }
+    #qBanner { font-size: 13px; line-height: 1.45; padding: 8px 10px; }
+    #modal.peek .card { max-height: 54vh; padding: 14px 14px; }
+    #modal.peek .life-msg { font-size: 15px; line-height: 1.6; }
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<!-- ===================== 1. 語言選擇介面 ===================== -->
+<div class="screen show" id="scrLang">
+  <div class="card">
+    <div class="logo">
+      <div class="spin-icon"></div>
+      <h1>幾何陀螺對戰</h1>
+      <div class="sub">Geometry Spin Battle · 與直線圖形相關的角</div>
+    </div>
+    <h2>請選擇文字語言<span class="le">Choose display language</span></h2>
+    <div class="opt-grid">
+      <button class="opt" data-lang="zh"><span class="ico">🀄</span><span class="grow">繁體中文</span></button>
+      <button class="opt" data-lang="en"><span class="ico">🔤</span><span class="grow">English</span></button>
+      <button class="opt" data-lang="bi"><span class="ico">🌏</span><span class="grow">Bilingual 中英對照</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 2. 語音選擇介面 ===================== -->
+<div class="screen" id="scrVoice">
+  <div class="card">
+    <h2 data-t="chooseVoice"></h2>
+    <div class="opt-grid">
+      <div class="opt" data-voice="yue"><span class="ico">🗣️</span><span class="grow" data-t="voiceYue"></span><button class="mini-btn" data-test="yue" data-t="test"></button></div>
+      <div class="opt" data-voice="en"><span class="ico">🎙️</span><span class="grow" data-t="voiceEn"></span><button class="mini-btn" data-test="en" data-t="test"></button></div>
+      <div class="opt" data-voice="cmn"><span class="ico">📢</span><span class="grow" data-t="voiceCmn"></span><button class="mini-btn" data-test="cmn" data-t="test"></button></div>
+      <div class="opt" data-voice="off"><span class="ico">🔇</span><span class="grow" data-t="voiceOff"></span></div>
+    </div>
+    <div class="note" id="voiceNote"></div>
+    <button class="btn block" id="btnVoiceNext" disabled data-t="next"></button>
+  </div>
+</div>
+
+<!-- ===================== 3. 學生資料登記表單 ===================== -->
+<div class="screen" id="scrForm">
+  <div class="card">
+    <h2 data-t="formTitle"></h2>
+    <form id="studentForm" autocomplete="off">
+      <label class="field"><span data-t="fName"></span><input id="fName" maxlength="30" required /></label>
+      <div class="row2">
+        <label class="field"><span data-t="fClass"></span><input id="fClass" maxlength="10" placeholder="2A" required /></label>
+        <label class="field"><span data-t="fNo"></span><input id="fNo" type="number" inputmode="numeric" min="1" max="60" required /></label>
+      </div>
+      <label class="field"><span data-t="pickColor"></span></label>
+      <div class="swatches" id="swatches"></div>
+      <div class="err" id="formErr"></div>
+      <button class="btn gold block" type="submit" data-t="start"></button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== 4. 遊戲 HUD ===================== -->
+<div id="hud" class="hidden">
+  <div class="topbar">
+    <div class="pill" id="hudRound"></div>
+    <div class="pill" id="hudScore"></div>
+    <div class="pill" id="hudName"></div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="btnVoiceToggle" title="Voice">🔊</button>
+    <button class="icon-btn" id="btnSfxToggle" title="Sound">🎵</button>
+  </div>
+  <div id="toast"></div>
+  <div id="centerMsg"></div>
+  <div id="rpmBars" class="hidden">
+    <div class="rpm-card me">
+      <div class="who"><span id="lblMe"></span><span class="shield-tag" id="shieldMe"></span></div>
+      <div class="bar"><i id="barMe"></i></div>
+      <div class="rpm-num" id="rpmMe">0 RPM</div>
+    </div>
+    <div class="rpm-card cpu">
+      <div class="who"><span data-t="cpu"></span><span class="shield-tag" id="shieldCpu"></span></div>
+      <div class="bar"><i id="barCpu"></i></div>
+      <div class="rpm-num" id="rpmCpu">0 RPM</div>
+    </div>
+  </div>
+  <button id="btnDash" class="hidden"></button>
+</div>
+
+<!-- ===================== 5. 題目面板（發射題 / 補救題） ===================== -->
+<div id="qPanel" class="hidden">
+  <div class="q-head">
+    <span class="tag gold" id="qRoundTag"></span>
+    <span class="tag" id="qTopic"></span>
+    <span class="spacer" style="flex:1"></span>
+    <button class="mini-btn" id="btnReadQ">🔈</button>
+  </div>
+  <div id="qBanner" class="hidden"></div>
+  <div id="qFig"></div>
+  <div id="qText"></div>
+  <div class="timer"><i id="qTimer"></i></div>
+  <div class="q-power" id="qPower"></div>
+  <form id="qForm" autocomplete="off">
+    <span id="qPrefix">x =</span>
+    <input id="qInput" inputmode="decimal" />
+    <span id="qUnit">°</span>
+    <button class="btn gold" type="submit" id="qSubmit"></button>
+  </form>
+  <div id="qFeedback"></div>
+</div>
+
+<!-- ===================== 6. 通用彈窗 ===================== -->
+<div class="screen" id="modal"><div class="card" id="modalCard"></div></div>
+
+<!-- Three.js r128（UMD 版本，全域變數 THREE） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =====================================================================
+ * 0. 遊戲設定（老師可在此修改）
+ * ===================================================================== */
+const CONFIG = {
+  // ★★★ 把這裡換成你的 Google Apps Script Web App 網址（以 /exec 結尾）★★★
+  // 亦可在網址加上 ?gas=https://script.google.com/macros/s/xxxx/exec 臨時指定
+  GAS_URL: 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE',
+  TOTAL_ROUNDS: 5,      // 回合數（每回合 = 1 條發射題 + 1 場戰鬥）
+  QUESTION_TIME: 60,    // 發射題限時（秒）
+  REMEDIAL_TIME: 40,    // 補救題限時（秒）
+  BATTLE_TIME: 35,      // 每場戰鬥最長時間（秒），時間到以轉速決勝
+  // 分數設定
+  PTS_CORRECT: 100,     // 答對基本分
+  PTS_SPEED_MAX: 50,    // 速度加分（越快越多）
+  PTS_REMEDIAL: 30,     // 補救題答對
+  PTS_WIN: 100,         // 勝出一回合
+  PTS_DRAW: 50          // 平手
+};
+(function () { // 允許用網址參數 ?gas= 覆蓋 GAS_URL（方便老師測試）
+  const p = new URLSearchParams(location.search).get('gas');
+  if (p) CONFIG.GAS_URL = p;
+})();
+
+/* =====================================================================
+ * 1. 全域狀態
+ * ===================================================================== */
+const G = {
+  lang: 'zh',            // 文字語言：zh / en / bi
+  voice: 'yue',          // 語音：yue（廣東話）/ en（英文）/ cmn（普通話）/ off
+  voiceOn: true,         // HUD 上的語音開關
+  sfxOn: true,           // 音效開關
+  student: { name: '', cls: '', no: '' },
+  color: 0x2f8cff,       // 玩家陀螺顏色
+  phase: 'intro',        // intro / question / launch / battle / remedial / battleEnd / roundEnd / ceremony / gallery / final
+  round: 0, score: 0, correct: 0, roundsWon: 0, remedialCorrect: 0,
+  launches: [],          // 每回合的發射角度 [{theta, color}]
+  lastGen: [],           // 最近用過的題型（避免重複）
+  q: null, qStart: 0, qTimer: null, token: 0, isRemedial: false, answered: false,
+  roundPts: { answer: 0, remedial: 0, win: 0 },
+  launchRpm: 0, speedF: 0, lastCorrect: false, theta: 60,
+  battleTime: 0, timeScale: 1, remedialUsed: false, endT: 0, result: null,
+  dashCD: 0, pairCD: 0, shake: 0, ceremonyT: 0, camMode: 'arena',
+  submissionId: ''
+};
+
+/* =====================================================================
+ * 2. 多語言文字（[中文, English]）
+ * ===================================================================== */
+const T = {
+  chooseVoice: ['請選擇語音導覽', 'Choose voice guide'],
+  voiceYue: ['廣東話', 'Cantonese'],
+  voiceEn: ['英文', 'English'],
+  voiceCmn: ['普通話', 'Putonghua (Mandarin)'],
+  voiceOff: ['不需要語音', 'No voice'],
+  test: ['試聽', 'Test'],
+  next: ['下一步', 'Next'],
+  noVoice: ['⚠ 此裝置未偵測到「{v}」語音，將改用系統預設語音朗讀（可在電腦/手機設定中安裝語音包）。',
+            '⚠ No “{v}” voice was found on this device; the system default voice will be used (you can install voice packs in system settings).'],
+  noSpeech: ['⚠ 此瀏覽器不支援語音朗讀，遊戲仍可正常進行。', '⚠ This browser does not support speech; the game still works normally.'],
+  testLine: ['你好！歡迎來到幾何陀螺對戰！', 'Hello! Welcome to Geometry Spin Battle!'],
+  formTitle: ['學生資料登記', 'Student Registration'],
+  fName: ['姓名 Name', 'Name'],
+  fClass: ['班別 Class', 'Class'],
+  fNo: ['學號 Class Number', 'Class Number'],
+  pickColor: ['選擇你的陀螺顏色（陀螺上會印上你的名字首字）', 'Pick your top colour (your initial will be printed on it)'],
+  start: ['進入競技場', 'Enter the Arena'],
+  formErr: ['請完整填寫姓名、班別及學號。', 'Please fill in your name, class and class number.'],
+  round: ['第 {n} / {t} 回合', 'Round {n} / {t}'],
+  score: ['分數', 'Score'],
+  launchQ: ['發射題', 'Launch question'],
+  remedialQ: ['補救幾何題', 'Recovery question'],
+  submit: ['發射！', 'Launch!'],
+  submitRem: ['確定', 'Submit'],
+  powerOk: ['答對發射轉速', 'RPM if correct'],
+  powerNo: ['答錯只有', 'RPM if wrong'],
+  correct: ['答對了！幾何護盾啟動！', 'Correct! Geometry Shield activated!'],
+  correctRem: ['答對了！', 'Correct!'],
+  wrong: ['答錯了，正確答案是 {a}。', 'Not quite. The correct answer is {a}.'],
+  timeout: ['時間到！正確答案是 {a}。', 'Time is up! The correct answer is {a}.'],
+  yourAns: ['你的答案：{a}', 'Your answer: {a}'],
+  solution: ['解題步驟', 'Solution'],
+  ready: ['準備發射 ▶', 'Ready to launch ▶'],
+  launchInfo: ['發射轉速 {r} RPM · 攻擊力 ×{k}', 'Launch {r} RPM · Attack ×{k}'],
+  yourAngle: ['你的發射角度 θ = {a}°', 'Your launch angle θ = {a}°'],
+  go: ['發射！', 'LAUNCH!'],
+  dash: ['⚡衝擊', '⚡DASH'],
+  dashHint: ['按「衝擊」或空白鍵撞向對手！', 'Tap DASH or press Space to charge at your rival!'],
+  shield: ['🛡 幾何護盾', '🛡 Geometry Shield'],
+  shieldBreak: ['幾何護盾被擊破了！', 'Your Geometry Shield broke!'],
+  you: ['你', 'YOU'],
+  cpu: ['電腦對手', 'CPU'],
+  resTitle: ['堅韌不拔', 'Resilience'],
+  resMsg: ['生活就像陀螺，遇到挫折失去平衡在所難免，但只要找回重心（重新計算正確角度），就能重新站立旋轉！',
+           'Life is like a spinning top. Losing balance when we meet setbacks is unavoidable — but once we find our centre again (recalculate the correct angle), we can stand up and spin again!'],
+  remedialHint: ['答對這題補救題，就能找回重心、恢復轉速！', 'Answer this recovery question correctly to regain your balance and spin!'],
+  recovered: ['找回重心！轉速恢復！', 'Balance regained! Spin restored!'],
+  notRecovered: ['沒關係！跌倒了就再站起來，繼續加油！', 'That’s okay! Get back up and keep going!'],
+  backBattle: ['返回戰鬥 ▶', 'Back to battle ▶'],
+  win: ['勝利！', 'Victory!'],
+  lose: ['落敗', 'Defeat'],
+  draw: ['平手', 'Draw'],
+  ringOut: ['對手被撞出場外！', 'Your rival was knocked out of the arena!'],
+  ringOutMe: ['你的陀螺被撞出場外。', 'Your top was knocked out of the arena.'],
+  spinOut: ['對手轉速耗盡倒下！', 'Your rival ran out of spin!'],
+  spinOutMe: ['你的陀螺轉速耗盡倒下。', 'Your top ran out of spin.'],
+  bothOut: ['雙方同時倒下！', 'Both tops went down together!'],
+  timeUp: ['時間到！以餘下轉速決勝負。', 'Time up! Decided by remaining RPM.'],
+  ptsAnswer: ['發射題得分', 'Launch question'],
+  ptsRemedial: ['補救題得分', 'Recovery question'],
+  ptsWin: ['對戰得分', 'Battle result'],
+  ptsRound: ['本回合', 'This round'],
+  total: ['總分', 'Total score'],
+  nextRound: ['下一回合 ▶', 'Next round ▶'],
+  finish: ['完成比賽 ▶', 'Finish the match ▶'],
+  respectTitle: ['尊重與規則', 'Respect & Rules'],
+  respectMsg: ['平行的軌跡雖然不相交，但彼此尊重（平行線的規則）；交匯的瞬間（截線）則創造了獨特的角度（人生火花）。',
+               'Parallel paths never meet, yet they respect each other (the rule of parallel lines); the moment they are crossed (by a transversal) creates unique angles — the sparks of life.'],
+  respectSub: ['無論勝負，雙方陀螺都回到中央互相致意。', 'Win or lose, both tops return to the centre and bow to each other.'],
+  uniqueTitle: ['個人獨特性', 'Uniqueness'],
+  uniqueMsg: ['每個陀螺（每位同學）都有屬於自己的發射角度。不同的角度，能在競技場中畫出不同的美麗軌跡——天生我才必有用！',
+              'Every top — every student — has its own launch angle. Different angles draw different beautiful trajectories in the arena. Each of us is born with talents that matter!'],
+  yourAngles: ['你今場的發射角度（地上每條彩色軌跡都是你畫出來的）：', 'Your launch angles this match (every coloured trail on the floor is yours):'],
+  continue: ['繼續 ▶', 'Continue ▶'],
+  finalTitle: ['比賽結算', 'Match Summary'],
+  accuracy: ['發射題答對', 'Launch questions correct'],
+  roundsWon: ['勝出回合', 'Rounds won'],
+  remCorrect: ['補救題答對', 'Recovery questions correct'],
+  uploading: ['正在上傳成績⋯', 'Uploading your score…'],
+  uploaded: ['✅ 成績已上傳到老師的 Google Sheet。', '✅ Your score has been sent to your teacher’s Google Sheet.'],
+  uploadedOpaque: ['✅ 成績已送出（瀏覽器未能讀取回覆，請老師在 Google Sheet 確認）。', '✅ Score sent (the browser could not read the reply — your teacher can confirm in the Google Sheet).'],
+  uploadFail: ['⚠ 上傳失敗，請檢查網絡後按「重新上傳」。', '⚠ Upload failed. Check your connection and tap “Retry upload”.'],
+  noUrl: ['ℹ 未設定 Google Apps Script 網址（示範模式），成績未上傳。', 'ℹ No Google Apps Script URL is set (demo mode), so the score was not uploaded.'],
+  retry: ['重新上傳', 'Retry upload'],
+  again: ['再玩一次', 'Play again'],
+  sides: ['邊', 'sides'],
+  finalSpeech: ['比賽完成！你的總分是 {s} 分。', 'Match complete! Your total score is {s}.']
+};
+
+/** 依目前語言輸出 HTML：中文 / 英文 / 中英對照 */
+function L(zh, en) {
+  if (G.lang === 'zh') return zh;
+  if (G.lang === 'en') return en;
+  return `<span class="lz">${zh}</span><span class="le">${en}</span>`;
+}
+/** 讀取字典並代入 {變數} */
+function tr(key, vars = {}) {
+  const [zh, en] = T[key] || [key, key];
+  const fill = s => s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''));
+  return L(fill(zh), fill(en));
+}
+/** 取得字典原文（給語音用） */
+function raw(key, vars = {}) {
+  const [zh, en] = T[key];
+  const fill = s => s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''));
+  return [fill(zh), fill(en)];
+}
+/** 把所有 data-t 元素換成目前語言 */
+function applyLang() {
+  document.querySelectorAll('[data-t]').forEach(el => { el.innerHTML = tr(el.dataset.t); });
+  document.documentElement.lang = G.lang === 'en' ? 'en' : 'zh-Hant';
+}
+
+/* =====================================================================
+ * 3. 語音導覽（HTML5 Web Speech API — SpeechSynthesis）
+ * ===================================================================== */
+const Voice = {
+  supported: 'speechSynthesis' in window,
+  voices: [],
+  LANG: { yue: 'zh-HK', en: 'en-GB', cmn: 'zh-CN' },
+  NAME: { yue: '廣東話 Cantonese', en: 'English', cmn: '普通話 Putonghua' },
+  init() {
+    if (!this.supported) return;
+    const load = () => { this.voices = speechSynthesis.getVoices(); };
+    load();
+    // 部分瀏覽器（Chrome）語音清單是非同步載入的
+    speechSynthesis.addEventListener('voiceschanged', load);
+  },
+  /** 為所選語音尋找最合適的系統聲音 */
+  pick(code) {
+    const vs = this.voices;
+    if (!vs.length) return null;
+    const by = re => vs.find(v => re.test(v.lang) || re.test(v.name));
+    if (code === 'yue') return by(/zh[-_]HK|yue|Cantonese|粵|廣東/i);
+    if (code === 'cmn') return by(/zh[-_]CN|cmn|Hans/i) || by(/zh[-_]TW|Mandarin|普通/i);
+    if (code === 'en') return by(/en[-_]GB/i) || by(/en[-_]US/i) || by(/^en/i);
+    return null;
+  },
+  /** 數學符號 → 可朗讀文字 */
+  speakify(text, en) {
+    let s = String(text).replace(/<[^>]+>/g, ' ');
+    s = s.replace(/([A-Z])(?=[A-Z])/g, '$1 ');            // ABC → A B C（逐個字母讀）
+    if (en) {
+      s = s.replace(/∠/g, 'angle ').replace(/△/g, 'triangle ').replace(/°/g, ' degrees')
+           .replace(/\/\//g, ' is parallel to ').replace(/−/g, ' minus ').replace(/×/g, ' times ')
+           .replace(/÷/g, ' divided by ').replace(/=/g, ' equals ').replace(/\+/g, ' plus ').replace(/θ/g, 'theta');
+    } else {
+      s = s.replace(/∠/g, '角').replace(/△/g, '三角形').replace(/°/g, '度').replace(/\/\//g, '平行於')
+           .replace(/−/g, '減').replace(/×/g, '乘').replace(/÷/g, '除以').replace(/=/g, '等於')
+           .replace(/\+/g, '加').replace(/θ/g, '西塔');
+    }
+    return s.replace(/\s+/g, ' ').trim();
+  },
+  /** 朗讀：會根據玩家所選語音自動選用中文或英文稿 */
+  speak(zh, en, code = G.voice, force = false) {
+    if (!this.supported || code === 'off' || (!G.voiceOn && !force)) return;
+    const useEn = code === 'en';
+    const u = new SpeechSynthesisUtterance(this.speakify(useEn ? en : zh, useEn));
+    u.lang = this.LANG[code];
+    const v = this.pick(code);
+    if (v) u.voice = v;
+    u.rate = useEn ? 1.0 : 0.95;
+    u.pitch = 1.05;
+    speechSynthesis.cancel();
+    setTimeout(() => speechSynthesis.speak(u), 60); // cancel 後稍等，避免 Chrome 吞掉語音
+  },
+  say(key, vars) { const [zh, en] = raw(key, vars); this.speak(zh, en); },
+  stop() { if (this.supported) speechSynthesis.cancel(); }
+};
+
+/* =====================================================================
+ * 4. 合成音效（Web Audio API，不需外部音檔）
+ * ===================================================================== */
+const SFX = {
+  ctx: null, master: null, noiseBuf: null, hum: null,
+  init() {
+    if (this.ctx) { this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = G.sfxOn ? 0.6 : 0;
+    this.master.connect(this.ctx.destination);
+    // 白噪音緩衝（碰撞、發射用）
+    const len = this.ctx.sampleRate;
+    this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = this.noiseBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    // 陀螺旋轉嗡嗡聲（持續播放，音量隨轉速改變）
+    const o1 = this.ctx.createOscillator(), o2 = this.ctx.createOscillator();
+    const f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+    o1.type = 'sawtooth'; o2.type = 'sawtooth';
+    f.type = 'lowpass'; f.frequency.value = 900;
+    g.gain.value = 0;
+    o1.connect(f); o2.connect(f); f.connect(g); g.connect(this.master);
+    o1.start(); o2.start();
+    this.hum = { o1, o2, g };
+  },
+  setOn(on) { if (this.master) this.master.gain.value = on ? 0.6 : 0; },
+  tone(freq, dur, type = 'sine', vol = 0.2, slideTo = null, delay = 0) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime + delay;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + dur + 0.05);
+  },
+  noise(dur, vol, freq, q = 1, type = 'bandpass', sweepTo = null) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const s = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+    s.buffer = this.noiseBuf;
+    f.type = type; f.frequency.setValueAtTime(freq, t); f.Q.value = q;
+    if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(this.master);
+    s.start(t); s.stop(t + dur + 0.05);
+  },
+  click() { this.tone(880, 0.06, 'square', 0.06); },
+  beep(hi) { this.tone(hi ? 1320 : 660, hi ? 0.35 : 0.15, 'square', 0.12); },
+  correct() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.18, null, i * 0.08)); },
+  wrong() { this.tone(220, 0.3, 'sawtooth', 0.12); this.tone(165, 0.4, 'sawtooth', 0.12, null, 0.15); },
+  launch() { this.noise(0.8, 0.5, 400, 0.8, 'bandpass', 4000); this.tone(180, 0.7, 'sawtooth', 0.12, 1400); },
+  /** 碰撞：噪音爆裂 + 金屬撞擊泛音 */
+  clash(k = 0.5) {
+    this.noise(0.12 + 0.1 * k, 0.4 + 0.5 * k, 2500, 0.7);
+    for (let i = 0; i < 3; i++) this.tone(1800 + Math.random() * 2600, 0.15 + 0.2 * k, 'triangle', 0.05 + 0.08 * k);
+    this.tone(120, 0.12, 'sine', 0.25 * k);
+  },
+  wall() { this.noise(0.08, 0.25, 900, 1); },
+  shieldBreak() { this.noise(0.5, 0.5, 6000, 0.5, 'highpass'); this.tone(1200, 0.5, 'square', 0.08, 200); },
+  win() { [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.4, 'square', 0.1, null, i * 0.12)); },
+  lose() { [440, 392, 349, 294].forEach((f, i) => this.tone(f, 0.35, 'triangle', 0.14, null, i * 0.15)); },
+  /** 每幀更新嗡嗡聲：頻率跟轉速 */
+  humUpdate(rpmA, rpmB, active) {
+    if (!this.hum) return;
+    const t = this.ctx.currentTime;
+    this.hum.o1.frequency.setTargetAtTime(40 + rpmA / 35, t, 0.05);
+    this.hum.o2.frequency.setTargetAtTime(43 + rpmB / 37, t, 0.05);
+    this.hum.g.gain.setTargetAtTime(active ? 0.035 : 0, t, 0.1);
+  }
+};
+
+/* =====================================================================
+ * 5. 數學題目生成器
+ *    · 每條題目由程式隨機產生，數字合理且答案為整數
+ *    · 圖形以「真實座標」計算後畫成 SVG，所以圖中角度大致符合數值
+ *    · 已剔除：比 / 比例、相似三角形、畢氏定理等非本課題內容
+ * ===================================================================== */
+const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const rad = d => d * Math.PI / 180;
+const deg = r => r * 180 / Math.PI;
+const pol = (o, angDeg, len) => ({ x: o.x + len * Math.cos(rad(angDeg)), y: o.y + len * Math.sin(rad(angDeg)) });
+const unit = (a, b) => { const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1; return { x: dx / l, y: dy / l }; };
+/** 兩直線 p1p2、p3p4 的交點 */
+function lineX(p1, p2, p3, p4) {
+  const d = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
+  const a = p1.x * p2.y - p1.y * p2.x, b = p3.x * p4.y - p3.y * p4.x;
+  return { x: (a * (p3.x - p4.x) - (p1.x - p2.x) * b) / d, y: (a * (p3.y - p4.y) - (p1.y - p2.y) * b) / d };
+}
+/** ∠AVB 的大小（度） */
+function angleAt(v, a, b) {
+  let d = Math.abs(Math.atan2(a.y - v.y, a.x - v.x) - Math.atan2(b.y - v.y, b.x - v.x)) * 180 / Math.PI;
+  return d > 180 ? 360 - d : d;
+}
+/** 以 BC 為底、∠B = b、∠C = c 建立三角形 */
+function triangle(b, c, base = 10) {
+  const B = { x: 0, y: 0 }, C = { x: base, y: 0 };
+  return { A: lineX(B, pol(B, b, 1), C, pol(C, 180 - c, 1)), B, C };
+}
+/** 圓內接凸 n 邊形（保證是凸多邊形） */
+function cyclicPoly(n) {
+  for (;;) {
+    const a = [...Array(n)].map(() => Math.random() * 360).sort((p, q) => p - q);
+    const gaps = a.map((v, i) => (i === n - 1 ? a[0] + 360 : a[i + 1]) - v);
+    if (Math.min(...gaps) > 0.55 * 360 / n && Math.max(...gaps) < 1.6 * 360 / n) return a.map(t => pol({ x: 0, y: 0 }, t, 5));
+  }
+}
+const fmtSigned = v => (v > 0 ? ` + ${v}` : v < 0 ? ` − ${-v}` : '');
+
+/* ---------- 5a. SVG 幾何圖繪製器 ---------- */
+class Fig {
+  constructor() { this.P = {}; this.ops = []; }
+  /** 加點；名稱以 _ 開頭則不顯示標籤；dir = 標籤方向（數學角度） */
+  pt(n, p, dir) { this.P[n] = { x: p.x, y: p.y, dir }; return this; }
+  seg(a, b, o = {}) { this.ops.push({ t: 'seg', a, b, o }); return this; }
+  /** 角弧：頂點 v，由 v→a 到 v→b（取小於 180° 的一邊） */
+  ang(v, a, b, txt, o = {}) { this.ops.push({ t: 'ang', v, a, b, txt, o }); return this; }
+  tick(a, b, n = 1) { this.ops.push({ t: 'tick', a, b, n }); return this; }   // 等長記號
+  par(a, b, n = 1) { this.ops.push({ t: 'par', a, b, n }); return this; }     // 平行箭咀
+  /** 測試用：求未知角在圖中的實際大小 */
+  unknownMeasure() {
+    const op = this.ops.find(o => o.t === 'ang' && o.o.unknown);
+    return op ? angleAt(this.P[op.v], this.P[op.a], this.P[op.b]) : null;
+  }
+  render(W = 360, H = 250, pad = this.pad || 32) {
+    const ps = Object.values(this.P);
+    const minx = Math.min(...ps.map(p => p.x)), maxx = Math.max(...ps.map(p => p.x));
+    const miny = Math.min(...ps.map(p => p.y)), maxy = Math.max(...ps.map(p => p.y));
+    const s = Math.min((W - 2 * pad) / (maxx - minx || 1), (H - 2 * pad) / (maxy - miny || 1));
+    const ox = (W - (maxx - minx) * s) / 2, oy = (H - (maxy - miny) * s) / 2;
+    const M = {};
+    for (const [k, p] of Object.entries(this.P)) M[k] = { x: ox + (p.x - minx) * s, y: H - oy - (p.y - miny) * s };
+    const named = Object.keys(M).filter(k => k[0] !== '_');
+    const cx = named.reduce((t, k) => t + M[k].x, 0) / (named.length || 1);
+    const cy = named.reduce((t, k) => t + M[k].y, 0) / (named.length || 1);
+    let wedges = '', lines = '', marks = '', texts = '';
+    const LINE = '#cfe3ff', CY = '#5fe3ff', GD = '#ffd34d', PK = '#ff6fae';
+    for (const op of this.ops) {
+      if (op.t === 'seg') {
+        const a = M[op.a], b = M[op.b];
+        lines += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${LINE}" stroke-width="2.2" stroke-linecap="round" ${op.o.dash ? 'stroke-dasharray="5 5" opacity=".75"' : ''}/>`;
+      } else if (op.t === 'ang') {
+        const v = M[op.v], a = M[op.a], b = M[op.b];
+        const a1 = Math.atan2(a.y - v.y, a.x - v.x), a2 = Math.atan2(b.y - v.y, b.x - v.x);
+        let diff = a2 - a1;
+        while (diff > Math.PI) diff -= 2 * Math.PI;
+        while (diff <= -Math.PI) diff += 2 * Math.PI;
+        const r = op.o.r || (Math.abs(diff) < rad(32) ? 34 : Math.abs(diff) < rad(55) ? 26 : 20);
+        const S = { x: v.x + r * Math.cos(a1), y: v.y + r * Math.sin(a1) };
+        const E = { x: v.x + r * Math.cos(a2), y: v.y + r * Math.sin(a2) };
+        const sw = diff > 0 ? 1 : 0, col = op.o.unknown ? GD : CY;
+        wedges += `<path d="M${v.x},${v.y} L${S.x},${S.y} A${r},${r} 0 0 ${sw} ${E.x},${E.y} Z" fill="${col}" fill-opacity=".16"/>`;
+        marks += `<path d="M${S.x},${S.y} A${r},${r} 0 0 ${sw} ${E.x},${E.y}" fill="none" stroke="${col}" stroke-width="2"/>`;
+        const mid = a1 + diff / 2, d = op.o.out ? -(16 + op.txt.length * 2.2) : r + 11 + op.txt.length * 2.6;
+        texts += `<text x="${v.x + d * Math.cos(mid)}" y="${v.y + d * Math.sin(mid)}" fill="${col}" font-size="14" font-weight="800" text-anchor="middle" dominant-baseline="central" ${op.o.unknown ? 'font-style="italic"' : ''}>${op.txt}</text>`;
+      } else if (op.t === 'tick') {
+        const a = M[op.a], b = M[op.b], m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, u = unit(a, b), n = { x: -u.y, y: u.x };
+        for (let i = 0; i < op.n; i++) {
+          const off = (i - (op.n - 1) / 2) * 5;
+          const c = { x: m.x + u.x * off, y: m.y + u.y * off };
+          marks += `<line x1="${c.x - n.x * 6}" y1="${c.y - n.y * 6}" x2="${c.x + n.x * 6}" y2="${c.y + n.y * 6}" stroke="${PK}" stroke-width="2.2"/>`;
+        }
+      } else if (op.t === 'par') {
+        const a = M[op.a], b = M[op.b], m = { x: a.x + (b.x - a.x) * 0.3, y: a.y + (b.y - a.y) * 0.3 }, u = unit(a, b), n = { x: -u.y, y: u.x };
+        for (let i = 0; i < op.n; i++) {
+          const tip = { x: m.x + u.x * (i * 7 + 4), y: m.y + u.y * (i * 7 + 4) };
+          const bx = tip.x - u.x * 7, by = tip.y - u.y * 7;
+          marks += `<polyline points="${bx + n.x * 5},${by + n.y * 5} ${tip.x},${tip.y} ${bx - n.x * 5},${by - n.y * 5}" fill="none" stroke="${GD}" stroke-width="2"/>`;
+        }
+      }
+    }
+    for (const k of named) {
+      const p = M[k], o = this.P[k];
+      let dx, dy;
+      if (o.dir !== undefined) { dx = Math.cos(rad(o.dir)); dy = -Math.sin(rad(o.dir)); }
+      else { dx = p.x - cx; dy = p.y - cy; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; if (l < 1) { dx = 0; dy = -1; } }
+      texts += `<text x="${p.x + dx * 14}" y="${p.y + dy * 14}" fill="#ffffff" font-size="15" font-weight="700" text-anchor="middle" dominant-baseline="central">${k}</text>`;
+    }
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, sans-serif">${wedges}${lines}${marks}${texts}</svg>`;
+  }
+}
+
+/* ---------- 5b. 理由（中 / 英，香港課程常用寫法） ---------- */
+const RS = {
+  triSum: ['△內角和', '∠ sum of △'],
+  ext: ['△的外角', 'ext. ∠ of △'],
+  base: ['等腰△底角', 'base ∠s, isos. △'],
+  equil: ['等邊△的性質', 'prop. of equil. △'],
+  line: ['直線上的鄰角', 'adj. ∠s on st. line'],
+  polySum: ['多邊形內角和', '∠ sum of polygon'],
+  polyExt: ['多邊形外角和', 'sum of ext. ∠s of polygon'],
+  corr: ['同位角', 'corr. ∠s'],
+  alt: ['內錯角', 'alt. ∠s'],
+  int: ['同旁內角', 'int. ∠s'],
+  vert: ['對頂角', 'vert. opp. ∠s']
+};
+/** 一個解題步驟：expr（算式）+ 理由 */
+function sr(expr, k, extra = '', exprEn) {
+  const s = { zh: expr, en: exprEn ?? expr };
+  if (k) { s.zh += `（${RS[k][0]}${extra ? '，' + extra : ''}）`; s.en += ` (${RS[k][1]}${extra ? ', ' + extra : ''})`; }
+  return s;
+}
+const TOPICS = {
+  triSum: ['三角形內角和', 'Angle sum of triangle'],
+  straight: ['直線上的鄰角', 'Angles on a straight line'],
+  triExt: ['三角形外角', 'Exterior angle of triangle'],
+  isos: ['等腰三角形底角', 'Base angles of isosceles triangle'],
+  isosExt: ['等腰三角形 + 外角', 'Isosceles triangle + exterior angle'],
+  parallel: ['平行線與截線', 'Parallel lines & transversal'],
+  polyInt: ['多邊形內角和', 'Sum of interior angles of polygon'],
+  polyExt: ['多邊形外角和', 'Sum of exterior angles of polygon'],
+  regular: ['正多邊形的內角與外角', 'Angles of regular polygon'],
+  equi: ['等邊三角形 + 等腰三角形', 'Equilateral + isosceles triangles'],
+  algebra: ['角與簡易方程', 'Angles & simple equations'],
+  comboA: ['綜合題（DSE 風格）', 'Combined problem (DSE-style)'],
+  comboB: ['綜合題（DSE 風格）', 'Combined problem (DSE-style)'],
+  comboC: ['綜合題（DSE 風格）', 'Combined problem (DSE-style)']
+};
+function mkQ(id, fig, zh, en, answer, steps, opt = {}) {
+  return {
+    id, fig, svg: fig ? fig.render() : '', text: { zh, en }, answer, steps,
+    unit: opt.unit ?? '°', unitLabel: opt.unitLabel || null, prefix: opt.prefix || 'x =',
+    isAngle: opt.isAngle ?? true
+  };
+}
+const POLY_NAME = { 4: ['四邊形', 'quadrilateral'], 5: ['五邊形', 'pentagon'], 6: ['六邊形', 'hexagon'] };
+
+/* ---------- 5c. 各題型 ---------- */
+const GEN = {
+  /** 三角形內角和 */
+  triSum() {
+    let a, b, c;
+    do { a = rnd(35, 95); b = rnd(30, 100); c = 180 - a - b; } while (c < 25 || c > 110);
+    const { A, B, C } = triangle(b, c);
+    const f = new Fig().pt('A', A).pt('B', B).pt('C', C).seg('A', 'B').seg('B', 'C').seg('C', 'A')
+      .ang('A', 'B', 'C', a + '°').ang('B', 'A', 'C', b + '°').ang('C', 'A', 'B', 'x', { unknown: 1 });
+    return mkQ('triSum', f, `在 △ABC 中，∠A = ${a}°，∠B = ${b}°。求 x。`, `In △ABC, ∠A = ${a}° and ∠B = ${b}°. Find x.`, c,
+      [sr(`x + ${a}° + ${b}° = 180°`, 'triSum'), sr(`x = ${c}°`)]);
+  },
+  /** 直線上的鄰角（補救題用） */
+  straight() {
+    const a = rnd(25, 155);
+    const O = { x: 0, y: 0 };
+    const f = new Fig().pt('A', { x: -6, y: 0 }).pt('B', { x: 6, y: 0 }).pt('O', O, -90).pt('C', pol(O, a, 5.5))
+      .seg('A', 'B').seg('O', 'C').ang('O', 'A', 'C', (180 - a) + '°').ang('O', 'B', 'C', 'x', { unknown: 1 });
+    return mkQ('straight', f, `AOB 是一條直線。若 ∠AOC = ${180 - a}°，求 x。`, `AOB is a straight line. If ∠AOC = ${180 - a}°, find x.`, a,
+      [sr(`x + ${180 - a}° = 180°`, 'line'), sr(`x = ${a}°`)]);
+  },
+  /** 三角形外角 */
+  triExt() {
+    let a, b, c;
+    do { a = rnd(35, 85); b = rnd(30, 80); c = 180 - a - b; } while (c < 30 || c > 110);
+    const { A, B, C } = triangle(b, c);
+    const f = new Fig().pt('A', A).pt('B', B).pt('C', C, -100).pt('D', { x: C.x + 5, y: 0 })
+      .seg('A', 'B').seg('B', 'D').seg('C', 'A');
+    if (Math.random() < 0.5) {
+      f.ang('A', 'B', 'C', a + '°').ang('B', 'A', 'C', b + '°').ang('C', 'A', 'D', 'x', { unknown: 1 });
+      return mkQ('triExt', f, `圖中 BCD 是一條直線。若 ∠BAC = ${a}°，∠ABC = ${b}°，求 x。`,
+        `In the figure, BCD is a straight line. If ∠BAC = ${a}° and ∠ABC = ${b}°, find x.`, a + b,
+        [sr(`x = ${a}° + ${b}°`, 'ext'), sr(`x = ${a + b}°`)]);
+    }
+    const e = a + b;
+    f.ang('A', 'B', 'C', 'x', { unknown: 1 }).ang('B', 'A', 'C', b + '°').ang('C', 'A', 'D', e + '°');
+    return mkQ('triExt', f, `圖中 BCD 是一條直線。若 ∠ACD = ${e}°，∠ABC = ${b}°，求 x。`,
+      `In the figure, BCD is a straight line. If ∠ACD = ${e}° and ∠ABC = ${b}°, find x.`, a,
+      [sr(`x + ${b}° = ${e}°`, 'ext'), sr(`x = ${a}°`)]);
+  },
+  /** 等腰三角形底角 */
+  isos() {
+    const B = { x: 0, y: 0 }, C = { x: 10, y: 0 };
+    if (Math.random() < 0.5) {
+      const apex = rnd(10, 70) * 2, base = (180 - apex) / 2;
+      const f = new Fig().pt('A', { x: 5, y: 5 * Math.tan(rad(base)) }).pt('B', B).pt('C', C)
+        .seg('A', 'B').seg('B', 'C').seg('C', 'A').tick('A', 'B').tick('A', 'C')
+        .ang('A', 'B', 'C', apex + '°').ang('B', 'A', 'C', 'x', { unknown: 1 });
+      return mkQ('isos', f, `在 △ABC 中，AB = AC，∠BAC = ${apex}°。求 x。`, `In △ABC, AB = AC and ∠BAC = ${apex}°. Find x.`, base,
+        [sr(`∠ACB = ∠ABC = x`, 'base'), sr(`x + x + ${apex}° = 180°`, 'triSum'), sr(`2x = ${180 - apex}°`), sr(`x = ${base}°`)]);
+    }
+    const base = rnd(25, 80), apex = 180 - 2 * base;
+    const f = new Fig().pt('A', { x: 5, y: 5 * Math.tan(rad(base)) }).pt('B', B).pt('C', C)
+      .seg('A', 'B').seg('B', 'C').seg('C', 'A').tick('A', 'B').tick('A', 'C')
+      .ang('B', 'A', 'C', base + '°').ang('A', 'B', 'C', 'x', { unknown: 1 });
+    return mkQ('isos', f, `在 △ABC 中，AB = AC，∠ABC = ${base}°。求 x。`, `In △ABC, AB = AC and ∠ABC = ${base}°. Find x.`, apex,
+      [sr(`∠ACB = ∠ABC = ${base}°`, 'base'), sr(`x + ${base}° + ${base}° = 180°`, 'triSum'), sr(`x = ${apex}°`)]);
+  },
+  /** 等腰三角形 + 外角 */
+  isosExt() {
+    const e = rnd(95, 155), base = 180 - e, apex = 2 * e - 180;
+    const f = new Fig().pt('A', { x: 5, y: 5 * Math.tan(rad(base)) }).pt('B', { x: 0, y: 0 }).pt('C', { x: 10, y: 0 }, -100).pt('D', { x: 15, y: 0 })
+      .seg('A', 'B').seg('B', 'D').seg('C', 'A').tick('A', 'B').tick('A', 'C')
+      .ang('C', 'A', 'D', e + '°').ang('A', 'B', 'C', 'x', { unknown: 1 });
+    return mkQ('isosExt', f, `圖中 AB = AC，BCD 是一條直線。若 ∠ACD = ${e}°，求 x。`,
+      `In the figure, AB = AC and BCD is a straight line. If ∠ACD = ${e}°, find x.`, apex,
+      [sr(`∠ACB = 180° − ${e}° = ${base}°`, 'line'), sr(`∠ABC = ∠ACB = ${base}°`, 'base'),
+       sr(`x = 180° − ${base}° − ${base}° = ${apex}°`, 'triSum')]);
+  },
+  /** 平行線與截線（同位角 / 內錯角 / 同旁內角 / 對頂角 / 鄰角） */
+  parallel() {
+    const th = Math.random() < 0.5 ? rnd(40, 75) : rnd(105, 140);
+    const dir = { x: Math.cos(rad(th)), y: Math.sin(rad(th)) };
+    const P = { x: 4 / Math.tan(rad(th)), y: 4 }, Qp = { x: -4 / Math.tan(rad(th)), y: -4 };
+    // 每個交點四條射線：右、上（沿截線）、左、下
+    const rays = { P: ['B', 'E', 'A', 'Q'], Q: ['D', 'P', 'C', 'F'] };
+    const val = k => (k % 2 === 0 ? th : 180 - th);
+    const rel = pick(['corr', 'corr', 'alt', 'alt', 'int', 'int', 'vert', 'line']);
+    let g, u; // [交點, 象限]
+    if (rel === 'corr') { const k = rnd(0, 3); g = ['P', k]; u = ['Q', k]; }
+    else if (rel === 'alt') { g = pick([[['P', 2], ['Q', 0]], [['P', 3], ['Q', 1]]]); [g, u] = g; }
+    else if (rel === 'int') { g = pick([[['P', 2], ['Q', 1]], [['P', 3], ['Q', 0]]]); [g, u] = g; }
+    else if (rel === 'vert') { const X = pick(['P', 'Q']), k = rnd(0, 3); g = [X, k]; u = [X, (k + 2) % 4]; }
+    else { const X = pick(['P', 'Q']), k = rnd(0, 3); g = [X, k]; u = [X, (k + 1) % 4]; }
+    if (Math.random() < 0.5) [g, u] = [u, g];
+    const given = val(g[1]), ans = val(u[1]);
+    const mids = [th / 2, (th + 180) / 2, 180 + th / 2, 270 + th / 2];
+    const used = { P: new Set(), Q: new Set() };
+    used[g[0]].add(g[1]); used[u[0]].add(u[1]);
+    const free = X => [0, 1, 2, 3].find(k => !used[X].has(k) && !used[X].has((k + 3) % 4)) ?? [0, 1, 2, 3].find(k => !used[X].has(k));
+    const f = new Fig().pt('A', { x: -8, y: 4 }).pt('B', { x: 8, y: 4 }).pt('C', { x: -8, y: -4 }).pt('D', { x: 8, y: -4 })
+      .pt('E', { x: P.x + 3 * dir.x, y: P.y + 3 * dir.y }).pt('F', { x: Qp.x - 3 * dir.x, y: Qp.y - 3 * dir.y })
+      .pt('P', P, mids[free('P')]).pt('Q', Qp, mids[free('Q')])
+      .seg('A', 'B').seg('C', 'D').seg('E', 'F').par('A', 'B').par('C', 'D');
+    const arc = ([X, k], txt, o) => f.ang(X, rays[X][k], rays[X][(k + 1) % 4], txt, o);
+    arc(g, given + '°', {});
+    arc(u, 'x', { unknown: 1 });
+    const step = rel === 'int' ? sr(`x = 180° − ${given}° = ${ans}°`, 'int', 'AB // CD')
+      : rel === 'line' ? sr(`x = 180° − ${given}° = ${ans}°`, 'line')
+      : sr(`x = ${given}°`, rel, rel === 'vert' ? '' : 'AB // CD');
+    return mkQ('parallel', f, `圖中 AB // CD，EPQF 是一條直線（截線）。求 x。`,
+      `In the figure, AB // CD and EPQF is a straight line (a transversal). Find x.`, ans, [step]);
+  },
+  /** 多邊形內角和 */
+  polyInt() {
+    const n = pick([4, 5, 5, 6]), names = 'ABCDEF'.slice(0, n), total = (n - 2) * 180;
+    if (Math.random() < 0.25) { // 變式：直接求 n 邊形內角和
+      const m = rnd(5, 12);
+      return mkQ('polyInt', null, `一個 ${m} 邊形的內角和是多少度？`, `What is the sum of the interior angles of a ${m}-sided polygon?`,
+        (m - 2) * 180, [sr(`內角和 = (${m} − 2) × 180°`, 'polySum', '', `Sum = (${m} − 2) × 180°`), sr(`= ${(m - 2) * 180}°`)], { prefix: '' });
+    }
+    for (;;) {
+      const V = cyclicPoly(n);
+      const shown = V.map((v, i) => Math.round(angleAt(v, V[(i + n - 1) % n], V[(i + 1) % n])));
+      const k = rnd(0, n - 1);
+      const others = shown.filter((_, i) => i !== k);
+      const ans = total - others.reduce((s, v) => s + v, 0);
+      if (ans < 25 || ans > 170) continue;
+      const f = new Fig();
+      V.forEach((v, i) => f.pt(names[i], v));
+      V.forEach((_, i) => f.seg(names[i], names[(i + 1) % n]));
+      V.forEach((_, i) => f.ang(names[i], names[(i + n - 1) % n], names[(i + 1) % n], i === k ? 'x' : shown[i] + '°', i === k ? { unknown: 1 } : {}));
+      const pn = POLY_NAME[n];
+      return mkQ('polyInt', f, `求圖中${pn[0]} ${names} 的 x。`, `Find x in the ${pn[1]} ${names}.`, ans,
+        [sr(`內角和 = (${n} − 2) × 180° = ${total}°`, 'polySum', '', `Sum of interior ∠s = (${n} − 2) × 180° = ${total}°`),
+         sr(`x + ${others.join('° + ')}° = ${total}°`), sr(`x = ${ans}°`)]);
+    }
+  },
+  /** 多邊形外角和 */
+  polyExt() {
+    const n = pick([4, 5, 5, 6]), names = 'ABCDEF'.slice(0, n);
+    for (;;) {
+      const V = cyclicPoly(n);
+      const shown = V.map((v, i) => Math.round(180 - angleAt(v, V[(i + n - 1) % n], V[(i + 1) % n])));
+      const k = rnd(0, n - 1);
+      const others = shown.filter((_, i) => i !== k);
+      const ans = 360 - others.reduce((s, v) => s + v, 0);
+      if (ans < 15 || ans > 140) continue;
+      const f = new Fig();
+      V.forEach((v, i) => f.pt(names[i], v));
+      V.forEach((v, i) => { const u = unit(V[(i + n - 1) % n], v); f.pt('_e' + i, { x: v.x + u.x * 2.4, y: v.y + u.y * 2.4 }); });
+      V.forEach((_, i) => f.seg(names[i], names[(i + 1) % n]).seg(names[i], '_e' + i, { dash: 1 }));
+      V.forEach((_, i) => f.ang(names[i], '_e' + i, names[(i + 1) % n], i === k ? 'x' : shown[i] + '°', i === k ? { unknown: 1 } : {}));
+      const pn = POLY_NAME[n];
+      return mkQ('polyExt', f, `把${pn[0]} ${names} 的各邊延長，得出如圖所示的外角。求 x。`,
+        `The sides of the ${pn[1]} ${names} are produced to form the exterior angles shown. Find x.`, ans,
+        [sr(`x + ${others.join('° + ')}° = 360°`, 'polyExt'), sr(`x = ${ans}°`)]);
+    }
+  },
+  /** 正多邊形 */
+  regular() {
+    const v = pick(['ext', 'int', 'nFromExt', 'nFromInt']);
+    const n = v.startsWith('n') ? pick([8, 9, 10, 12, 15, 18, 20, 24, 30, 36]) : pick([5, 6, 8, 9, 10, 12]);
+    const ext = 360 / n, int = 180 - ext, f = new Fig();
+    if (v === 'ext' || v === 'int') {
+      const V = [...Array(n)].map((_, i) => pol({ x: 0, y: 0 }, -90 - 180 / n + 360 * i / n, 5));
+      V.forEach((p, i) => f.pt('_v' + i, p));
+      V.forEach((_, i) => f.seg('_v' + i, '_v' + ((i + 1) % n)));
+      if (v === 'ext') {
+        const u = unit(V[n - 1], V[0]);
+        f.pt('_e', { x: V[0].x + u.x * 3, y: V[0].y + u.y * 3 }).seg('_v0', '_e', { dash: 1 }).ang('_v0', '_e', '_v1', 'x', { unknown: 1 });
+        return mkQ('regular', f, `圖中是一個正 ${n} 邊形。求它的一個外角 x。`, `The figure shows a regular ${n}-sided polygon. Find the exterior angle x.`, ext,
+          [sr(`${n}x = 360°`, 'polyExt'), sr(`x = 360° ÷ ${n} = ${ext}°`)]);
+      }
+      f.ang('_v0', '_v' + (n - 1), '_v1', 'x', { unknown: 1 });
+      return mkQ('regular', f, `圖中是一個正 ${n} 邊形。求它的一個內角 x。`, `The figure shows a regular ${n}-sided polygon. Find the interior angle x.`, int,
+        [sr(`每個外角 = 360° ÷ ${n} = ${ext}°`, 'polyExt', '', `Each exterior angle = 360° ÷ ${n} = ${ext}°`), sr(`x = 180° − ${ext}° = ${int}°`, 'line')]);
+    }
+    // 求邊數：只畫部分圖形（避免學生直接數邊）
+    let p = { x: 0, y: 0 }, heading = 0;
+    for (let i = 0; i < 5; i++) { f.pt('_v' + i, p); p = pol(p, heading, 4); heading += ext; }
+    f.seg('_v0', '_v1', { dash: 1 }).seg('_v1', '_v2').seg('_v2', '_v3').seg('_v3', '_v4', { dash: 1 });
+    if (v === 'nFromExt') {
+      const u = unit(f.P._v1, f.P._v2);
+      f.pt('_e', { x: f.P._v2.x + u.x * 3, y: f.P._v2.y + u.y * 3 }).seg('_v2', '_e', { dash: 1 }).ang('_v2', '_e', '_v3', ext + '°');
+      return mkQ('regular', f, `某正多邊形的每一個外角都是 ${ext}°。求該多邊形的邊數 n。`,
+        `Each exterior angle of a regular polygon is ${ext}°. Find the number of sides n.`, n,
+        [sr(`${ext}° × n = 360°`, 'polyExt'), sr(`n = 360° ÷ ${ext}° = ${n}`)], { unit: '', unitLabel: 'sides', prefix: 'n =', isAngle: false });
+    }
+    f.ang('_v2', '_v1', '_v3', int + '°');
+    return mkQ('regular', f, `某正多邊形的每一個內角都是 ${int}°。求該多邊形的邊數 n。`,
+      `Each interior angle of a regular polygon is ${int}°. Find the number of sides n.`, n,
+      [sr(`每個外角 = 180° − ${int}° = ${ext}°`, 'line', '', `Each exterior angle = 180° − ${int}° = ${ext}°`),
+       sr(`${ext}° × n = 360°`, 'polyExt'), sr(`n = 360° ÷ ${ext}° = ${n}`)], { unit: '', unitLabel: 'sides', prefix: 'n =', isAngle: false });
+  },
+  /** 等邊三角形 + 等腰三角形 */
+  equi() {
+    const c = rnd(20, 70) * 2, half = (180 - c) / 2, ans = 60 + half;
+    const C = { x: 10, y: 0 };
+    const f = new Fig().pt('A', { x: 5, y: 5 * Math.sqrt(3) }).pt('B', { x: 0, y: 0 }).pt('C', C).pt('D', pol(C, 120 - c, 10))
+      .seg('A', 'B').seg('B', 'C').seg('C', 'A').seg('C', 'D').seg('D', 'A')
+      .tick('A', 'B').tick('B', 'C').tick('C', 'A').tick('C', 'D')
+      .ang('C', 'A', 'D', c + '°').ang('A', 'B', 'D', 'x', { unknown: 1 });
+    return mkQ('equi', f, `圖中 △ABC 是等邊三角形，且 CA = CD。若 ∠ACD = ${c}°，求 x（即 ∠BAD）。`,
+      `In the figure, △ABC is an equilateral triangle and CA = CD. If ∠ACD = ${c}°, find x (i.e. ∠BAD).`, ans,
+      [sr(`∠BAC = 60°`, 'equil'), sr(`∠CAD = ∠CDA`, 'base'), sr(`∠CAD = (180° − ${c}°) ÷ 2 = ${half}°`, 'triSum'),
+       sr(`x = 60° + ${half}° = ${ans}°`)]);
+  },
+  /** 角與簡易方程（以 x 表示的三個內角） */
+  algebra() {
+    let x, p, q, r, A1, A2, A3;
+    do {
+      x = rnd(18, 40); p = rnd(-2, 6) * 5; q = rnd(-2, 4) * 5; r = 180 - 4 * x - p - q;
+      A1 = x + p; A2 = 2 * x + q; A3 = x + r;
+    } while ([A1, A2, A3].some(v => v < 35 || v > 110) || Math.abs(r) > 60);
+    const ex = (k, o) => (o ? `(${k}${fmtSigned(o)})°` : `${k}°`);
+    const e1 = ex('x', p), e2 = ex('2x', q), e3 = ex('x', r);
+    const { A, B, C } = triangle(A2, A3);
+    const f = new Fig().pt('A', A, 0).pt('B', B, 155).pt('C', C, 25).seg('A', 'B').seg('B', 'C').seg('C', 'A')
+      .ang('A', 'B', 'C', e1, { out: 1 }).ang('B', 'A', 'C', e2, { out: 1 }).ang('C', 'A', 'B', e3, { out: 1 });
+    f.pad = 46;
+    const k = p + q + r;
+    return mkQ('algebra', f, `圖中 △ABC 的三個內角分別是 ${e1}、${e2} 和 ${e3}。求 x。`,
+      `The three interior angles of △ABC are ${e1}, ${e2} and ${e3}. Find x.`, x,
+      [sr(`${e1} + ${e2} + ${e3} = 180°`, 'triSum'), sr(`4x${fmtSigned(k)} = 180`), sr(`4x = ${180 - k}`), sr(`x = ${x}`)],
+      { unit: '', isAngle: false });
+  },
+  /** 綜合題 A（附件第 1 題類型）：平行線 + 等腰三角形 + 直線上的鄰角 */
+  comboA() {
+    const p = rnd(52, 78);
+    const R = { x: 0, y: 0 }, S = { x: 10, y: 0 }, Qp = pol(R, 180 - 2 * p, 10);
+    const top = Qp.y * 1.6, h1 = { x: 0, y: top }, h2 = { x: 1, y: top };
+    const P = lineX(S, Qp, h1, h2), T = lineX(R, Qp, h1, h2);
+    const f = new Fig().pt('P', P).pt('T', T).pt('R', R).pt('S', S).pt('Q', Qp, 0)
+      .pt('_l', { x: Math.min(P.x, R.x) - 1.5, y: top }).pt('_r', { x: Math.max(T.x, S.x) + 1.5, y: top })
+      .seg('_l', '_r').seg('R', 'S').seg('P', 'S').seg('R', 'T').tick('R', 'S').tick('R', 'Q').par('P', 'T').par('R', 'S')
+      .ang('P', 'T', 'Q', p + '°').ang('Q', 'P', 'R', 'x', { unknown: 1 });
+    return mkQ('comboA', f, `圖中 PS 與 RT 相交於 Q，且 RS = RQ。若 PT // RS 及 ∠TPQ = ${p}°，求 x（即 ∠PQR）。`,
+      `In the figure, PS and RT intersect at Q such that RS = RQ. If PT // RS and ∠TPQ = ${p}°, find x (i.e. ∠PQR).`, 180 - p,
+      [sr(`∠RSQ = ∠TPQ = ${p}°`, 'alt', 'PT // RS'), sr(`∠RQS = ∠RSQ = ${p}°`, 'base'), sr(`x = 180° − ${p}° = ${180 - p}°`, 'line')]);
+  },
+  /** 綜合題 B（附件第 2 題類型）：平行線 + 三角形內角和 + 等腰三角形 */
+  comboB() {
+    let s, t;
+    do { s = rnd(18, 40); t = rnd(s + 16, 150 - s); } while ((t - s) % 2);
+    const q = 180 - s - t, ans = (t - s) / 2, bA = (s + t) / 2;
+    const Qp = { x: 0, y: 0 }, P = { x: -10, y: 0 }, R = pol(Qp, 180 + q, 10);
+    const S = lineX(P, pol(P, -s, 1), R, { x: R.x + 1, y: R.y }), Tp = lineX(P, S, Qp, R);
+    const u1 = unit(Tp, S), u2 = unit(Tp, R), tDir = deg(Math.atan2(u1.y + u2.y, u1.x + u2.x)); // T 的標籤放在 ∠RTS（無角弧）內
+    const f = new Fig().pt('P', P).pt('Q', Qp).pt('R', R).pt('S', S).pt('T', Tp, tDir)
+      .seg('P', 'Q').seg('Q', 'R').seg('R', 'S').seg('P', 'S').seg('P', 'R').tick('P', 'Q').tick('Q', 'R').par('P', 'Q').par('R', 'S')
+      .ang('S', 'R', 'T', s + '°').ang('T', 'P', 'Q', t + '°').ang('P', 'R', 'T', 'x', { unknown: 1 });
+    return mkQ('comboB', f, `圖中 PQ = QR 且 PQ // RS。PS 與 QR 相交於 T。若 ∠RST = ${s}° 及 ∠PTQ = ${t}°，求 x（即 ∠RPT）。`,
+      `In the figure, PQ = QR and PQ // RS. PS and QR intersect at T. If ∠RST = ${s}° and ∠PTQ = ${t}°, find x (i.e. ∠RPT).`, ans,
+      [sr(`∠QPT = ∠RST = ${s}°`, 'alt', 'PQ // RS'), sr(`∠PQT = 180° − ${s}° − ${t}° = ${q}°`, 'triSum'),
+       sr(`∠QPR = ∠QRP = (180° − ${q}°) ÷ 2 = ${bA}°`, 'base'), sr(`x = ${bA}° − ${s}° = ${ans}°`)]);
+  },
+  /** 綜合題 C（附件第 14 題類型）：連續等腰三角形 + 外角 */
+  comboC() {
+    const a = rnd(15, 38), e = 3 * a, d = 6, cs = Math.cos(rad(a));
+    const A = { x: 0, y: 0 }, D = { x: d, y: 0 }, C = pol(A, a, 2 * d * cs), B = { x: 2 * C.x - d, y: 0 }, E = pol(A, a, 2 * d * cs + 4);
+    const f = new Fig().pt('A', A).pt('D', D).pt('B', B).pt('C', C, 110).pt('E', E)
+      .seg('A', 'B').seg('A', 'E').seg('C', 'D').seg('C', 'B').tick('A', 'D').tick('D', 'C').tick('C', 'B')
+      .ang('C', 'B', 'E', e + '°').ang('A', 'D', 'C', 'x', { unknown: 1, r: 46 });
+    return mkQ('comboC', f, `圖中 ADB 和 ACE 都是直線，且 AD = CD = CB。若 ∠BCE = ${e}°，求 x（即 ∠CAD）。`,
+      `In the figure, ADB and ACE are straight lines, and AD = CD = CB. If ∠BCE = ${e}°, find x (i.e. ∠CAD).`, a,
+      [sr(`∠DCA = ∠DAC = x`, 'base', 'AD = CD'), sr(`∠CDB = x + x = 2x`, 'ext'), sr(`∠CBD = ∠CDB = 2x`, 'base', 'CD = CB'),
+       sr(`∠BCE = x + 2x = 3x`, 'ext'), sr(`3x = ${e}°`), sr(`x = ${a}°`)]);
+  }
+};
+/** 每回合的題型池：由淺入深 */
+const ROUND_POOLS = [
+  ['triSum', 'isos', 'parallel'],
+  ['triExt', 'isosExt', 'parallel', 'isos'],
+  ['polyInt', 'polyExt', 'regular'],
+  ['equi', 'algebra', 'comboA', 'regular', 'polyExt'],
+  ['comboA', 'comboB', 'comboC']
+];
+const REMEDIAL_POOL = ['triSum', 'straight', 'isos', 'parallel']; // 補救題：簡單一步題
+function makeQuestion(pool) {
+  const choices = pool.filter(id => !G.lastGen.includes(id));
+  const id = pick(choices.length ? choices : pool);
+  G.lastGen = [id, ...G.lastGen].slice(0, 3);
+  return GEN[id]();
+}
+
+/* =====================================================================
+ * 6. 3D 場景（Three.js）
+ * ===================================================================== */
+const ARENA_R = 10, TOP_R = 0.85;
+const floorY = r => 0.035 * r * r;            // 碗形競技場高度函數 y = 0.035 r²
+const START_ME = { x: -6, z: 0 }, START_CPU = { x: 6, z: 0 };
+const PAR_Z = 3;                               // 兩條平行線位於 z = ±3
+const ROUND_COLORS = ['#5fe3ff', '#ffd34d', '#ff6fae', '#4dff9a', '#b18cff', '#ff9a4d', '#9dffef', '#ffffff'];
+let renderer, scene, camera, clock, floorCanvas, floorTex, flashLight, rimMat, lampMats = [];
+let me, cpu;                                   // 兩個陀螺的物理狀態
+let sparks;                                    // 火花粒子系統
+const trails = [];                             // 每回合玩家軌跡
+let curTrail = null;
+const camState = { pos: new THREE.Vector3(0, 17, 16), look: new THREE.Vector3(0, 1.5, 0) };
+
+function init3D() {
+  renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('scene'), antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x040914);
+  scene.fog = new THREE.Fog(0x040914, 34, 80);
+  camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
+  clock = new THREE.Clock();
+
+  // ---- 燈光 ----
+  scene.add(new THREE.HemisphereLight(0x9fc8ff, 0x0c0c22, 0.6));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+  sun.position.set(8, 22, 8);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 60 });
+  scene.add(sun);
+  const pl1 = new THREE.PointLight(0x2f8cff, 1.2, 50); pl1.position.set(-14, 9, -6); scene.add(pl1);
+  const pl2 = new THREE.PointLight(0xff3b8e, 1.0, 50); pl2.position.set(14, 9, 6); scene.add(pl2);
+  flashLight = new THREE.PointLight(0xffd88a, 0, 9); scene.add(flashLight);
+
+  buildArena();
+  buildStars();
+  sparks = buildSparks();
+  me = newTopState(makeTop(G.color, 0xffffff, (G.student.name || '我').trim().charAt(0)), true);
+  cpu = newTopState(makeTop(0xff3b4e, 0x222222, 'AI'), false);
+  scene.add(me.mesh, cpu.mesh);
+  resetTops();
+  drawFloor();
+  window.addEventListener('resize', onResize);
+  onResize();
+  loop();
+}
+
+function onResize() {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  camera.fov = camera.aspect < 0.8 ? 72 : 50;   // 手機直向：加大視角
+  camera.updateProjectionMatrix();
+}
+
+/** 競技場：碗形地台（地面貼圖畫有平行線及截線）+ 圍牆 + 霓虹邊框 */
+function buildArena() {
+  floorCanvas = document.createElement('canvas');
+  floorCanvas.width = floorCanvas.height = 1024;
+  floorTex = new THREE.CanvasTexture(floorCanvas);
+  floorTex.encoding = THREE.sRGBEncoding;
+  floorTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  // RingGeometry 的 UV 是平面投影，正好配合平面貼圖；再把頂點改成碗形
+  const g = new THREE.RingGeometry(0.0001, ARENA_R, 128, 40);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i);
+    pos.setXYZ(i, x, floorY(Math.hypot(x, y)), -y);
+  }
+  g.computeVertexNormals();
+  const floor = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.5, metalness: 0.25 }));
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const rimY = floorY(ARENA_R);
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R + 0.05, ARENA_R + 0.05, 1.3, 128, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0x1b2d52, metalness: 0.8, roughness: 0.3, side: THREE.DoubleSide }));
+  wall.position.y = rimY + 0.65;
+  scene.add(wall);
+  rimMat = new THREE.MeshStandardMaterial({ color: 0x5fe3ff, emissive: 0x2fb8ff, emissiveIntensity: 1.2, metalness: 0.5, roughness: 0.3 });
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(ARENA_R + 0.1, 0.22, 16, 160), rimMat);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = rimY + 1.3;
+  scene.add(rim);
+  const deck = new THREE.Mesh(new THREE.RingGeometry(ARENA_R + 0.3, ARENA_R + 4, 128),
+    new THREE.MeshStandardMaterial({ color: 0x0d1a33, metalness: 0.6, roughness: 0.5, side: THREE.DoubleSide }));
+  deck.rotation.x = -Math.PI / 2;
+  deck.position.y = rimY + 1.3;
+  deck.receiveShadow = true;
+  scene.add(deck);
+  const outer = new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R + 4, ARENA_R + 5.5, 7, 64, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0x0a142a, metalness: 0.5, roughness: 0.6 }));
+  outer.position.y = rimY + 1.3 - 3.5;
+  scene.add(outer);
+  // 邊台上的彩色燈
+  for (let i = 0; i < 24; i++) {
+    const m = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: new THREE.Color(ROUND_COLORS[i % 5]), emissiveIntensity: 1 });
+    lampMats.push(m);
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.5), m);
+    const a = i / 24 * Math.PI * 2;
+    lamp.position.set(Math.cos(a) * (ARENA_R + 2.2), rimY + 1.4, Math.sin(a) * (ARENA_R + 2.2));
+    lamp.rotation.y = -a;
+    scene.add(lamp);
+  }
+}
+
+function buildStars() {
+  const n = 1200, p = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const r = 60 + Math.random() * 40, t = Math.random() * Math.PI * 2, u = Math.random() * 0.9 + 0.05;
+    p[i * 3] = r * Math.cos(t) * Math.sin(u * Math.PI); p[i * 3 + 1] = r * Math.cos(u * Math.PI) * 0.6 + 10; p[i * 3 + 2] = r * Math.sin(t) * Math.sin(u * Math.PI);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x9fc8ff, size: 0.25, fog: false })));
+}
+
+/** 地面貼圖：畫上兩條平行線 + 截線（截線 = 本回合發射方向），並標示角度 */
+function drawFloor(opt = {}) {
+  const c = floorCanvas.getContext('2d'), W = 1024, k = W / (2 * ARENA_R);
+  const X = x => (x + ARENA_R) * k, Z = z => (z + ARENA_R) * k;
+  c.save();
+  const bg = c.createRadialGradient(W / 2, W / 2, 30, W / 2, W / 2, W / 2);
+  bg.addColorStop(0, '#173a6c'); bg.addColorStop(0.7, '#0c2245'); bg.addColorStop(1, '#071430');
+  c.fillStyle = bg; c.fillRect(0, 0, W, W);
+  // 同心圓與放射線（裝飾）
+  c.strokeStyle = 'rgba(95,227,255,0.16)'; c.lineWidth = 2;
+  for (let r = 2; r <= 10; r += 2) { c.beginPath(); c.arc(W / 2, W / 2, r * k, 0, Math.PI * 2); c.stroke(); }
+  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; c.beginPath(); c.moveTo(W / 2, W / 2); c.lineTo(W / 2 + Math.cos(a) * W / 2, W / 2 + Math.sin(a) * W / 2); c.stroke(); }
+  // 兩條平行線 L₁、L₂
+  const glowLine = (x1, y1, x2, y2, col, w) => {
+    c.shadowColor = col; c.shadowBlur = 18; c.strokeStyle = col; c.lineWidth = w;
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.shadowBlur = 0;
+  };
+  for (const z of [-PAR_Z, PAR_Z]) {
+    glowLine(0, Z(z), W, Z(z), '#ffd34d', 6);
+    for (const xx of [-2.5, 2.5]) { // 平行箭咀
+      const px = X(xx), py = Z(z);
+      c.strokeStyle = '#ffd34d'; c.lineWidth = 5;
+      c.beginPath(); c.moveTo(px - 14, py - 13); c.lineTo(px + 4, py); c.lineTo(px - 14, py + 13); c.stroke();
+    }
+  }
+  c.fillStyle = '#ffd34d'; c.font = 'bold 34px system-ui, sans-serif';
+  c.fillText('L₁', X(-8.6), Z(-PAR_Z) - 14); c.fillText('L₂', X(-8.6), Z(PAR_Z) - 14);
+  c.fillText('L₁ // L₂', X(-1.6), Z(0) - 4);
+
+  // 截線（可多條：結算時顯示所有回合的發射角度）
+  const list = opt.list || (opt.theta ? [{ theta: opt.theta, color: '#ff6fae' }] : [{ theta: 62, color: 'rgba(255,111,174,0.55)', ghost: true }]);
+  for (const it of list) {
+    const th = rad(it.theta), dx = Math.cos(th), dz = -Math.sin(th);
+    const sx = START_ME.x, sz = START_ME.z;
+    glowLine(X(sx - dx * 30), Z(sz - dz * 30), X(sx + dx * 30), Z(sz + dz * 30), it.color, it.ghost ? 4 : 7);
+    if (it.ghost) continue;
+    // 截線與 L₁、L₂ 的交點上畫角弧（同位角相等）
+    for (const zl of [-PAR_Z, PAR_Z]) {
+      const t = (zl - sz) / dz, ix = sx + dx * t;
+      if (Math.hypot(ix, zl) > ARENA_R - 0.8) continue;
+      c.strokeStyle = it.color; c.lineWidth = 5;
+      c.beginPath(); c.arc(X(ix), Z(zl), 46, -th, 0); c.stroke();
+      c.fillStyle = it.color; c.font = 'bold 30px system-ui, sans-serif';
+      const m = -th / 2;
+      c.fillText(`${Math.round(it.theta)}°`, X(ix) + Math.cos(m) * 66 - 18, Z(zl) + Math.sin(m) * 66 + 10);
+    }
+  }
+  // 發射點標記
+  c.fillStyle = 'rgba(95,227,255,0.85)'; c.beginPath(); c.arc(X(START_ME.x), Z(START_ME.z), 14, 0, Math.PI * 2); c.fill();
+  c.fillStyle = 'rgba(255,90,106,0.85)'; c.beginPath(); c.arc(X(START_CPU.x), Z(START_CPU.z), 14, 0, Math.PI * 2); c.fill();
+  // 發射方向箭咀
+  if (opt.theta) {
+    const th = rad(opt.theta), dx = Math.cos(th), dz = -Math.sin(th);
+    const ex = START_ME.x + dx * 2.6, ez = START_ME.z + dz * 2.6;
+    c.fillStyle = '#ffffff';
+    c.beginPath();
+    c.moveTo(X(ex + dx * 0.6), Z(ez + dz * 0.6));
+    c.lineTo(X(ex - dz * 0.4), Z(ez + dx * 0.4));
+    c.lineTo(X(ex + dz * 0.4), Z(ez - dx * 0.4));
+    c.closePath(); c.fill();
+  }
+  c.restore();
+  floorTex.needsUpdate = true;
+}
+
+/** 建立一個原創陀螺模型：尖端 + 驅動盤 + 金屬圓盤 + 攻擊刃 + 能量層 + 個人徽章 + 幾何護盾 */
+function makeTop(main, accent, emblem) {
+  const root = new THREE.Group(), tilt = new THREE.Group(), spin = new THREE.Group();
+  root.add(tilt); tilt.add(spin);
+  const metal = new THREE.MeshStandardMaterial({ color: 0xd6dde8, metalness: 0.95, roughness: 0.22 });
+  const mMain = new THREE.MeshStandardMaterial({ color: main, metalness: 0.4, roughness: 0.32, emissive: main, emissiveIntensity: 0.18 });
+  const mAcc = new THREE.MeshStandardMaterial({ color: accent, metalness: 0.6, roughness: 0.3 });
+  const add = (geo, mat, y) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; m.castShadow = true; spin.add(m); return m; };
+  const tip = add(new THREE.ConeGeometry(0.16, 0.45, 20), metal, 0.225); tip.rotation.x = Math.PI;
+  add(new THREE.CylinderGeometry(0.34, 0.2, 0.32, 24), mAcc, 0.6);
+  add(new THREE.CylinderGeometry(0.78, 0.78, 0.12, 40), metal, 0.82);
+  // 攻擊刃（3 片）
+  const sh = new THREE.Shape();
+  sh.moveTo(0.35, -0.14); sh.quadraticCurveTo(0.95, -0.28, 1.02, 0.06); sh.lineTo(0.64, 0.22); sh.quadraticCurveTo(0.45, 0.13, 0.35, 0.13); sh.closePath();
+  const bladeGeo = new THREE.ExtrudeGeometry(sh, { depth: 0.16, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
+  bladeGeo.rotateX(-Math.PI / 2);
+  for (let i = 0; i < 3; i++) { const b = add(bladeGeo, mMain, 0.86); b.rotation.y = i * Math.PI * 2 / 3; }
+  add(new THREE.CylinderGeometry(0.56, 0.66, 0.22, 6), mMain, 1.02);
+  // 徽章（印上學生名字首字）
+  const ec = document.createElement('canvas'); ec.width = ec.height = 128;
+  const x = ec.getContext('2d');
+  const col = '#' + new THREE.Color(main).getHexString();
+  x.fillStyle = '#0b1530'; x.beginPath(); x.arc(64, 64, 62, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = col; x.lineWidth = 10; x.beginPath(); x.arc(64, 64, 52, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#ffffff'; x.font = 'bold 60px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(emblem, 64, 68);
+  const et = new THREE.CanvasTexture(ec); et.encoding = THREE.sRGBEncoding;
+  const emb = add(new THREE.CircleGeometry(0.44, 40), new THREE.MeshStandardMaterial({ map: et, metalness: 0.2, roughness: 0.4 }), 1.135);
+  emb.rotation.x = -Math.PI / 2;
+  add(new THREE.SphereGeometry(0.1, 16, 12), metal, 1.15);
+  // 高速旋轉模糊環
+  const blur = new THREE.Mesh(new THREE.RingGeometry(0.5, 1.08, 48), new THREE.MeshBasicMaterial({
+    color: main, transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+  blur.rotation.x = -Math.PI / 2; blur.position.y = 0.95;
+  tilt.add(blur);
+  // 幾何護盾（六角柱）
+  const shield = new THREE.Group();
+  const sg = new THREE.CylinderGeometry(1.3, 1.3, 1.5, 6, 1, true);
+  shield.add(new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ color: 0x5fe3ff, transparent: true, opacity: 0.16, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })));
+  shield.add(new THREE.LineSegments(new THREE.EdgesGeometry(sg), new THREE.LineBasicMaterial({ color: 0x9ff3ff, transparent: true, opacity: 0.8 })));
+  shield.position.y = 0.75; shield.visible = false;
+  tilt.add(shield);
+  root.userData = { tilt, spin, blur, shield };
+  return root;
+}
+
+/** 陀螺物理狀態 */
+function newTopState(mesh, isPlayer) {
+  return { mesh, isPlayer, pos: new THREE.Vector2(), vel: new THREE.Vector2(), rpm: 0, atk: 1, shieldHP: 0,
+    tilt: 0, prec: 0, spinAng: 0, state: 'idle', dir: isPlayer ? 1 : -1, yOff: 0, y: 0, vy: 0, boostT: 0, outT: 0 };
+}
+function resetTops() {
+  for (const [t, s] of [[me, START_ME], [cpu, START_CPU]]) {
+    Object.assign(t, { rpm: 600, atk: 1, shieldHP: 0, tilt: 0, state: 'idle', yOff: 1.4, boostT: 0, outT: 0 });
+    t.pos.set(s.x, s.z); t.vel.set(0, 0);
+    t.mesh.visible = true;
+  }
+}
+
+/* ---------- 火花粒子 ---------- */
+function buildSparks() {
+  const N = 700, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) pos[i * 3 + 1] = -999;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const sc = document.createElement('canvas'); sc.width = sc.height = 64;
+  const x = sc.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,230,150,.8)'); gr.addColorStop(1, 'rgba(255,150,50,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+  const m = new THREE.PointsMaterial({ size: 0.32, map: new THREE.CanvasTexture(sc), vertexColors: true, transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false });
+  scene.add(new THREE.Points(g, m));
+  return { N, pos, col, g, vel: new Float32Array(N * 3), life: new Float32Array(N), base: new Float32Array(N * 3), idx: 0 };
+}
+function emitSparks(x, y, z, count, colors) {
+  const s = sparks;
+  for (let n = 0; n < count; n++) {
+    const i = s.idx; s.idx = (s.idx + 1) % s.N;
+    s.pos[i * 3] = x; s.pos[i * 3 + 1] = y; s.pos[i * 3 + 2] = z;
+    const a = Math.random() * Math.PI * 2, sp = 3 + Math.random() * 9;
+    s.vel[i * 3] = Math.cos(a) * sp; s.vel[i * 3 + 1] = 2 + Math.random() * 6; s.vel[i * 3 + 2] = Math.sin(a) * sp;
+    s.life[i] = 0.35 + Math.random() * 0.5;
+    const c = new THREE.Color(pick(colors));
+    s.base[i * 3] = c.r; s.base[i * 3 + 1] = c.g; s.base[i * 3 + 2] = c.b;
+  }
+}
+function updateSparks(dt) {
+  const s = sparks;
+  for (let i = 0; i < s.N; i++) {
+    if (s.life[i] <= 0) continue;
+    s.life[i] -= dt;
+    if (s.life[i] <= 0) { s.pos[i * 3 + 1] = -999; continue; }
+    s.vel[i * 3 + 1] -= 14 * dt;
+    for (let k = 0; k < 3; k++) s.pos[i * 3 + k] += s.vel[i * 3 + k] * dt;
+    const f = Math.min(1, s.life[i] * 2.2);
+    for (let k = 0; k < 3; k++) s.col[i * 3 + k] = s.base[i * 3 + k] * f;
+  }
+  s.g.attributes.position.needsUpdate = true;
+  s.g.attributes.color.needsUpdate = true;
+  flashLight.intensity *= Math.exp(-dt * 12);
+}
+
+/* ---------- 玩家軌跡（每回合一種顏色，展示「個人獨特性」） ---------- */
+function startTrail(color) {
+  const max = 6000, arr = new Float32Array(max * 3), g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  g.setDrawRange(0, 0);
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color, size: 0.13, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+  scene.add(pts);
+  curTrail = { g, arr, n: 0, max, acc: 0, obj: pts };
+  trails.push(curTrail);
+}
+function pushTrail(x, z) {
+  const t = curTrail;
+  if (!t || t.n >= t.max) return;
+  t.arr.set([x, floorY(Math.min(ARENA_R, Math.hypot(x, z))) + 0.05, z], t.n * 3);
+  t.n++;
+  t.g.setDrawRange(0, t.n);
+  t.g.attributes.position.needsUpdate = true;
+}
+function clearTrails() { trails.forEach(t => { scene.remove(t.obj); t.g.dispose(); }); trails.length = 0; curTrail = null; }
+
+/* =====================================================================
+ * 7. 戰鬥物理（簡化 2D 物理 + 3D 呈現）
+ * ===================================================================== */
+function stepTop(t, dt, other) {
+  if (t.state === 'out') {               // 被撞出場外：拋物線飛走
+    t.vy -= 14 * dt; t.y += t.vy * dt; t.pos.addScaledVector(t.vel, dt);
+    t.tilt = Math.min(1.6, t.tilt + dt * 2.5); t.rpm = Math.max(0, t.rpm - 1500 * dt); t.outT += dt;
+    if (t.outT > 2.5) t.mesh.visible = false;
+    return;
+  }
+  if (t.state === 'down') {              // 轉速耗盡：倒下
+    t.tilt += (1.25 - t.tilt) * Math.min(1, dt * 4);
+    t.rpm = Math.max(0, t.rpm - 900 * dt);
+    t.vel.multiplyScalar(Math.exp(-3 * dt)); t.pos.addScaledVector(t.vel, dt);
+    return;
+  }
+  if (t.state !== 'spinning') return;
+  t.yOff = Math.max(0, t.yOff - dt * 6);   // 發射後落地
+  const r = t.pos.length();
+  // (1) 碗形斜面：向中心的加速度
+  const acc = t.pos.clone().multiplyScalar(-1.1);
+  // (2) 旋轉帶來的切向漂移 → 形成花瓣狀軌跡
+  if (r > 0.01) acc.add(new THREE.Vector2(-t.pos.y, t.pos.x).multiplyScalar(t.dir * 1.6 * Math.min(1.3, t.rpm / 4000) / r));
+  // (3) 電腦 AI：追擊玩家（回合越後越進取）
+  if (!t.isPlayer && other.state === 'spinning') {
+    const d = other.pos.clone().sub(t.pos);
+    if (d.length() > 0.01) acc.add(d.normalize().multiplyScalar(0.9 + 0.22 * G.round));
+  }
+  acc.x += (Math.random() - 0.5) * 0.8; acc.y += (Math.random() - 0.5) * 0.8;
+  t.vel.addScaledVector(acc, dt);
+  t.vel.multiplyScalar(Math.exp(-0.32 * dt));
+  if (t.vel.length() > 15) t.vel.setLength(15);
+  t.pos.addScaledVector(t.vel, dt);
+  // (4) 撞牆反彈；撞得太猛 → 飛出場外
+  const r2 = t.pos.length(), lim = ARENA_R - TOP_R;
+  if (r2 > lim) {
+    const n = t.pos.clone().divideScalar(r2), vr = t.vel.dot(n);
+    if (vr > 8.5 && G.phase === 'battle') { ringOut(t); return; }
+    if (vr > 0) {
+      t.vel.addScaledVector(n, -vr * 1.6); t.rpm -= 30 * vr;
+      if (vr > 2) { SFX.wall(); emitSparks(n.x * ARENA_R, floorY(ARENA_R) + 0.6, n.y * ARENA_R, 8, ['#9fdcff', '#ffffff']); }
+    }
+    t.pos.copy(n.multiplyScalar(lim));
+  }
+  // (5) 轉速自然衰減（護盾減少損耗）
+  t.rpm -= (55 + 0.018 * t.rpm) * dt * (t.shieldHP > 0 ? 0.75 : 1);
+  t.boostT = Math.max(0, t.boostT - dt);
+  // (6) 傾斜：轉速越低越搖晃
+  const target = t.rpm > 1500 ? 0.03 : 0.03 + (1 - t.rpm / 1500) * 0.55;
+  t.tilt += (target - t.tilt) * Math.min(1, dt * 1.5);
+  t.prec += dt * (3 + 9 * (1 - Math.min(1, t.rpm / 4000)));
+  if (t.rpm < 130) { t.state = 'down'; t.rpm = Math.max(0, t.rpm); }
+}
+function ringOut(t) {
+  t.state = 'out'; t.y = floorY(ARENA_R); t.vy = 7; t.outT = 0;
+  t.vel.multiplyScalar(0.8);
+  SFX.clash(1); G.shake = 0.6;
+  emitSparks(t.pos.x, t.y + 0.8, t.pos.y, 60, ['#ffffff', '#ffd34d', '#ff6fae']);
+}
+/** 兩陀螺碰撞：擊退、轉速損失、傾斜、火花、音效 */
+function collide(a, b, dt) {
+  G.pairCD = Math.max(0, G.pairCD - dt);
+  if (a.state !== 'spinning' || b.state !== 'spinning') return;
+  const d = b.pos.clone().sub(a.pos), dist = d.length(), minD = TOP_R * 2;
+  if (dist >= minD || dist < 1e-4) return;
+  const n = d.divideScalar(dist), ov = (minD - dist) / 2;
+  a.pos.addScaledVector(n, -ov); b.pos.addScaledVector(n, ov);
+  if (G.pairCD > 0) return;
+  G.pairCD = 0.14;
+  const vRel = Math.max(0, a.vel.clone().sub(b.vel).dot(n));
+  const clash = 2.2 + 3.2 * Math.min(1.6, (a.rpm + b.rpm) / 8000);   // 兩陀螺反向旋轉 → 強烈「旋轉衝擊」
+  const base = vRel * 0.85 + clash;
+  const atkA = a.atk * (a.boostT > 0 ? 1.5 : 1), atkB = b.atk * (b.boostT > 0 ? 1.5 : 1);
+  const share = a.rpm + b.rpm + 1;
+  const kB = base * atkA * (0.5 + a.rpm / share) * (b.shieldHP > 0 ? 0.55 : 1);
+  const kA = base * atkB * (0.5 + b.rpm / share) * (a.shieldHP > 0 ? 0.55 : 1);
+  a.vel.addScaledVector(n, -kA); b.vel.addScaledVector(n, kB);
+  a.rpm -= (70 + 55 * vRel) * atkB * (a.shieldHP > 0 ? 0.5 : 1) * (0.85 + Math.random() * 0.3);
+  b.rpm -= (70 + 55 * vRel) * atkA * (b.shieldHP > 0 ? 0.5 : 1) * (0.85 + Math.random() * 0.3);
+  a.tilt += 0.03 * kA * (a.shieldHP > 0 ? 0.4 : 1);
+  b.tilt += 0.03 * kB * (b.shieldHP > 0 ? 0.4 : 1);
+  for (const t of [a, b]) {
+    if (t.shieldHP > 0) {
+      t.shieldHP -= 16 + 6 * vRel;
+      if (t.shieldHP <= 0) { SFX.shieldBreak(); if (t.isPlayer) toast(tr('shieldBreak')); }
+    }
+  }
+  const cx = a.pos.x + n.x * TOP_R, cz = a.pos.y + n.y * TOP_R, cy = floorY(Math.hypot(cx, cz)) + 0.9;
+  const power = vRel + clash;
+  emitSparks(cx, cy, cz, Math.min(80, 18 + power * 8), ['#ffffff', '#ffe08a', '#ffb347', '#5fe3ff']);
+  flashLight.position.set(cx, cy + 0.5, cz); flashLight.intensity = 3 + power * 0.6;
+  SFX.clash(Math.min(1, power / 10));
+  G.shake = Math.min(0.5, 0.08 + 0.03 * power);
+}
+/** 把物理狀態同步到 3D 模型 */
+function syncTop(t, dt, time) {
+  const u = t.mesh.userData, r = Math.min(ARENA_R, t.pos.length());
+  const y = t.state === 'out' ? t.y : floorY(r) + t.yOff;
+  t.mesh.position.set(t.pos.x, y, t.pos.y);
+  u.tilt.rotation.x = t.tilt * Math.cos(t.prec);
+  u.tilt.rotation.z = t.tilt * Math.sin(t.prec);
+  t.spinAng += t.dir * Math.max(0, t.rpm) * 0.008 * dt;
+  u.spin.rotation.y = t.spinAng;
+  u.blur.material.opacity = Math.min(0.5, Math.max(0, t.rpm) / 7000);
+  u.shield.visible = t.shieldHP > 0;
+  if (u.shield.visible) { u.shield.rotation.y += dt * 1.5; u.shield.children[0].material.opacity = 0.1 + 0.08 * Math.sin(time * 6); }
+}
+
+/* =====================================================================
+ * 8. 主迴圈 & 鏡頭
+ * ===================================================================== */
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 1 / 30), time = clock.elapsedTime;
+  const sdt = dt * G.timeScale;
+  if (G.phase === 'battle' || G.phase === 'battleEnd') battleStep(sdt);
+  else if (G.phase === 'ceremony') ceremonyStep(dt);
+  else idleStep(dt, time);
+  syncTop(me, sdt || dt * 0.05, time); syncTop(cpu, sdt || dt * 0.05, time);
+  updateSparks(dt);
+  updateCamera(dt, time);
+  lampMats.forEach((m, i) => { m.emissiveIntensity = 0.6 + 0.6 * Math.sin(time * 3 + i * 0.7); });
+  rimMat.emissiveIntensity = 1 + 0.4 * Math.sin(time * 2);
+  SFX.humUpdate(me.rpm, cpu.rpm, G.phase === 'battle' && G.timeScale > 0);
+  renderer.render(scene, camera);
+}
+/** 發射前：陀螺懸浮在發射器上慢轉 */
+function idleStep(dt, time) {
+  for (const t of [me, cpu]) {
+    if (t.state !== 'idle') continue;
+    t.yOff = 1.4 + Math.sin(time * 2 + (t.isPlayer ? 0 : 1)) * 0.12;
+    t.rpm = 600; t.tilt = 0.04;
+  }
+}
+function updateCamera(dt, time) {
+  let target, look = new THREE.Vector3(0, 1.5, 0);
+  const portrait = camera.aspect < 0.8;
+  if (G.camMode === 'top') { target = new THREE.Vector3(0, portrait ? 46 : 36, 0.01); look.set(0, 0, 0); }
+  else if (G.camMode === 'center') { target = new THREE.Vector3(0, 6.5, 10); look.set(0, 0.5, 0); }
+  else {
+    const a = Math.sin(time * 0.15) * 0.25;
+    const dist = portrait ? 25 : 21;
+    target = new THREE.Vector3(Math.sin(a) * dist, portrait ? 21 : 16, Math.cos(a) * dist);
+  }
+  camState.pos.lerp(target, Math.min(1, dt * 2));
+  camState.look.lerp(look, Math.min(1, dt * 2));
+  // 桌面版：題目面板在右邊時，把 3D 畫面向左移，避免競技場被遮住
+  // 「窺看」卡片在底部時，把 3D 畫面向上移，讓陀螺 / 軌跡留在卡片上方
+  const panelOpen = !$('qPanel').classList.contains('hidden') && innerWidth > 760;
+  const peekOpen = $('modal').classList.contains('show') && $('modal').classList.contains('peek');
+  const k = Math.min(1, dt * 4);
+  camState.offX = (camState.offX || 0) + ((panelOpen ? 230 : 0) - (camState.offX || 0)) * k;
+  camState.offY = (camState.offY || 0) + ((peekOpen ? innerHeight * (camera.aspect < 0.8 ? 0.3 : 0.24) : 0) - (camState.offY || 0)) * k;
+  if (camState.offX > 0.5 || camState.offY > 0.5) camera.setViewOffset(innerWidth, innerHeight, camState.offX, camState.offY, innerWidth, innerHeight);
+  else camera.clearViewOffset();
+  camera.position.copy(camState.pos);
+  if (G.shake > 0.001) {
+    camera.position.x += (Math.random() - 0.5) * G.shake;
+    camera.position.y += (Math.random() - 0.5) * G.shake;
+    G.shake *= Math.exp(-dt * 8);
+  }
+  camera.lookAt(camState.look);
+}
+
+/* =====================================================================
+ * 9. 遊戲流程
+ * ===================================================================== */
+const $ = id => document.getElementById(id);
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('show', s.id === id)); }
+function toast(html, ms = 2600) {
+  const el = $('toast'); el.innerHTML = html; el.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), ms);
+}
+function updateHud() {
+  $('hudRound').innerHTML = tr('round', { n: G.round, t: CONFIG.TOTAL_ROUNDS });
+  $('hudScore').innerHTML = `${L('分數', 'Score')} <b>${G.score}</b>`;
+  $('hudName').textContent = `${G.student.name} · ${G.student.cls} (${G.student.no})`;
+  $('lblMe').innerHTML = `${tr('you')} · ${G.student.name}`;
+}
+function showModal(html, peek = false) { $('modalCard').innerHTML = html; $('modal').classList.toggle('peek', peek); showScreen('modal'); $('modalCard').scrollTop = 0; }
+function hideModal() { $('modal').classList.remove('show'); }
+
+/** 開始一場新比賽 */
+function startMatch() {
+  Object.assign(G, { round: 0, score: 0, correct: 0, roundsWon: 0, remedialCorrect: 0, launches: [], lastGen: [], camMode: 'arena',
+    submissionId: Date.now().toString(36) + Math.random().toString(36).slice(2, 8) });
+  clearTrails();
+  $('hud').classList.remove('hidden');
+  nextRound();
+}
+function nextRound() {
+  hideModal();
+  G.round++;
+  G.roundPts = { answer: 0, remedial: 0, win: 0 };
+  G.remedialUsed = false; G.result = null; G.camMode = 'arena'; G.timeScale = 1;
+  resetTops();
+  drawFloor();
+  $('rpmBars').classList.add('hidden'); $('btnDash').classList.add('hidden');
+  updateHud();
+  G.phase = 'question';
+  const pool = ROUND_POOLS[Math.min(G.round - 1, ROUND_POOLS.length - 1)];
+  showQuestion(makeQuestion(pool), false);
+}
+
+/* ---------- 發射題 / 補救題 ---------- */
+function showQuestion(q, remedial) {
+  G.q = q; G.isRemedial = remedial; G.answered = false; G.token++;
+  const tk = G.token;
+  $('qRoundTag').innerHTML = remedial ? tr('remedialQ') : `${tr('launchQ')} · ${tr('round', { n: G.round, t: CONFIG.TOTAL_ROUNDS })}`;
+  $('qRoundTag').className = 'tag ' + (remedial ? 'pink' : 'gold');
+  $('qTopic').innerHTML = L(...TOPICS[q.id]);
+  $('qBanner').classList.toggle('hidden', !remedial);
+  if (remedial) $('qBanner').innerHTML = `<b>💪 ${tr('resTitle')}</b><br>${tr('resMsg')}<br><small>${tr('remedialHint')}</small>`;
+  $('qFig').innerHTML = q.svg;
+  $('qFig').classList.toggle('hidden', !q.svg);
+  $('qText').innerHTML = L(q.text.zh, q.text.en);
+  $('qPrefix').textContent = q.prefix;
+  $('qUnit').innerHTML = q.unitLabel === 'sides' ? L(...T.sides) : q.unit;
+  $('qInput').value = ''; $('qInput').disabled = false;
+  $('qSubmit').innerHTML = remedial ? tr('submitRem') : tr('submit');
+  $('qForm').classList.remove('hidden');
+  $('qFeedback').innerHTML = '';
+  $('qPower').classList.toggle('hidden', remedial);
+  $('qPanel').classList.remove('hidden');
+  $('qPanel').scrollTop = 0;
+  setTimeout(() => { if (G.token === tk && matchMedia('(pointer:fine)').matches) $('qInput').focus({ preventScroll: true }); }, 300);
+  // 語音：補救題先讀「堅韌不拔」訊息，再讀題目
+  if (remedial) {
+    const [rz, re] = raw('resMsg');
+    Voice.speak(rz + '。' + q.text.zh, re + ' ' + q.text.en);
+  } else Voice.speak(q.text.zh, q.text.en);
+  // 計時器
+  const limit = remedial ? CONFIG.REMEDIAL_TIME : CONFIG.QUESTION_TIME;
+  G.qStart = performance.now();
+  clearInterval(G.qTimer);
+  G.qTimer = setInterval(() => {
+    if (G.token !== tk) return clearInterval(G.qTimer);
+    const el = (performance.now() - G.qStart) / 1000, f = Math.max(0, 1 - el / limit);
+    $('qTimer').style.width = (f * 100) + '%';
+    $('qTimer').style.backgroundPosition = `${(1 - f) * 100}% 0`;
+    if (!remedial) $('qPower').innerHTML = `<span>⚙ ${L(...T.powerOk)} <b>${Math.round(3600 + 1800 * f)}</b></span><span>${L(...T.powerNo)} <b>2000</b></span>`;
+    if (f <= 0) submitAnswer(null);
+  }, 100);
+}
+/** 把輸入轉為數字（支援全形數字、"x=50"、"50°" 等寫法） */
+function parseAnswer(s) {
+  if (s == null) return null;
+  s = String(s).replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/．/g, '.').replace(/−/g, '-');
+  const m = s.match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+}
+function submitAnswer(input) {
+  if (G.answered) return;
+  G.answered = true;
+  clearInterval(G.qTimer);
+  const q = G.q, val = parseAnswer(input), ok = val !== null && Math.abs(val - q.answer) < 0.01;
+  const elapsed = (performance.now() - G.qStart) / 1000;
+  const unitTxt = q.unitLabel === 'sides' ? ' ' + (G.lang === 'en' ? 'sides' : '邊') : q.unit;
+  const ansStr = `${q.prefix} ${q.answer}${unitTxt}`.trim();
+  $('qInput').disabled = true;
+  $('qForm').classList.add('hidden');
+  let head, btn;
+  if (!G.isRemedial) {
+    // ---- 發射題：速度 + 準確度 → 轉速與攻擊力 ----
+    G.speedF = Math.max(0, 1 - elapsed / CONFIG.QUESTION_TIME);
+    G.lastCorrect = ok;
+    if (ok) {
+      G.correct++;
+      G.launchRpm = Math.round(3600 + 1800 * G.speedF);
+      me.atk = +(1.1 + 0.5 * G.speedF).toFixed(2);
+      me.shieldHP = 100;
+      G.roundPts.answer = CONFIG.PTS_CORRECT + Math.round(CONFIG.PTS_SPEED_MAX * G.speedF);
+    } else {
+      G.launchRpm = 2000; me.atk = 0.75; me.shieldHP = 0; G.roundPts.answer = 0;
+    }
+    G.score += G.roundPts.answer;
+    // 發射角度：用學生自己輸入的數值（每人不同 → 不同軌跡）
+    let th = val !== null ? ((val % 180) + 180) % 180 : rnd(20, 160);
+    G.theta = Math.round(Math.min(165, Math.max(15, th)));
+    btn = `<button class="btn gold block" id="btnReady">${tr('ready')}</button>`;
+  } else {
+    // ---- 補救題 ----
+    if (ok) { G.remedialCorrect++; G.roundPts.remedial = CONFIG.PTS_REMEDIAL; G.score += CONFIG.PTS_REMEDIAL; }
+    btn = `<button class="btn gold block" id="btnBack">${tr('backBattle')}</button>`;
+  }
+  if (ok) {
+    SFX.correct();
+    head = `<div class="fb-title ok">✅ ${tr(G.isRemedial ? 'correctRem' : 'correct')}</div>`;
+    Voice.say(G.isRemedial ? 'recovered' : 'correct');
+  } else {
+    SFX.wrong();
+    head = `<div class="fb-title no">❌ ${tr(input === null ? 'timeout' : 'wrong', { a: ansStr })}</div>`
+         + (input !== null && String(input).trim() ? `<div style="margin-top:6px;color:var(--muted)">${tr('yourAns', { a: String(input).replace(/[<>&]/g, '') })}</div>` : '');
+    const [wz, we] = raw(input === null ? 'timeout' : 'wrong', { a: ansStr });
+    const [nz, ne] = G.isRemedial ? raw('notRecovered') : ['', ''];
+    Voice.speak(wz + nz, we + ' ' + ne);
+  }
+  const steps = `<div style="margin-top:12px;font-weight:700">📐 ${tr('solution')}</div><ol class="steps">${q.steps.map(s => `<li>${L(s.zh, s.en)}</li>`).join('')}</ol>`;
+  const info = G.isRemedial
+    ? `<div class="note" style="text-align:center">${tr(ok ? 'recovered' : 'notRecovered')}</div>`
+    : `<div class="note" style="text-align:center">⚙ ${tr('launchInfo', { r: G.launchRpm, k: me.atk })}<br>🎯 ${tr('yourAngle', { a: G.theta })}</div>`;
+  $('qFeedback').innerHTML = head + steps + info + btn;
+  updateHud();
+  if (!G.isRemedial) $('btnReady').onclick = () => { SFX.click(); startLaunch(); };
+  else $('btnBack').onclick = () => { SFX.click(); resumeFromRemedial(ok); };
+}
+
+/* ---------- 發射 ---------- */
+function startLaunch() {
+  $('qPanel').classList.add('hidden');
+  G.phase = 'launch';
+  G.launches.push({ theta: G.theta, color: ROUND_COLORS[(G.round - 1) % ROUND_COLORS.length] });
+  drawFloor({ theta: G.theta });
+  toast(tr('yourAngle', { a: G.theta }), 3200);
+  const cm = $('centerMsg'); let n = 3;
+  cm.className = '';
+  const tick = () => {
+    if (n > 0) { cm.textContent = n; SFX.beep(false); n--; setTimeout(tick, 650); return; }
+    cm.innerHTML = tr('go'); SFX.beep(true); SFX.launch();
+    setTimeout(() => { cm.textContent = ''; }, 800);
+    launchTops();
+  };
+  tick();
+}
+function launchTops() {
+  const th = rad(G.theta);
+  Object.assign(me, { state: 'spinning', rpm: G.launchRpm, yOff: 1.4, tilt: 0.05 });
+  me.vel.set(Math.cos(th), -Math.sin(th)).multiplyScalar(5 + 4 * G.speedF);
+  const cth = rad(rnd(100, 260));
+  Object.assign(cpu, { state: 'spinning', rpm: 3500 + 300 * G.round + rnd(-450, 450), atk: 1.0 + 0.08 * G.round, shieldHP: 0, yOff: 1.4, tilt: 0.05 });
+  cpu.vel.set(Math.cos(cth), Math.sin(cth)).multiplyScalar(6);
+  G.battleTime = 0; G.endT = 0; G.dashCD = 0; G.timeScale = 1;
+  startTrail(G.launches[G.launches.length - 1].color);
+  $('rpmBars').classList.remove('hidden');
+  $('btnDash').classList.remove('hidden');
+  $('btnDash').innerHTML = tr('dash');
+  if (G.round === 1) setTimeout(() => toast(tr('dashHint'), 3500), 1200);
+  G.phase = 'battle';
+  emitSparks(START_ME.x, 1.5, START_ME.z, 30, ['#5fe3ff', '#ffffff']);
+}
+/** 玩家衝擊：撞向對手 */
+function dash() {
+  if (G.phase !== 'battle' || G.timeScale === 0 || G.dashCD > 0 || me.state !== 'spinning') return;
+  const d = cpu.pos.clone().sub(me.pos);
+  if (d.length() > 0.01) me.vel.addScaledVector(d.normalize(), 7);
+  me.rpm -= 120; me.boostT = 0.7; G.dashCD = 2.5;
+  SFX.tone(300, 0.3, 'sawtooth', 0.12, 900);
+  emitSparks(me.pos.x, floorY(me.pos.length()) + 0.4, me.pos.y, 20, ['#ffd34d', '#ff6a3d']);
+}
+
+/* ---------- 戰鬥每幀 ---------- */
+function battleStep(dt) {
+  if (dt <= 0) return;
+  const h = dt / 2;
+  for (let i = 0; i < 2; i++) { stepTop(me, h, cpu); stepTop(cpu, h, me); collide(me, cpu, h); }
+  G.battleTime += dt;
+  G.dashCD = Math.max(0, G.dashCD - dt);
+  // 記錄軌跡
+  if (me.state === 'spinning' && curTrail) {
+    curTrail.acc += dt;
+    if (curTrail.acc > 0.025) { curTrail.acc = 0; pushTrail(me.pos.x, me.pos.y); }
+  }
+  // HUD
+  $('barMe').style.width = Math.min(100, Math.max(0, me.rpm) / 60) + '%';
+  $('barCpu').style.width = Math.min(100, Math.max(0, cpu.rpm) / 60) + '%';
+  $('rpmMe').textContent = Math.max(0, Math.round(me.rpm)) + ' RPM';
+  $('rpmCpu').textContent = Math.max(0, Math.round(cpu.rpm)) + ' RPM';
+  $('shieldMe').innerHTML = me.shieldHP > 0 ? `${tr('shield')} ${Math.ceil(me.shieldHP)}%` : '';
+  $('btnDash').classList.toggle('cooling', G.dashCD > 0);
+  if (G.phase === 'battleEnd') {
+    G.endT += dt;
+    if (G.endT > 1.8 && !G.result.shown) { G.result.shown = true; showRoundResult(); }
+    return;
+  }
+  // 【生命教育：堅韌不拔】轉速變慢或被撞至傾斜 → 補救題
+  if (!G.remedialUsed && me.state === 'spinning' && G.battleTime > 2.5 && me.rpm > 150 &&
+      (me.rpm < 0.38 * G.launchRpm || me.tilt > 0.42)) {
+    triggerResilience();
+    return;
+  }
+  // 勝負判定
+  const meUp = me.state === 'spinning', cpuUp = cpu.state === 'spinning';
+  if (!meUp || !cpuUp || G.battleTime > CONFIG.BATTLE_TIME) {
+    let res, why;
+    if (meUp && !cpuUp) { res = 'win'; why = cpu.state === 'out' ? 'ringOut' : 'spinOut'; }
+    else if (!meUp && cpuUp) { res = 'lose'; why = me.state === 'out' ? 'ringOutMe' : 'spinOutMe'; }
+    else if (!meUp && !cpuUp) { res = 'draw'; why = 'bothOut'; }
+    else { res = me.rpm > cpu.rpm + 50 ? 'win' : cpu.rpm > me.rpm + 50 ? 'lose' : 'draw'; why = 'timeUp'; }
+    endBattle(res, why);
+  }
+}
+function triggerResilience() {
+  G.remedialUsed = true;
+  G.timeScale = 0;          // 暫停戰鬥
+  G.phase = 'remedial';
+  $('btnDash').classList.add('hidden');
+  showQuestion(makeQuestion(REMEDIAL_POOL), true);
+}
+function resumeFromRemedial(ok) {
+  $('qPanel').classList.add('hidden');
+  if (ok) {   // 找回重心：恢復轉速、扶正、短暫護盾
+    me.rpm = Math.max(me.rpm, 0.85 * G.launchRpm, 3000);
+    me.tilt = 0.03; me.shieldHP = Math.max(me.shieldHP, 60);
+    emitSparks(me.pos.x, floorY(me.pos.length()) + 1, me.pos.y, 60, ['#4dff9a', '#5fe3ff', '#ffffff']);
+  } else me.rpm += 400;
+  updateHud();
+  $('btnDash').classList.remove('hidden');
+  G.phase = 'battle';
+  G.timeScale = 1;
+}
+function endBattle(res, why) {
+  G.phase = 'battleEnd'; G.endT = 0;
+  G.result = { res, why, shown: false };
+  G.timeScale = 0.35;       // 慢動作
+  $('btnDash').classList.add('hidden');
+  if (res === 'win') { G.roundsWon++; G.roundPts.win = CONFIG.PTS_WIN; SFX.win(); }
+  else if (res === 'draw') { G.roundPts.win = CONFIG.PTS_DRAW; SFX.win(); }
+  else { G.roundPts.win = 0; SFX.lose(); }
+  G.score += G.roundPts.win;
+  $('centerMsg').className = 'small';
+  $('centerMsg').innerHTML = tr(res);
+  updateHud();
+}
+function showRoundResult() {
+  $('centerMsg').textContent = '';
+  const { res, why } = G.result, p = G.roundPts, last = G.round >= CONFIG.TOTAL_ROUNDS;
+  const icon = res === 'win' ? '🏆' : res === 'draw' ? '🤝' : '🌀';
+  showModal(`
+    <div class="life-icon">${icon}</div>
+    <div class="big-result ${res}">${tr(res)}</div>
+    <div class="sub">${tr(why)}</div>
+    <table class="pts">
+      <tr><td>${tr('ptsAnswer')}</td><td>+${p.answer}</td></tr>
+      <tr><td>${tr('ptsRemedial')}</td><td>+${p.remedial}</td></tr>
+      <tr><td>${tr('ptsWin')}</td><td>+${p.win}</td></tr>
+      <tr><td><b>${tr('total')}</b></td><td>${G.score}</td></tr>
+    </table>
+    <button class="btn gold block" id="btnNext">${tr(last ? 'finish' : 'nextRound')}</button>`);
+  const [wz, we] = raw(res), [yz, ye] = raw(why);
+  Voice.speak(wz + yz, we + ' ' + ye);
+  $('btnNext').onclick = () => { SFX.click(); last ? startCeremony() : nextRound(); };
+}
+
+/* ---------- 比賽結束：生命教育三部曲 ---------- */
+/** (1) 尊重與規則：雙方陀螺回到中央互相致意 */
+function startCeremony() {
+  hideModal();
+  $('rpmBars').classList.add('hidden');
+  G.phase = 'ceremony'; G.ceremonyT = 0; G.camMode = 'center'; G.timeScale = 1;
+  for (const [t, x] of [[me, -1.4], [cpu, 1.4]]) {
+    Object.assign(t, { state: 'ceremony', outT: 0, yOff: 0 });
+    t.mesh.visible = true;
+    t.target = new THREE.Vector2(x, 0);
+    if (t.pos.length() > ARENA_R) t.pos.setLength(ARENA_R - 1);
+  }
+  drawFloor();
+  setTimeout(() => {
+    showModal(`
+      <div class="life-icon">🤝</div>
+      <h2>${tr('respectTitle')}</h2>
+      <div class="sub">${tr('respectSub')}</div>
+      <div class="life-msg">${tr('respectMsg')}</div>
+      <button class="btn gold block" id="btnC1">${tr('continue')}</button>`, true);
+    Voice.say('respectMsg');
+    $('btnC1').onclick = () => { SFX.click(); showUniqueness(); };
+  }, 2200);
+}
+function ceremonyStep(dt) {
+  G.ceremonyT += dt;
+  for (const t of [me, cpu]) {
+    t.pos.lerp(t.target, Math.min(1, dt * 1.8));
+    t.rpm += (1400 - t.rpm) * Math.min(1, dt * 2);
+    // 鞠躬：1.2–2.4 秒時向對方傾側
+    const bow = G.ceremonyT > 1.2 && G.ceremonyT < 2.4 ? 0.38 * Math.sin((G.ceremonyT - 1.2) / 1.2 * Math.PI) : 0;
+    t.prec = t.isPlayer ? -Math.PI / 2 : Math.PI / 2;
+    t.tilt = 0.03 + bow;
+  }
+}
+/** (2) 個人獨特性：俯視所有回合的軌跡 */
+function showUniqueness() {
+  hideModal();
+  G.camMode = 'top';
+  drawFloor({ list: G.launches });
+  trails.forEach(t => { t.obj.material.size = 0.18; });
+  setTimeout(() => {
+    const chips = G.launches.map(l => `<span style="color:${l.color}">θ = ${l.theta}°</span>`).join('');
+    showModal(`
+      <div class="life-icon">🌈</div>
+      <h2>${tr('uniqueTitle')}</h2>
+      <div class="life-msg">${tr('uniqueMsg')}</div>
+      <div class="sub">${tr('yourAngles')}</div>
+      <div class="angle-chips">${chips}</div>
+      <button class="btn gold block" id="btnC2">${tr('continue')}</button>`, true);
+    Voice.say('uniqueMsg');
+    $('btnC2').onclick = () => { SFX.click(); showFinal(); };
+  }, 1600);
+}
+/** (3) 結算 + 上傳成績 */
+function showFinal() {
+  G.phase = 'final';
+  showModal(`
+    <div class="life-icon">🎖️</div>
+    <h2>${tr('finalTitle')}</h2>
+    <div class="sub">${G.student.name.replace(/[<>&]/g, '')} · ${G.student.cls.replace(/[<>&]/g, '')} (${G.student.no})</div>
+    <div class="big-result win">${G.score}</div>
+    <table class="pts">
+      <tr><td>${tr('accuracy')}</td><td>${G.correct} / ${CONFIG.TOTAL_ROUNDS}</td></tr>
+      <tr><td>${tr('roundsWon')}</td><td>${G.roundsWon} / ${CONFIG.TOTAL_ROUNDS}</td></tr>
+      <tr><td>${tr('remCorrect')}</td><td>${G.remedialCorrect}</td></tr>
+    </table>
+    <div class="upload-status" id="uploadStatus">${tr('uploading')}</div>
+    <div class="btn-row">
+      <button class="btn ghost hidden" id="btnRetry">${tr('retry')}</button>
+      <button class="btn gold" id="btnAgain">${tr('again')}</button>
+    </div>`);
+  Voice.say('finalSpeech', { s: G.score });
+  $('btnAgain').onclick = () => { SFX.click(); hideModal(); startMatch(); };
+  $('btnRetry').onclick = () => { SFX.click(); sendScore(); };
+  sendScore();
+}
+
+/* =====================================================================
+ * 10. 數據記錄：Fetch API → Google Apps Script → Google Sheet
+ * ---------------------------------------------------------------------
+ * 重點：
+ *  · 用 POST，body 是 JSON 字串。
+ *  · Content-Type 用 "text/plain"：這是「簡單請求」，瀏覽器不會先發
+ *    CORS preflight（OPTIONS）——Apps Script 不支援 OPTIONS，若用
+ *    "application/json" 會被擋。Apps Script 端用 e.postData.contents 讀取。
+ *  · 若讀不到回覆（某些學校網絡 / 瀏覽器），改用 mode:'no-cors' 再送一次；
+ *    payload 內有 submissionId，Apps Script 會自動略過重複記錄。
+ *
+ * ---------------- 對應的 Google Apps Script（Code.gs）範本 ----------------
+ * （同一份程式亦已獨立存放於 Code.gs 檔案）
+ *
+ *   const SHEET_NAME = 'Scores';
+ *   const HEADERS = ['Timestamp 時間', 'Name 姓名', 'Class 班別', 'Class No. 學號',
+ *     'Score 分數', 'Correct 答對題數', 'Total Q 總題數', 'Rounds Won 勝出回合',
+ *     'Recovery Correct 補救題答對', 'Launch Angles 發射角度', 'Language 語言',
+ *     'Voice 語音', 'Submission ID'];
+ *
+ *   function doPost(e) {
+ *     const lock = LockService.getScriptLock();
+ *     lock.waitLock(10000);                       // 防止多位學生同時寫入衝突
+ *     try {
+ *       const data = JSON.parse(e.postData.contents);
+ *       const sheet = getSheet_();
+ *       // 防重複：同一 submissionId 只記錄一次
+ *       const last = sheet.getLastRow();
+ *       if (data.submissionId && last > 1) {
+ *         const ids = sheet.getRange(2, HEADERS.length, last - 1, 1).getValues().flat();
+ *         if (ids.indexOf(data.submissionId) !== -1) return json_({ result: 'success', duplicate: true });
+ *       }
+ *       sheet.appendRow([
+ *         Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd HH:mm:ss'),
+ *         safe_(data.name), safe_(data.className), safe_(data.classNo),
+ *         Number(data.score) || 0, Number(data.correct) || 0, Number(data.total) || 0,
+ *         Number(data.roundsWon) || 0, Number(data.remedialCorrect) || 0,
+ *         safe_(data.launchAngles), safe_(data.language), safe_(data.voice), safe_(data.submissionId)
+ *       ]);
+ *       return json_({ result: 'success', row: sheet.getLastRow() });
+ *     } catch (err) {
+ *       return json_({ result: 'error', message: String(err) });
+ *     } finally {
+ *       lock.releaseLock();
+ *     }
+ *   }
+ *   function doGet() { return json_({ result: 'ok', message: 'Geometry Spin Battle endpoint is running.' }); }
+ *   function getSheet_() {
+ *     const ss = SpreadsheetApp.getActiveSpreadsheet();   // 由 Google Sheet「擴充功能 > Apps Script」建立時自動綁定
+ *     let sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+ *     if (sh.getLastRow() === 0) { sh.appendRow(HEADERS); sh.setFrozenRows(1); }
+ *     return sh;
+ *   }
+ *   function safe_(v) {                                    // 防止「公式注入」
+ *     v = String(v == null ? '' : v).slice(0, 100);
+ *     return /^[=+\-@]/.test(v) ? "'" + v : v;
+ *   }
+ *   function json_(obj) {
+ *     return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+ *   }
+ * ===================================================================== */
+async function sendScore() {
+  const st = $('uploadStatus'), retry = $('btnRetry');
+  if (!st) return;
+  const url = CONFIG.GAS_URL;
+  if (!url || !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { st.innerHTML = tr('noUrl'); return; }
+  st.innerHTML = tr('uploading'); retry.classList.add('hidden');
+  // 打包成 JSON（姓名、班別、學號、最終分數 + 其他學習數據）
+  const payload = {
+    name: G.student.name, className: G.student.cls, classNo: G.student.no, score: G.score,
+    correct: G.correct, total: CONFIG.TOTAL_ROUNDS, roundsWon: G.roundsWon, remedialCorrect: G.remedialCorrect,
+    launchAngles: G.launches.map(l => l.theta).join(', '), language: G.lang, voice: G.voice,
+    submissionId: G.submissionId, clientTime: new Date().toISOString()
+  };
+  const body = JSON.stringify(payload);
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body });
+    const data = await res.json();
+    if (data.result !== 'success') throw new Error(data.message || 'GAS error');
+    st.innerHTML = tr('uploaded');
+  } catch (err) {
+    console.warn('[upload] normal fetch failed, retry with no-cors:', err);
+    try {
+      await fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body });
+      st.innerHTML = tr('uploadedOpaque');
+    } catch (err2) {
+      console.error('[upload] failed:', err2);
+      st.innerHTML = tr('uploadFail');
+      retry.classList.remove('hidden');
+    }
+  }
+}
+
+/* =====================================================================
+ * 11. 開場介面事件
+ * ===================================================================== */
+const COLORS = [0x2f8cff, 0x27d07a, 0x9b5cff, 0xffb020];
+function initUI() {
+  Voice.init();
+  // 語言選擇
+  document.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => {
+    G.lang = b.dataset.lang;
+    SFX.init(); SFX.click();
+    applyLang();
+    showScreen('scrVoice');
+    if (!Voice.supported) $('voiceNote').innerHTML = tr('noSpeech');
+  });
+  // 語音選擇
+  document.querySelectorAll('[data-voice]').forEach(o => o.onclick = () => {
+    document.querySelectorAll('[data-voice]').forEach(x => x.classList.toggle('selected', x === o));
+    G.voice = o.dataset.voice;
+    $('btnVoiceNext').disabled = false;
+    SFX.click();
+    const v = G.voice;
+    $('voiceNote').innerHTML = !Voice.supported ? tr('noSpeech')
+      : (v !== 'off' && Voice.voices.length && !Voice.pick(v)) ? tr('noVoice', { v: Voice.NAME[v] }) : '';
+  });
+  document.querySelectorAll('[data-test]').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    b.closest('[data-voice]').click();
+    const [zh, en] = raw('testLine');
+    Voice.speak(zh, en, b.dataset.test, true);
+  });
+  $('btnVoiceNext').onclick = () => { SFX.click(); G.voiceOn = G.voice !== 'off'; showScreen('scrForm'); $('fName').focus(); };
+  // 顏色
+  COLORS.forEach((c, i) => {
+    const s = document.createElement('div');
+    s.className = 'swatch' + (i === 0 ? ' selected' : '');
+    s.style.background = '#' + c.toString(16).padStart(6, '0');
+    s.onclick = () => { G.color = c; document.querySelectorAll('.swatch').forEach(x => x.classList.toggle('selected', x === s)); SFX.click(); };
+    $('swatches').appendChild(s);
+  });
+  // 學生資料表單
+  $('studentForm').onsubmit = e => {
+    e.preventDefault();
+    const name = $('fName').value.trim(), cls = $('fClass').value.trim().toUpperCase(), no = $('fNo').value.trim();
+    if (!name || !cls || !no) { $('formErr').innerHTML = tr('formErr'); return; }
+    G.student = { name, cls, no };
+    SFX.click();
+    showScreen(null);
+    if (!renderer) init3D();
+    startMatch();
+  };
+  // 題目作答
+  $('qForm').onsubmit = e => { e.preventDefault(); if ($('qInput').value.trim()) submitAnswer($('qInput').value); };
+  $('btnReadQ').onclick = () => { if (G.q) Voice.speak(G.q.text.zh, G.q.text.en, G.voice === 'off' ? 'yue' : G.voice, true); };
+  // HUD 按鈕
+  $('btnDash').onclick = dash;
+  window.addEventListener('keydown', e => { if (e.code === 'Space' && G.phase === 'battle' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); dash(); } });
+  $('btnVoiceToggle').onclick = () => {
+    G.voiceOn = !G.voiceOn;
+    if (G.voiceOn && G.voice === 'off') G.voice = 'yue';
+    $('btnVoiceToggle').classList.toggle('off', !G.voiceOn);
+    if (!G.voiceOn) Voice.stop();
+  };
+  $('btnSfxToggle').onclick = () => { G.sfxOn = !G.sfxOn; SFX.setOn(G.sfxOn); $('btnSfxToggle').classList.toggle('off', !G.sfxOn); };
+}
+initUI();
+// 測試 / 除錯用（老師可在 Console 輸入 __game.G.q.answer 查看答案）
+window.__game = { G, GEN, ROUND_POOLS, CONFIG, get me() { return me; }, get cpu() { return cpu; } };
+</script>
+</body>
+</html>
