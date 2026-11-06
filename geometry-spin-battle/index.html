@@ -1083,7 +1083,9 @@ function makeQuestion(pool) {
  * 6. 3D 場景（Three.js）
  * ===================================================================== */
 const ARENA_R = 10, TOP_R = 0.85;
-const floorY = r => 0.035 * r * r;            // 碗形競技場高度函數 y = 0.035 r²
+const FLAT_R = 8.5;                            // 中央平面區半徑：所有直線、角度都畫在這個平面上
+// 地台高度：中央完全平坦（直線不會變彎，方便中二學生看角度）；只有最外圈有少許斜邊
+const floorY = r => (r <= FLAT_R ? 0 : 0.55 * (r - FLAT_R) * (r - FLAT_R));
 const START_ME = { x: -6, z: 0 }, START_CPU = { x: 6, z: 0 };
 const PAR_Z = 3;                               // 兩條平行線位於 z = ±3
 const ROUND_COLORS = ['#5fe3ff', '#ffd34d', '#ff6fae', '#4dff9a', '#b18cff', '#ff9a4d', '#9dffef', '#ffffff'];
@@ -1139,14 +1141,14 @@ function onResize() {
   camera.updateProjectionMatrix();
 }
 
-/** 競技場：碗形地台（地面貼圖畫有平行線及截線）+ 圍牆 + 霓虹邊框 */
+/** 競技場：平面地台（地面貼圖畫有平行線及截線）+ 外圈斜邊 + 圍牆 + 霓虹邊框 */
 function buildArena() {
   floorCanvas = document.createElement('canvas');
   floorCanvas.width = floorCanvas.height = 1024;
   floorTex = new THREE.CanvasTexture(floorCanvas);
   floorTex.encoding = THREE.sRGBEncoding;
   floorTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  // RingGeometry 的 UV 是平面投影，正好配合平面貼圖；再把頂點改成碗形
+  // RingGeometry 的 UV 是平面投影，正好配合平面貼圖；中央平坦、外圈微微翹起
   const g = new THREE.RingGeometry(0.0001, ARENA_R, 128, 40);
   const pos = g.attributes.position;
   for (let i = 0; i < pos.count; i++) {
@@ -1209,10 +1211,16 @@ function drawFloor(opt = {}) {
   const bg = c.createRadialGradient(W / 2, W / 2, 30, W / 2, W / 2, W / 2);
   bg.addColorStop(0, '#173a6c'); bg.addColorStop(0.7, '#0c2245'); bg.addColorStop(1, '#071430');
   c.fillStyle = bg; c.fillRect(0, 0, W, W);
-  // 同心圓與放射線（裝飾）
-  c.strokeStyle = 'rgba(95,227,255,0.16)'; c.lineWidth = 2;
-  for (let r = 2; r <= 10; r += 2) { c.beginPath(); c.arc(W / 2, W / 2, r * k, 0, Math.PI * 2); c.stroke(); }
-  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; c.beginPath(); c.moveTo(W / 2, W / 2); c.lineTo(W / 2 + Math.cos(a) * W / 2, W / 2 + Math.sin(a) * W / 2); c.stroke(); }
+  // 方格（只用直線，避免同心圓令學生誤以為要計「圓的角」）
+  c.strokeStyle = 'rgba(95,227,255,0.13)'; c.lineWidth = 2;
+  for (let v = -10; v <= 10; v += 1.25) {
+    c.beginPath(); c.moveTo(X(v), 0); c.lineTo(X(v), W); c.stroke();
+    c.beginPath(); c.moveTo(0, Z(v)); c.lineTo(W, Z(v)); c.stroke();
+  }
+  // 平面區邊界：之後所有直線只畫在平坦區域內（外圈斜邊上不畫線，線就不會看似彎曲）
+  c.strokeStyle = 'rgba(95,227,255,0.45)'; c.lineWidth = 4;
+  c.beginPath(); c.arc(W / 2, W / 2, FLAT_R * k, 0, Math.PI * 2); c.stroke();
+  c.beginPath(); c.arc(W / 2, W / 2, (FLAT_R - 0.15) * k, 0, Math.PI * 2); c.clip();
   // 兩條平行線 L₁、L₂
   const glowLine = (x1, y1, x2, y2, col, w) => {
     c.shadowColor = col; c.shadowBlur = 18; c.strokeStyle = col; c.lineWidth = w;
@@ -1227,7 +1235,7 @@ function drawFloor(opt = {}) {
     }
   }
   c.fillStyle = '#ffd34d'; c.font = 'bold 34px system-ui, sans-serif';
-  c.fillText('L₁', X(-8.6), Z(-PAR_Z) - 14); c.fillText('L₂', X(-8.6), Z(PAR_Z) - 14);
+  c.fillText('L₁', X(-7.6), Z(-PAR_Z) - 14); c.fillText('L₂', X(-7.6), Z(PAR_Z) - 14);
   c.fillText('L₁ // L₂', X(-1.6), Z(0) - 4);
 
   // 截線（可多條：結算時顯示所有回合的發射角度）
@@ -1240,7 +1248,7 @@ function drawFloor(opt = {}) {
     // 截線與 L₁、L₂ 的交點上畫角弧（同位角相等）
     for (const zl of [-PAR_Z, PAR_Z]) {
       const t = (zl - sz) / dz, ix = sx + dx * t;
-      if (Math.hypot(ix, zl) > ARENA_R - 0.8) continue;
+      if (Math.hypot(ix, zl) > FLAT_R - 0.9) continue;
       c.strokeStyle = it.color; c.lineWidth = 5;
       c.beginPath(); c.arc(X(ix), Z(zl), 46, -th, 0); c.stroke();
       c.fillStyle = it.color; c.font = 'bold 30px system-ui, sans-serif';
@@ -1700,13 +1708,14 @@ function submitAnswer(input) {
 function startLaunch() {
   $('qPanel').classList.add('hidden');
   G.phase = 'launch';
+  G.camMode = 'top';        // 俯視：令地上的發射角 θ 以真實大小顯示
   G.launches.push({ theta: G.theta, color: ROUND_COLORS[(G.round - 1) % ROUND_COLORS.length] });
   drawFloor({ theta: G.theta });
   toast(tr('yourAngle', { a: G.theta }), 3200);
   const cm = $('centerMsg'); let n = 3;
   cm.className = '';
   const tick = () => {
-    if (n > 0) { cm.textContent = n; SFX.beep(false); n--; setTimeout(tick, 650); return; }
+    if (n > 0) { cm.textContent = n; SFX.beep(false); n--; setTimeout(tick, 850); return; }
     cm.innerHTML = tr('go'); SFX.beep(true); SFX.launch();
     setTimeout(() => { cm.textContent = ''; }, 800);
     launchTops();
@@ -1727,6 +1736,7 @@ function launchTops() {
   $('btnDash').innerHTML = tr('dash');
   if (G.round === 1) setTimeout(() => toast(tr('dashHint'), 3500), 1200);
   G.phase = 'battle';
+  G.camMode = 'arena';
   emitSparks(START_ME.x, 1.5, START_ME.z, 30, ['#5fe3ff', '#ffffff']);
 }
 /** 玩家衝擊：撞向對手 */
